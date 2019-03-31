@@ -74,7 +74,7 @@ Eventually I will compile it into the jar file, but for now it I am changing the
 - `PluginBridge.js`
   Contains the hooks for the base plugin, stuff like
   - onEnable
-  - onCommand
+  - onCommand  
   And basics for loading the plugin (combined with `plugin.js`)
 - `fs.js`
   Basic implementation for `fs` that uses Java.
@@ -111,3 +111,19 @@ Your main file, as described in `package_json.main` property, will be loaded in.
   - [Entity events](https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/event/entity/package-summary.html)
 
 Because of the lacking `require()` implementation, and just the fact people have worked hours and hours in getting a node-ish-like environment on other places, I think using webpack to pre-pack plugins is ideal.
+
+### Roadmap-ish
+
+- **Something with threads**
+  I need to, idk, at least load in the javascript in the background.
+  Right now, everything freezes when I re-load a plugin. Also because I need it for the portals plugin, I want some way do processing in a background thread without freezing the server.
+
+- **Make everything more solid**
+  This will come over time, I just need to experiment with it more.
+
+- **Give every plugin a separate context**
+  I think this is better for plugin to have a lot of separation,
+  just to prevent all these stupid bugs that will come from sharing.
+
+- **Build process worked out**
+  I think I should just make webpack mandatory, but I need to make sure I keep this stuff as basic and simple as possible. Also I think it would be cool to have a react-native style hybrid plugin, where you can still make some classes in java when you need it.
