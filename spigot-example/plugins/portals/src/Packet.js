@@ -11,9 +11,10 @@ let Packet = {
     proto.addTypes(minecraft_types);
     // proto.addProtocol(minecraft_data.protocol, ['play', 'toClient'])
     proto.addProtocol(minecraft_data_protocol, ["play", "toClient"]);
-    
+
     return proto;
   }),
+
   send_packet: (player, { name, params }) => {
     let proto = Packet.packet_manager();
 
@@ -38,6 +39,24 @@ let Packet = {
     let wirepacket = new WirePacket(packet_id, packet_data);
     protocol_manager.sendWirePacket(player, wirepacket);
   },
-}
+
+  combined_id: (blockdata) => {
+    // Most hacky stuff pfff
+    let BLOCK = Java.type("net.minecraft.server.v1_13_R2.Block").class.static;
+    let iblockdata = Java_type("com.comphenix.protocol.wrappers.WrappedBlockData")
+      .static.createData(blockdata)
+      .getHandle();
+    let combined_id = BLOCK.getCombinedId(iblockdata);
+    return combined_id;
+  },
+
+  multiblock_entry: ({ in_chunk: [x, z], y, blockId }) => {
+    return {
+      horizontalPos: (Math.floor(x) << 4) + Math.floor(z),
+      y: y,
+      blockId: blockId
+    };
+  },
+};
 
 module.exports = Packet;

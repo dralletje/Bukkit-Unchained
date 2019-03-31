@@ -64,6 +64,7 @@ messages:
     flying-vehicle: Flying is not enabled on this server
 world-settings:
   default:
+    count-all-mobs-for-spawning: false
     disable-thunder: false
     skeleton-horse-thunder-spawn-chance: 0.01
     disable-ice-and-snow: false

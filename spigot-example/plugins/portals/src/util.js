@@ -1,42 +1,58 @@
-let { once } = require('lodash');
+// Simple way to add timeout to an async function:
+// - await delay(1000); // Waits for 1 second before continueing
+let delay = ms => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  });
+};
 
-let Packet = {
-  packet_manager: once(() => {
-    let minecraft_types = require("./minecraft-types.js");
-    let minecraft_data_protocol = require("minecraft-data/minecraft-data/data/pc/1.13.2/protocol.json");
-    // let minecraft_data = minecraft_data_factory('1.13.2');
-    let ProtoDef = require("protodef").ProtoDef;
-
-    let proto = new ProtoDef(false);
-    proto.addTypes(minecraft_types);
-    // proto.addProtocol(minecraft_data.protocol, ['play', 'toClient'])
-    proto.addProtocol(minecraft_data_protocol, ["play", "toClient"]);
-    return proto;
-  }),
-  send_packet: (player, { name, params }) => {
-    let proto = Packet.packet_manager();
-
-    if (name == null) {
-      throw new Error(`Should set a .name prop with the packet name`);
-    }
-
-    let packet_raw = proto.createPacketBuffer("packet", {
-      name: name,
-      params: params
-    });
-
-    let WirePacket = Java_type(
-      "com.comphenix.protocol.injector.netty.WirePacket"
-    );
-    let protocol_manager = Java_type(
-      "com.comphenix.protocol.ProtocolLibrary"
-    ).static.getProtocolManager();
-
-    let packet_id = packet_raw[0];
-    let packet_data = new Int8Array(packet_raw.slice(1));
-    let wirepacket = new WirePacket(packet_id, packet_data);
-    protocol_manager.sendWirePacket(player, wirepacket);
-  },
+class PreconditionError extends Error {
+  constructor(...args) {
+    super(...args);
+    this.name = "PreconditionError";
+  }
 }
+let precondition = (condition, message) => {
+  if (!condition) {
+    throw new PreconditionError(message);
+  }
+};
 
-module.exports = { Packet };
+let queue_function = fn => {
+  let IS_RUNNING = Symbol(
+    "function is running, with no next function scheduled"
+  );
+  let next = null;
+  let exeute_next = async (...args) => {
+    try {
+      // console.log(`START: ${typeof next}`);
+      if (next == null) {
+        next = IS_RUNNING;
+
+        await fn(...args);
+        await delay(10);
+
+        let current = next;
+        next = null;
+        if (current !== IS_RUNNING && current != null) {
+          // console.log("executing next");
+          exeute_next(...current);
+        }
+        // console.log(`END: ${typeof next}`);
+      } else {
+        // console.log("Schedule next");
+        next = args;
+      }
+    } catch (err) {
+      console.log(`err:`, err);
+      throw err;
+    }
+  };
+
+  return exeute_next;
+};
+
+
+module.exports = { delay, precondition, queue_function };

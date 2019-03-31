@@ -1,13 +1,17 @@
 let { range, sortBy, throttle, random } = require("lodash");
-let { ChatColor, Material } = require("bukkit");
+let { ChatColor, Material, BlockFace } = require("bukkit");
 
-let {} = require("./util.js");
+let { delay, precondition, queue_function } = require("./util.js");
 let Packet = require("./Packet.js");
-let { Plane, Face } = require("./Geometry.js");
+let { Plane, Face, TransformationMatrix, JavaVector } = require("./Geometry.js");
+let { Drone } = require("./Drone.js");
 
 let Vector = Java.type("org.bukkit.util.Vector");
 let Location = Java.type("org.bukkit.Location");
+
 let Directional = Java.type('org.bukkit.block.data.Directional');
+let Rotatable = Java.type('org.bukkit.block.data.Rotatable');
+let Bisected = Java.type('org.bukkit.block.data.Bisected');
 
 // Hmmm
 // TODO Very hacky thing to make
@@ -18,104 +22,17 @@ global.crypto = {
   }
 };
 
-let { Drone } = require("./Drone.js");
-
-let reset_location_for_player = (player, location) => {
-  player.sendBlockChange(location, location.getBlock().getBlockData());
-};
-
-// Simple way to add timeout to an async function:
-// - await delay(1000); // Waits for 1 second before continueing
-let delay = ms => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve();
-    }, ms);
-  });
-};
-
-class PreconditionError extends Error {
-  constructor(...args) {
-    super(...args);
-    this.name = "PreconditionError";
-  }
-}
-let precondition = (condition, message) => {
-  if (!condition) {
-    throw new PreconditionError(message);
-  }
-};
-
 let block_middle = location => {
   return location.clone().add(new Vector(0.5, 0.5, 0.5));
 };
 
-let multiblock = ({ in_chunk: [x, z], y, blockId }) => {
-  return {
-    horizontalPos: (x << 4) + z,
-    y: y,
-    blockId: blockId
-  };
-};
-
-let queue_function = fn => {
-  let IS_RUNNING = Symbol(
-    "render_portal is running, with no next render_portal scheduled"
-  );
-  let next = null;
-  let exeute_next = async (...args) => {
-    try {
-      // console.log(`START: ${typeof next}`);
-      if (next == null) {
-        next = IS_RUNNING;
-
-        await fn(...args);
-        await delay(10);
-
-        let current = next;
-        next = null;
-        if (current !== IS_RUNNING && current != null) {
-          console.log("executing next");
-          exeute_next(...current);
-        }
-        // console.log(`END: ${typeof next}`);
-      } else {
-        console.log("Schedule next");
-        next = args;
-      }
-    } catch (err) {
-      console.log(`err:`, err);
-      throw err;
-    }
-  };
-
-  return exeute_next;
-};
-
-let math = require("mathjs");
-let get_transformation_matrix = vectors => {
-  let X_from = math.transpose(
-    vectors.map(x => {
-      return [...x.from, 1];
-    })
-  );
-  let X_to = math.transpose(
-    vectors.map(x => {
-      return [...x.to, 1];
-    })
-  );
-
-  let inverse = math.inv(X_from);
-  let T = math.transpose(math.multiply(X_to, inverse));
-  return T;
-};
 let get_transformation_matrix_for_portal = (portal) => {
   let { corner_blocks, looking_direction } = portal;
   let [left, left_top, right_top, right] = corner_blocks
     .map(x => x.getLocation())
     .map(x => block_middle(x));
 
-  let transformation_matrix = get_transformation_matrix([
+  let transformation_matrix = TransformationMatrix.from_vector_mappings([
     { from: JavaVector.to_js(left), to: JavaVector.to_js(right) },
     { from: JavaVector.to_js(right), to: JavaVector.to_js(left) },
     {
@@ -127,15 +44,6 @@ let get_transformation_matrix_for_portal = (portal) => {
 
   return transformation_matrix;
 }
-
-let JavaVector = {
-  to_js: vector => {
-    return [vector.getX(), vector.getY(), vector.getZ()];
-  },
-  from_js: vector => {
-    return new Vector(vector[0], vector[1], vector[2]);
-  }
-};
 
 let NINE_SQUARED = 9 ** 2;
 let EIGHT_SQUARED = 8 ** 2;
@@ -186,14 +94,7 @@ let render_portal = queue_function(async (player, location, portal) => {
     let plane_point = middle_between_vectors(left, right_top);
     let plane_vector = looking_direction.clone();
 
-    let idk_vector = left
-      .toVector()
-      .clone()
-      .add(looking_direction)
-      .subtract(location.toVector())
-      .multiply(looking_direction);
-    let isReal = idk_vector.getX() + idk_vector.getY() + idk_vector.getZ() < 0;
-
+    let isReal = is_in_front_of_portal(player, portal);
     if (isReal === true && player_portal.isReal === true) {
       return;
     }
@@ -223,10 +124,13 @@ let render_portal = queue_function(async (player, location, portal) => {
         { forward: 16 },
         { up: 3 + portal_height + 8 }
       ])) {
-        // let [x, y, z, _] = math.multiply([...JavaVector.to_js(location), 1], transformation_matrix);
-        let mirrored = transform_location(location, transformation_matrix);
+        let mirrored = transformation_matrix.apply_to_location(location);
 
         locations.push([location, mirrored]);
+
+        if (locations.length % 100 === 0) {
+          await delay(10);
+        }
       }
     }
     console.timeEnd("Cuboid chunks");
@@ -280,11 +184,27 @@ let render_portal = queue_function(async (player, location, portal) => {
 
         if (mirrored_block_data instanceof Directional) {
           let current_direction = mirrored_block_data.getFacing().getDirection();
-          let next_direction = transform_direction(current_direction, transformation_matrix);
+          let next_direction = transformation_matrix.apply_to_direction(current_direction);
           let available_faces = Java.from(mirrored_block_data.getFaces().toArray());
           let next_face = Face.get_closest_face_for_vector(next_direction, available_faces);
           mirrored_block_data.setFacing(next_face);
-          // console.log(`mirrored_block_data.getFacing().toString():`, mirrored_block_data.getFacing().toString())
+        }
+
+        if (mirrored_block_data instanceof Rotatable) {
+          let current_direction = mirrored_block_data.getRotation().getDirection();
+          let next_direction = transformation_matrix.apply_to_direction(current_direction);
+          let next_face = Face.get_closest_face_for_vector(next_direction);
+          mirrored_block_data.setRotation(next_face);
+        }
+
+        if (mirrored_block_data instanceof Bisected) {
+          let bisected_face =
+            mirrored_block_data.getHalf() === Bisected.Half.TOP
+            ? BlockFace.UP
+            : BlockFace.DOWN;
+          let next_direction = transformation_matrix.apply_to_direction(bisected_face.getDirection());
+          let next_face = Face.get_closest_face_for_vector(next_direction, [BlockFace.UP, BlockFace.DOWN]);
+          mirrored_block_data.setHalf(next_face === BlockFace.UP ? Bisected.Half.TOP : Bisected.Half.BOTTOM);
         }
 
         if (block_data.equals(mirrored_block_data)) {
@@ -324,13 +244,13 @@ let render_portal = queue_function(async (player, location, portal) => {
         chunk_z: chunk_z
       };
       chunks[chunk_key].records.push(
-        multiblock({
+        Packet.multiblock_entry({
           in_chunk: [
-            Math.floor(location.getX()) - chunk_x * 16,
-            Math.floor(location.getZ()) - chunk_z * 16
+            location.getX() - chunk_x * 16,
+            location.getZ() - chunk_z * 16,
           ],
           y: location.getBlockY(),
-          blockId: get_combined_id(blockdata)
+          blockId: Packet.combined_id(blockdata),
         })
       );
     }
@@ -396,16 +316,10 @@ let runtime_portal = (player, portal) => {
 
 let is_in_front_of_portal = (player, portal) => {
   let { corner_blocks, looking_direction } = portal;
-  let [left, _1, _2, right] = corner_blocks;
+  let [bottom_left, top_left, top_right, bottom_right] = corner_blocks.map(x => x.getLocation()).map(x => block_middle(x));
 
-  let idk_vector = left
-    .getLocation()
-    .toVector()
-    .clone()
-    .add(looking_direction)
-    .subtract(player.getLocation().toVector())
-    .multiply(looking_direction);
-  return idk_vector.getX() + idk_vector.getY() + idk_vector.getZ() < 0;
+  let portal_plane = Plane.from_three_points(bottom_left, top_left, top_right);
+  return portal_plane.is_next_to(player.getLocation().toVector());
 };
 
 let trace_portal = async (player, looking_location, looking_direction) => {
@@ -459,121 +373,12 @@ let trace_portal = async (player, looking_location, looking_direction) => {
   }
 };
 
-let double_to_int = double => {
-  let result = Math.round(double);
-  if (result === -0) {
-    return 0;
-  } else {
-    return result;
-  }
-};
-
-let debug_spawn = ({
-  player,
-  location,
-  id = random(0, 1000),
-  entity_type = 63,
-  spawn_timeout = 1000
-}) => {
-  Packet.send_packet(player, {
-    name: "spawn_entity",
-    params: {
-      entityId: id,
-      objectUUID: id,
-      type: entity_type,
-      x: location.getX(),
-      y: location.getY(),
-      z: location.getZ(),
-      velocityX: 0,
-      velocityY: 0,
-      velocityZ: 0,
-      pitch: 0,
-      yaw: 0
-    }
-  });
-
-  // setTimeout(() => {
-  //   entity.remove();
-  // }, spawn_timeout)
-};
-
-let to_vector = m => (m.toVector ? m.toVector() : m);
-
-let trace_eye = function*(player, to_location) {
-  let world = player.getLocation().getWorld();
-
-  let head_vector = player.getEyeLocation().toVector();
-
-  let to_vector = to_location.toVector();
-  // left_vector = left_vector.clone().add(left_vector.subtract(right_vector).normalize())
-
-  let delta_to = head_vector.clone().subtract(to_vector);
-
-  // let ExperienceOrb = Java.type('org.bukkit.entity.Arrow')
-  // let ExperienceOrb = Java.type('org.bukkit.entity.ExperienceOrb')
-  let ExperienceOrb = Java.type("org.bukkit.entity.Snowball");
-
-  let previous = null;
-  for (let i of range(16)) {
-    let direction = delta_to
-      .clone()
-      .normalize()
-      .multiply(-i);
-    let next = to_location.clone().add(direction);
-    yield next;
-
-    // if (previous) {
-    //   let diff = next.clone().add(previous.clone().multiply(-1));
-    //   let N = 1;
-    //   for (let n of range(N)) {
-    //     debug_spawn({
-    //       player: player,
-    //       location: previous.clone().add(diff.clone().multiply(1 / N * n)),
-    //       entity_type: ExperienceOrb,
-    //       id: 1000 + (i * 3) + n,
-    //     });
-    //   }
-    // }
-
-    previous = next;
-  }
-};
-
-let v_null = new Vector(0, 0, 0);
-
-let get_combined_id = blockdata => {
-  // Most hacky stuff pfff
-  let BLOCK = Java.type("net.minecraft.server.v1_13_R2.Block").class.static;
-  let iblockdata = Java_type("com.comphenix.protocol.wrappers.WrappedBlockData")
-    .static.createData(blockdata)
-    .getHandle();
-  let combined_id = BLOCK.getCombinedId(iblockdata);
-  return combined_id;
-};
-
 let middle_between_vectors = (v1, v2) => {
   return v1
     .clone()
     .add(v2)
     .multiply(0.5);
 };
-
-let transform_direction = (direction_vector, T) => {
-  let direction_only_transform = [
-    [T[0][0], T[0][1], T[0][2]],
-    [T[1][0], T[1][1], T[1][2]],
-    [T[2][0], T[2][1], T[2][2]],
-  ];
-  let [x, y, z] = math.multiply(JavaVector.to_js(direction_vector), direction_only_transform);
-  return new Vector(x, y, z);
-}
-
-let transform_location = (location, transformation_matrix) => {
-  let [x, y, z, _] = math.multiply([...JavaVector.to_js(location), 1], transformation_matrix);
-  let new_location = new Location(location.getWorld(), x, y, z);
-  new_location.setDirection(transform_direction(location.getDirection(), transformation_matrix));
-  return new_location;
-}
 
 let check_for_portal_crossing = (event, portal) => {
   let [
@@ -612,14 +417,27 @@ let check_for_portal_crossing = (event, portal) => {
   let transformation_matrix = get_transformation_matrix_for_portal(portal);
 
   let player = event.getPlayer();
-  // player.setVelocity(
-  //   transform_location(
-  //     event.getTo().clone().add(player.getVelocity())
-  //   ).toVector()
-  // );
-  player.setVelocity(transform_direction(player.getVelocity(), transformation_matrix));
-  event.setTo(transform_location(event.getTo(), transformation_matrix));
+  player.setVelocity(transformation_matrix.apply_to_direction(player.getVelocity()));
+  event.setTo(transformation_matrix.apply_to_location(event.getTo()));
 };
+
+let spawn_fake_player = (player) => {
+  let looking_location_1 = player.getTargetBlockExact(120).getLocation().add(new Vector(0, 1, 0));
+
+  Packet.send_packet(player, {
+    name: 'named_entity_spawn',
+    params: {
+      entityId: 1003,
+      playerUUID: player.getUniqueId().toString(),
+      x: looking_location_1.getX(),
+      y: looking_location_1.getY(),
+      z: looking_location_1.getZ(),
+      yaw: 0,
+      pitch: 0,
+      metadata: [],
+    },
+  });
+}
 
 module.exports = plugin => {
   let portals = [];
@@ -636,9 +454,9 @@ module.exports = plugin => {
 
     let player = event.getPlayer();
     for (let portal of portals) {
-      await render_portal(player, event.getTo(), portal);
-
       await check_for_portal_crossing(event, portal);
+
+      await render_portal(player, event.getTo(), portal);
     }
   });
 
@@ -649,13 +467,6 @@ module.exports = plugin => {
       .getDirection()
       .clone()
       .multiply(-1);
-    let world = looking_location.getWorld();
-
-    let chunk = looking_location.getChunk();
-    let chunk_x = chunk.getX();
-    let chunk_z = chunk.getZ();
-    let x = looking_location.getBlockX();
-    let z = looking_location.getBlockZ();
 
     let corner_blocks = await trace_portal(
       player,
@@ -669,5 +480,7 @@ module.exports = plugin => {
     };
     portals.push(portal);
     await render_portal(player, player.getLocation(), portal);
+
+    player.sendMessage(`${ChatColor.PURPLE}Portal activated!`)
   });
 };
