@@ -1,0 +1,32 @@
+{
+  "name": "bukkit-portals-plugin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main.js",
+  "scripts": {
+    "watch": "webpack --config webpack.config.js --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "bukkit": {
+    "api-version": "1.13",
+    "dev": true,
+    "commands": {
+      "portal": {}
+    }
+  },
+  "dependencies": {
+    "lodash": "^4.17.11",
+    "mathjs": "^5.8.0",
+    "minecraft-data": "^2.36.0",
+    "prismarine-nbt": "^1.2.1",
+    "protodef": "^1.6.9",
+    "uuid-1345": "^0.99.7",
+    "zlib": "^1.0.5"
+  },
+  "devDependencies": {
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.3.0"
+  }
+}

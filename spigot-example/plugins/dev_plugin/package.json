@@ -1,0 +1,22 @@
+{
+  "name": "dev_plugin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dev_plugin.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "bukkit": {
+    "api-version": "1.13",
+    "commands": {
+      "jsrepl": {
+        "description": "Does basically nothing"
+      }
+    }
+  },
+  "dependencies": {
+    "lodash": "^4.17.11"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "is-slime-chunk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "is-slime-chunk.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "bukkit": {
+    "api-version": "1.13",
+    "commands": {
+      "get-slime-chunks": {
+        "description": "Covers chunks in a range if they are slime chunks"
+      }
+    }
+  },
+  "dependencies": {
+    "lodash": "^4.17.11"
+  }
+}

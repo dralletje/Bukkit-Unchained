@@ -1,0 +1,13 @@
+graal-bin
+!graal-bin/.git-keep
+
+.DS_Store
+
+*.jar
+spigot-example/graal_dumps
+spigot-example/logs
+spigot-example/world*
+
+Unchained/target
+
+node_modules

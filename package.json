@@ -1,0 +1,13 @@
+{
+  "name": "bukkit-unchained-playground",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "run-minecraft-server": "cd spigot-example && ../graal-bin/bin/java -Dgraal.LogFile=graallog.log -jar minecraft-server.jar",
+    "compile-unchained": "cd Unchained && mvn package && mv ./target/Unchained.jar ../spigot-example/plugins/Unchained.jar",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

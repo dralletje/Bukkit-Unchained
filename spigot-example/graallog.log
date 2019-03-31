@@ -1,0 +1,2 @@
+VM Arguments: -Dgraal.LogFile=graallog.log
+sun.java.command=minecraft-server.jar
