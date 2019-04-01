@@ -3,15 +3,22 @@ let { ChatColor, Material, BlockFace } = require("bukkit");
 
 let { delay, precondition, queue_function } = require("./util.js");
 let Packet = require("./Packet.js");
-let { Plane, Face, TransformationMatrix, JavaVector } = require("./Geometry.js");
+let { FakePlayer } = require('./EntityComponents.js');
+
+let {
+  Plane,
+  Face,
+  TransformationMatrix,
+  JavaVector
+} = require("./Geometry.js");
 let { Drone } = require("./Drone.js");
 
 let Vector = Java.type("org.bukkit.util.Vector");
 let Location = Java.type("org.bukkit.Location");
 
-let Directional = Java.type('org.bukkit.block.data.Directional');
-let Rotatable = Java.type('org.bukkit.block.data.Rotatable');
-let Bisected = Java.type('org.bukkit.block.data.Bisected');
+let Directional = Java.type("org.bukkit.block.data.Directional");
+let Rotatable = Java.type("org.bukkit.block.data.Rotatable");
+let Bisected = Java.type("org.bukkit.block.data.Bisected");
 
 // Hmmm
 // TODO Very hacky thing to make
@@ -26,7 +33,7 @@ let block_middle = location => {
   return location.clone().add(new Vector(0.5, 0.5, 0.5));
 };
 
-let get_transformation_matrix_for_portal = (portal) => {
+let get_transformation_matrix_for_portal = portal => {
   let { corner_blocks, looking_direction } = portal;
   let [left, left_top, right_top, right] = corner_blocks
     .map(x => x.getLocation())
@@ -43,12 +50,40 @@ let get_transformation_matrix_for_portal = (portal) => {
   ]);
 
   return transformation_matrix;
-}
+};
 
 let NINE_SQUARED = 9 ** 2;
 let EIGHT_SQUARED = 8 ** 2;
 
-let render_portal = queue_function(async (player, location, portal) => {
+let console_time = (...args) => {
+  console.time(...args)
+};
+let console_timeEnd = (...args) => {
+  console.timeEnd(...args)
+};
+
+let render_entity_to_player = (player, { key, value }) => {
+  let runtime_metadata = player_runtime_metadata(player, "render_entities");
+  let instance_storage = {
+    get: () => {
+      let has_rendered = runtime_metadata.get({ default: {} });
+      let instance = has_rendered[key];
+      return instance;
+    },
+    set: (instance) => {
+      runtime_metadata.set({
+        ...runtime_metadata.get({ default: {} }),
+        [key]: instance
+      });
+    }
+  };
+
+  let instance = instance_storage.get();
+  let resulting_instance = Reakkit.render_single_instance(instance, value);
+  instance_storage.set(resulting_instance)
+}
+
+let render_portal = async (player, location, portal) => {
   let { corner_blocks, looking_direction } = portal;
   let [left, left_top, right_top, right] = corner_blocks
     .map(x => x.getLocation())
@@ -91,9 +126,6 @@ let render_portal = queue_function(async (player, location, portal) => {
       return;
     }
 
-    let plane_point = middle_between_vectors(left, right_top);
-    let plane_vector = looking_direction.clone();
-
     let isReal = is_in_front_of_portal(player, portal);
     if (isReal === true && player_portal.isReal === true) {
       return;
@@ -109,15 +141,23 @@ let render_portal = queue_function(async (player, location, portal) => {
     await drone.move(8, Drone.LEFT);
     drone.setSpeed(10);
 
+    let transformation_matrix = get_transformation_matrix_for_portal(portal);
     console.log("== UPDATING PORTAL ==");
 
-    console.time("Cuboid chunks");
+    let portal_center = middle_between_vectors(left, right_top)
+      .clone()
+      .add(looking_direction.clone().multiply(4));
+
+    // let WALL_MATERIAL = Material.WHITE_WOOL;
+    let WALL_MATERIAL = Material.WHITE_STAINED_GLASS;
+
+    let has_become_real = player_portal.isReal === false && isReal === true;
+
+    console_time("Cuboid chunks");
     let portal_width = left.distance(right);
     let portal_height = right_top.distance(right);
+
     let locations = player_portal.current_traced_blocks || [];
-
-    let transformation_matrix = get_transformation_matrix_for_portal(portal);
-
     if (locations.length === 0) {
       for await (let location of drone.cuboid_fast([
         { right: 8 + portal_width + 8 },
@@ -126,25 +166,94 @@ let render_portal = queue_function(async (player, location, portal) => {
       ])) {
         let mirrored = transformation_matrix.apply_to_location(location);
 
-        locations.push([location, mirrored]);
+        locations.push({ location, mirrored });
 
         if (locations.length % 100 === 0) {
           await delay(10);
         }
       }
     }
-    console.timeEnd("Cuboid chunks");
+    console_timeEnd("Cuboid chunks");
 
-    let portal_center = middle_between_vectors(left, right_top).clone().add(looking_direction.clone().multiply(4));
+    console_time("Get blockdatas");
+    let block_datas =
+      player_portal.block_datas ||
+      locations
+        .map(({ location, mirrored }) => {
+          let distance_to_portal = portal_center.distanceSquared(location);
+          if (distance_to_portal > NINE_SQUARED) {
+            return null;
+          }
 
-    // let WALL_MATERIAL = Material.WHITE_WOOL;
-    let WALL_MATERIAL = Material.WHITE_STAINED_GLASS;
+          let is_wall =
+            EIGHT_SQUARED < distance_to_portal &&
+            distance_to_portal <= NINE_SQUARED;
 
-    let has_become_real = player_portal.isReal === false && isReal === true;
+          let block_data = location.getBlock().getBlockData();
+          let mirrored_block_data = is_wall
+            ? WALL_MATERIAL
+            : mirrored.getBlock().getBlockData();
 
-    console.time("Get blockdatas");
-    let block_datas = locations
-      .map(([location, mirrored]) => {
+          if (mirrored_block_data instanceof Directional) {
+            let current_direction = mirrored_block_data
+              .getFacing()
+              .getDirection();
+            let next_direction = transformation_matrix.apply_to_direction(
+              current_direction
+            );
+            let available_faces = Java.from(
+              mirrored_block_data.getFaces().toArray()
+            );
+            let next_face = Face.get_closest_face_for_vector(
+              next_direction,
+              available_faces
+            );
+            mirrored_block_data.setFacing(next_face);
+          }
+
+          if (mirrored_block_data instanceof Rotatable) {
+            let current_direction = mirrored_block_data
+              .getRotation()
+              .getDirection();
+            let next_direction = transformation_matrix.apply_to_direction(
+              current_direction
+            );
+            let next_face = Face.get_closest_face_for_vector(next_direction);
+            mirrored_block_data.setRotation(next_face);
+          }
+
+          if (mirrored_block_data instanceof Bisected) {
+            let bisected_face =
+              mirrored_block_data.getHalf() === Bisected.Half.TOP
+                ? BlockFace.UP
+                : BlockFace.DOWN;
+            let next_direction = transformation_matrix.apply_to_direction(
+              bisected_face.getDirection()
+            );
+            let next_face = Face.get_closest_face_for_vector(next_direction, [
+              BlockFace.UP,
+              BlockFace.DOWN
+            ]);
+            mirrored_block_data.setHalf(
+              next_face === BlockFace.UP
+                ? Bisected.Half.TOP
+                : Bisected.Half.BOTTOM
+            );
+          }
+
+          if (block_data.equals(mirrored_block_data)) {
+            return null;
+          }
+
+          return { location, mirrored, mirrored_block_data };
+        })
+        .filter(x => x != null);
+    console_timeEnd("Get blockdatas");
+
+    console.log(`has_become_real:`, has_become_real);
+
+    let filtered_block_datas = block_datas
+      .map(({ location, mirrored, mirrored_block_data }) => {
         if (has_become_real) {
           return {
             location: location,
@@ -152,69 +261,24 @@ let render_portal = queue_function(async (player, location, portal) => {
           };
         }
 
-        let distance_to_portal = portal_center.distanceSquared(location);
-
-        if (distance_to_portal > NINE_SQUARED) {
-          return null;
-        }
-
-        let is_wall =
-          EIGHT_SQUARED < distance_to_portal &&
-          distance_to_portal <= NINE_SQUARED;
         let location_vector = location.toVector();
-
         let is_inside_view = planes.every(plane =>
           plane.is_next_to(location_vector)
         );
-        is_inside_old_view =
+        let is_inside_old_view =
           player_portal.last_planes != null &&
           player_portal.last_planes.every(plane =>
             plane.is_next_to(location_vector)
           );
-
         if (is_inside_view === is_inside_old_view) {
           // Nothing changed, no render needed
-          return null;
-        }
-
-        let block_data = location.getBlock().getBlockData();
-        let mirrored_block_data = is_wall
-          ? WALL_MATERIAL
-          : mirrored.getBlock().getBlockData();
-
-        if (mirrored_block_data instanceof Directional) {
-          let current_direction = mirrored_block_data.getFacing().getDirection();
-          let next_direction = transformation_matrix.apply_to_direction(current_direction);
-          let available_faces = Java.from(mirrored_block_data.getFaces().toArray());
-          let next_face = Face.get_closest_face_for_vector(next_direction, available_faces);
-          mirrored_block_data.setFacing(next_face);
-        }
-
-        if (mirrored_block_data instanceof Rotatable) {
-          let current_direction = mirrored_block_data.getRotation().getDirection();
-          let next_direction = transformation_matrix.apply_to_direction(current_direction);
-          let next_face = Face.get_closest_face_for_vector(next_direction);
-          mirrored_block_data.setRotation(next_face);
-        }
-
-        if (mirrored_block_data instanceof Bisected) {
-          let bisected_face =
-            mirrored_block_data.getHalf() === Bisected.Half.TOP
-            ? BlockFace.UP
-            : BlockFace.DOWN;
-          let next_direction = transformation_matrix.apply_to_direction(bisected_face.getDirection());
-          let next_face = Face.get_closest_face_for_vector(next_direction, [BlockFace.UP, BlockFace.DOWN]);
-          mirrored_block_data.setHalf(next_face === BlockFace.UP ? Bisected.Half.TOP : Bisected.Half.BOTTOM);
-        }
-
-        if (block_data.equals(mirrored_block_data)) {
           return null;
         }
 
         if (is_inside_view === false) {
           return {
             location: location,
-            blockdata: block_data
+            blockdata: location.getBlock().getBlockData()
           };
         } else {
           return {
@@ -224,15 +288,54 @@ let render_portal = queue_function(async (player, location, portal) => {
         }
       })
       .filter(x => x != null);
-    console.timeEnd("Get blockdatas");
 
-    let block_diff = locations.length - block_datas.length;
-    console.log(`Blocks being sent:`, block_datas.length);
+    let own_location_mirrored = transformation_matrix.apply_to_location(
+      player.getLocation()
+    );
+    let mirrored_player_location = (({ location }) => {
+      if (has_become_real) {
+        return null;
+      }
+
+      let location_vector = location.toVector();
+      let is_inside_view = planes.every(plane =>
+        plane.is_next_to(location_vector)
+      );
+      // let is_inside_old_view =
+      //   player_portal.last_planes != null &&
+      //   player_portal.last_planes.every(plane =>
+      //     plane.is_next_to(location_vector)
+      //   );
+      // if (is_inside_view === is_inside_old_view) {
+      //   // Nothing changed, no render needed
+      //   return null;
+      // }
+
+      if (is_inside_view === false) {
+        return null;
+      } else {
+        return location;
+      }
+    })({ location: own_location_mirrored });
+    render_entity_to_player(player, {
+      key: `self-${portal_center.toString()}`,
+      value:
+        mirrored_player_location == null
+          ? null
+          : {
+              type: FakePlayer,
+              location: mirrored_player_location,
+              player: player
+            }
+    });
+
+    let block_diff = locations.length - filtered_block_datas.length;
+    console.log(`Blocks being sent:`, filtered_block_datas.length);
     // console.log(`block_diff:`, block_diff);
 
-    console.time("Get chunks");
+    console_time("Get chunks");
     let chunks = {};
-    for (let { location, blockdata } of block_datas) {
+    for (let { location, blockdata } of filtered_block_datas) {
       let chunk = location.getChunk();
       let chunk_x = chunk.getX();
       let chunk_z = chunk.getZ();
@@ -247,16 +350,16 @@ let render_portal = queue_function(async (player, location, portal) => {
         Packet.multiblock_entry({
           in_chunk: [
             location.getX() - chunk_x * 16,
-            location.getZ() - chunk_z * 16,
+            location.getZ() - chunk_z * 16
           ],
           y: location.getBlockY(),
-          blockId: Packet.combined_id(blockdata),
+          blockId: Packet.combined_id(blockdata)
         })
       );
     }
-    console.timeEnd("Get chunks");
+    console_timeEnd("Get chunks");
 
-    console.time("Send chunks");
+    console_time("Send chunks");
     // prettier-ignore
     for (let [chunk_key, { records, chunk_x, chunk_z }] of Object.entries(
       chunks
@@ -270,15 +373,16 @@ let render_portal = queue_function(async (player, location, portal) => {
         }
       });
     }
-    console.timeEnd("Send chunks");
+    console_timeEnd("Send chunks");
 
     set_player_portal({
       isReal: isReal,
       current_traced_blocks: locations,
-      last_planes: planes
+      last_planes: planes,
+      block_datas: block_datas
     });
   }
-});
+};
 
 let portal_player_map = new Map();
 let get_portal_player = player => {
@@ -316,7 +420,9 @@ let runtime_portal = (player, portal) => {
 
 let is_in_front_of_portal = (player, portal) => {
   let { corner_blocks, looking_direction } = portal;
-  let [bottom_left, top_left, top_right, bottom_right] = corner_blocks.map(x => x.getLocation()).map(x => block_middle(x));
+  let [bottom_left, top_left, top_right, bottom_right] = corner_blocks
+    .map(x => x.getLocation())
+    .map(x => block_middle(x));
 
   let portal_plane = Plane.from_three_points(bottom_left, top_left, top_right);
   return portal_plane.is_next_to(player.getLocation().toVector());
@@ -417,27 +523,33 @@ let check_for_portal_crossing = (event, portal) => {
   let transformation_matrix = get_transformation_matrix_for_portal(portal);
 
   let player = event.getPlayer();
-  player.setVelocity(transformation_matrix.apply_to_direction(player.getVelocity()));
+  player.setVelocity(
+    transformation_matrix.apply_to_direction(player.getVelocity())
+  );
   event.setTo(transformation_matrix.apply_to_location(event.getTo()));
 };
 
-let spawn_fake_player = (player) => {
-  let looking_location_1 = player.getTargetBlockExact(120).getLocation().add(new Vector(0, 1, 0));
+let PLAYER_RUNTIME_DATA = {};
+let player_runtime_metadata = (player, key) => {
+  // TODO Add listener to remove data when player leaves
 
-  Packet.send_packet(player, {
-    name: 'named_entity_spawn',
-    params: {
-      entityId: 1003,
-      playerUUID: player.getUniqueId().toString(),
-      x: looking_location_1.getX(),
-      y: looking_location_1.getY(),
-      z: looking_location_1.getZ(),
-      yaw: 0,
-      pitch: 0,
-      metadata: [],
+  let uuid = player.getUniqueId().toString();
+
+  return {
+    get: ({ default: default_value = null } = {}) => {
+      PLAYER_RUNTIME_DATA[uuid] = PLAYER_RUNTIME_DATA[uuid] || {};
+      return PLAYER_RUNTIME_DATA[uuid][key] == null
+        ? default_value
+        : PLAYER_RUNTIME_DATA[uuid][key];
     },
-  });
-}
+    set: value => {
+      PLAYER_RUNTIME_DATA[uuid] = PLAYER_RUNTIME_DATA[uuid] || {};
+      PLAYER_RUNTIME_DATA[uuid][key] = value;
+    }
+  };
+};
+
+let Reakkit = require('./Reakkit.js');
 
 module.exports = plugin => {
   let portals = [];
@@ -446,19 +558,22 @@ module.exports = plugin => {
   // plugin.events.PlayerBreak
 
   plugin.events.PlayerMove(async event => {
-    let to = event.getTo().toVector();
-    let from = event.getFrom().toVector();
-    if (to.equals(from)) {
-      return;
-    }
-
     let player = event.getPlayer();
     for (let portal of portals) {
       await check_for_portal_crossing(event, portal);
-
-      await render_portal(player, event.getTo(), portal);
     }
   });
+
+  plugin.events.PlayerMove(queue_function(async event => {
+    let player = event.getPlayer();
+    for (let portal of portals) {
+      await render_portal(player, event.getTo(), portal);
+    }
+  }));
+
+  // plugin.command("create-npc", async (player) => {
+  //   render_entity_to_player(player);
+  // });
 
   plugin.command("portal", async player => {
     let looking_location = player.getTargetBlockExact(120).getLocation();
@@ -481,6 +596,6 @@ module.exports = plugin => {
     portals.push(portal);
     await render_portal(player, player.getLocation(), portal);
 
-    player.sendMessage(`${ChatColor.PURPLE}Portal activated!`)
+    player.sendMessage(`${ChatColor.PURPLE}Portal activated!`);
   });
 };

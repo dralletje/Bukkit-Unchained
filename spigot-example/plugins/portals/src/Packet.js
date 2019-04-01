@@ -1,5 +1,10 @@
 let { once } = require('lodash');
 
+let Accessors = Java_type("com.comphenix.protocol.reflect.accessors.Accessors");
+let MinecraftReflection = Java_type(
+  "com.comphenix.protocol.utility.MinecraftReflection"
+);
+
 let Packet = {
   packet_manager: once(() => {
     let minecraft_types = require("./minecraft-types.js");
@@ -55,6 +60,24 @@ let Packet = {
       horizontalPos: (Math.floor(x) << 4) + Math.floor(z),
       y: y,
       blockId: blockId
+    };
+  },
+
+  // Uses ProtocolLib !
+  get_entity_count: () => {
+    let accessor = Accessors.static.getFieldAccessor(
+      MinecraftReflection.static.getEntityClass(),
+      "entityCount",
+      true
+    );
+    return {
+      set: value => {
+        return accessor.set(null, value);
+      },
+      get: ({ default: default_value = null } = {}) => {
+        let value = accessor.get(null);
+        return value == null ? default_value : value;
+      }
     };
   },
 };

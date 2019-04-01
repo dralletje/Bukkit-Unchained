@@ -13,7 +13,8 @@
     "api-version": "1.13",
     "dev": true,
     "commands": {
-      "portal": {}
+      "portal": {},
+      "create-npc": {}
     }
   },
   "dependencies": {
