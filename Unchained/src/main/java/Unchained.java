@@ -80,7 +80,7 @@ public class Unchained extends JavaPlugin implements Listener {
       // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
       // Reader stream = new InputStreamReader(this.getResource("boot.js"));
       // Value result = polyglot.eval(Source.newBuilder("js", stream, "boot.js").build());
-      
+
       try {
         Context polyglot = createContext(null);
         File file = new File(getDataFolder(), "entry.js");
@@ -94,9 +94,9 @@ public class Unchained extends JavaPlugin implements Listener {
       }
     }
 
-    public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
-      return this.pluginBridge("onTabComplete", sender, cmd, alias, args).as(List.class);
-    }
+    // public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
+    //   return this.pluginBridge("onTabComplete", sender, cmd, alias, args).as(List.class);
+    // }
 
     private Context createContext(CommandSender sender) {
         if (this.context == null) {

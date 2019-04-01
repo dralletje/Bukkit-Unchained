@@ -23,16 +23,16 @@ class Plane {
     this.plane_id = options.id || null;
   }
 
-  show(player) {
-    let n = 3;
-    for (let i of range(0, n)) {
-      debug_spawn({
-        player: player,
-        id: 2000 + this.plane_id * n + i,
-        location: this.position.clone().add(this.normal.clone().multiply(i))
-      });
-    }
-  }
+  // show(player) {
+  //   let n = 3;
+  //   for (let i of range(0, n)) {
+  //     debug_spawn({
+  //       player: player,
+  //       id: 2000 + this.plane_id * n + i,
+  //       location: this.position.clone().add(this.normal.clone().multiply(i))
+  //     });
+  //   }
+  // }
 
   is_next_to(location) {
     let relative_location = location.clone().subtract(this.position);
@@ -92,6 +92,10 @@ class TransformationMatrix {
     let new_location = new Location(location.getWorld(), x, y, z);
     new_location.setDirection(this.apply_to_direction(location.getDirection()));
     return new_location;
+  }
+
+  inverse() {
+    return new TransformationMatrix(math.inv(this.matrix));
   }
 }
 TransformationMatrix.from_vector_mappings = (transformed_vectors) => {

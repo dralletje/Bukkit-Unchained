@@ -33,20 +33,41 @@ let block_middle = location => {
   return location.clone().add(new Vector(0.5, 0.5, 0.5));
 };
 
-let get_transformation_matrix_for_portal = portal => {
-  let { corner_blocks, looking_direction } = portal;
-  let [left, left_top, right_top, right] = corner_blocks
+let get_transformation_matrix_for_portal = (portal) => {
+  // Single portal mirror
+  if (portal.corner_blocks) {
+    portal = {
+      from: portal,
+      to: {
+        corner_blocks: [
+          portal.corner_blocks[3],
+          portal.corner_blocks[2],
+          portal.corner_blocks[1],
+          portal.corner_blocks[0],
+        ],
+        looking_direction: portal.looking_direction.clone().multiply(-1),
+      },
+    };
+  }
+
+  let { from, to } = portal;
+
+  let [left, left_top, right_top, right] = from.corner_blocks
+    .map(x => x.getLocation())
+    .map(x => block_middle(x));
+
+  let [left2, left_top2, right_top2, right2] = to.corner_blocks
     .map(x => x.getLocation())
     .map(x => block_middle(x));
 
   let transformation_matrix = TransformationMatrix.from_vector_mappings([
-    { from: JavaVector.to_js(left), to: JavaVector.to_js(right) },
-    { from: JavaVector.to_js(right), to: JavaVector.to_js(left) },
+    { from: JavaVector.to_js(left), to: JavaVector.to_js(left2) },
+    { from: JavaVector.to_js(right), to: JavaVector.to_js(right2) },
     {
-      from: JavaVector.to_js(right_top.toVector().add(looking_direction)),
-      to: JavaVector.to_js(left_top.toVector().subtract(looking_direction))
+      from: JavaVector.to_js(right_top.toVector().add(from.looking_direction)),
+      to: JavaVector.to_js(right_top2.toVector().add(to.looking_direction))
     },
-    { from: JavaVector.to_js(left_top), to: JavaVector.to_js(right_top) }
+    { from: JavaVector.to_js(left_top), to: JavaVector.to_js(left_top2) }
   ]);
 
   return transformation_matrix;
@@ -83,8 +104,9 @@ let render_entity_to_player = (player, { key, value }) => {
   instance_storage.set(resulting_instance)
 }
 
-let render_portal = async (player, location, portal) => {
-  let { corner_blocks, looking_direction } = portal;
+let portal_get_visible_planes = (player, portal) => {
+  let { corner_blocks } = portal;
+
   let [left, left_top, right_top, right] = corner_blocks
     .map(x => x.getLocation())
     .map(x => block_middle(x));
@@ -115,8 +137,21 @@ let render_portal = async (player, location, portal) => {
   );
 
   let planes = [left_plane, right_plane, top_plane, bottom_plane];
+  return planes;
+}
 
-  let { player_portal, set_player_portal } = runtime_portal(player, portal);
+let render_portal = async (player, location, _portal) => {
+  let { from, to } = _portal;
+
+  let { corner_blocks, looking_direction } = from;
+  let [left, left_top, right_top, right] = corner_blocks
+    .map(x => x.getLocation())
+    .map(x => block_middle(x));
+
+  let planes = portal_get_visible_planes(player, from);
+
+  let { player_portal, set_player_portal } = runtime_portal(player, from);
+
   // Show mirror image
   {
     let location = player.getLocation();
@@ -126,7 +161,7 @@ let render_portal = async (player, location, portal) => {
       return;
     }
 
-    let isReal = is_in_front_of_portal(player, portal);
+    let isReal = is_in_front_of_portal(player, from);
     if (isReal === true && player_portal.isReal === true) {
       return;
     }
@@ -141,7 +176,7 @@ let render_portal = async (player, location, portal) => {
     await drone.move(8, Drone.LEFT);
     drone.setSpeed(10);
 
-    let transformation_matrix = get_transformation_matrix_for_portal(portal);
+    let transformation_matrix = get_transformation_matrix_for_portal(_portal);
     console.log("== UPDATING PORTAL ==");
 
     let portal_center = middle_between_vectors(left, right_top)
@@ -251,6 +286,7 @@ let render_portal = async (player, location, portal) => {
     console_timeEnd("Get blockdatas");
 
     console.log(`has_become_real:`, has_become_real);
+    console.log(`block_datas.length:`, block_datas.length)
 
     let filtered_block_datas = block_datas
       .map(({ location, mirrored, mirrored_block_data }) => {
@@ -289,7 +325,7 @@ let render_portal = async (player, location, portal) => {
       })
       .filter(x => x != null);
 
-    let own_location_mirrored = transformation_matrix.apply_to_location(
+    let own_location_mirrored = transformation_matrix.inverse().apply_to_location(
       player.getLocation()
     );
     let mirrored_player_location = (({ location }) => {
@@ -301,15 +337,6 @@ let render_portal = async (player, location, portal) => {
       let is_inside_view = planes.every(plane =>
         plane.is_next_to(location_vector)
       );
-      // let is_inside_old_view =
-      //   player_portal.last_planes != null &&
-      //   player_portal.last_planes.every(plane =>
-      //     plane.is_next_to(location_vector)
-      //   );
-      // if (is_inside_view === is_inside_old_view) {
-      //   // Nothing changed, no render needed
-      //   return null;
-      // }
 
       if (is_inside_view === false) {
         return null;
@@ -486,13 +513,14 @@ let middle_between_vectors = (v1, v2) => {
     .multiply(0.5);
 };
 
-let check_for_portal_crossing = (event, portal) => {
+let check_for_portal_crossing = (event, _portal) => {
+  let { from, to } = _portal;
   let [
     bottom_left,
     top_left,
     top_right,
     bottom_right
-  ] = portal.corner_blocks.map(x => x.getLocation()).map(x => block_middle(x));
+  ] = from.corner_blocks.map(x => x.getLocation()).map(x => block_middle(x));
   let plane_point = middle_between_vectors(bottom_left, top_right);
 
   let distance_to_portal = plane_point.distanceSquared(event.getTo());
@@ -520,7 +548,7 @@ let check_for_portal_crossing = (event, portal) => {
     return;
   }
 
-  let transformation_matrix = get_transformation_matrix_for_portal(portal);
+  let transformation_matrix = get_transformation_matrix_for_portal(_portal);
 
   let player = event.getPlayer();
   player.setVelocity(
@@ -571,11 +599,18 @@ module.exports = plugin => {
     }
   }));
 
+  // TODO Show animations of projected players
+  // plugin.events.PlayerAnimation(event => {
+  //   console.log(`event.getAnimationType().name():`, event.getAnimationType().name())
+  // })
+
   // plugin.command("create-npc", async (player) => {
   //   render_entity_to_player(player);
   // });
 
   plugin.command("portal", async player => {
+    let selected_portal_storage = player_runtime_metadata(player, "selected_portal");
+
     let looking_location = player.getTargetBlockExact(120).getLocation();
     let looking_direction = player
       .getTargetBlockFace(120)
@@ -593,8 +628,23 @@ module.exports = plugin => {
       corner_blocks: corner_blocks,
       looking_direction: looking_direction
     };
-    portals.push(portal);
-    await render_portal(player, player.getLocation(), portal);
+
+    let selected_portal = selected_portal_storage.get();
+
+    if (selected_portal == null) {
+      selected_portal_storage.set(portal);
+    } else {
+      let from_to_portal = {
+        from: selected_portal,
+        to: {
+          corner_blocks: corner_blocks.slice().reverse(),
+          looking_direction: looking_direction.clone().multiply(-1),
+        },
+      };
+      portals.push(from_to_portal);
+      selected_portal_storage.set(null);
+      await render_portal(player, player.getLocation(), from_to_portal);
+    }
 
     player.sendMessage(`${ChatColor.PURPLE}Portal activated!`);
   });
