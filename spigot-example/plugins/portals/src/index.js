@@ -604,9 +604,105 @@ module.exports = plugin => {
   //   console.log(`event.getAnimationType().name():`, event.getAnimationType().name())
   // })
 
-  // plugin.command("create-npc", async (player) => {
-  //   render_entity_to_player(player);
-  // });
+  let ItemStack = Java.type('org.bukkit.inventory.ItemStack');
+  let ItemFlag = Java.type('org.bukkit.inventory.ItemFlag');
+  let Enchantment = Java.type('org.bukkit.enchantments.Enchantment');
+
+  let plugin_item = ({ material, title, description, active }) => {
+    let itemstack = new ItemStack(material);
+    let itemmeta = itemstack.getItemMeta();
+
+    itemmeta.setDisplayName(title);
+    if (description != null) {
+      if (typeof description === 'string') {
+        description = description.split('\n');
+      }
+      itemmeta.setLore(description);
+    }
+    itemmeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+    itemmeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+
+    if (active) {
+      itemmeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
+    }
+
+    itemstack.setItemMeta(itemmeta);
+    return itemstack;
+  }
+
+  // let InventorySlot = Java.type('org.bukkit.inventory.EquipmentSlot');
+  plugin.events.PlayerInteract(async (event) => {
+    let block_face = event.getBlockFace();
+    let block = event.getClickedBlock();
+    let item = event.getItem();
+    let player = event.getPlayer();
+    
+    // let hand = event.getHand();
+    // let action = event.getAction();
+    // console.log(`action:`, action.name());
+    // console.log(`hand:`, hand.name());
+
+    if (item == null) {
+      return;
+    }
+    if (item.getItemMeta().getDisplayName() !== 'Portal creation') {
+      return;
+    }
+    event.setCancelled(true);
+
+    let selected_portal_storage = player_runtime_metadata(player, "selected_portal");
+
+    let looking_location = block.getLocation();
+    let looking_direction = block_face.getDirection().clone().multiply(-1);
+
+    let corner_blocks = await trace_portal(
+      player,
+      looking_location,
+      looking_direction
+    );
+
+    let portal = {
+      corner_blocks: corner_blocks,
+      looking_direction: looking_direction
+    };
+
+    let selected_portal = selected_portal_storage.get();
+
+    if (selected_portal == null) {
+      selected_portal_storage.set(portal);
+      player.getInventory().setItemInMainHand(portal_tool(true));
+      player.sendMessage(`${ChatColor.RED}Source portal selected!`);
+    } else {
+      let from_to_portal = {
+        from: selected_portal,
+        to: {
+          corner_blocks: corner_blocks.slice().reverse(),
+          looking_direction: looking_direction.clone().multiply(-1),
+        },
+      };
+      portals.push(from_to_portal);
+      selected_portal_storage.set(null);
+      player.getInventory().setItemInMainHand(portal_tool(false));
+      await render_portal(player, player.getLocation(), from_to_portal);
+      player.sendMessage(`${ChatColor.DARK_BLUE}Portal activated!`);
+    }
+  });
+
+  let portal_tool = (active = false) => {
+    let tool = plugin_item({
+      material: Material.IRON_HOE,
+      title: 'Portal creation',
+      description: [
+        'Click on a frame of blue wool',
+      ],
+      active: active,
+    });
+    return tool;
+  }
+
+  plugin.command("itemstack", async (player) => {
+    player.getInventory().setItemInMainHand(portal_tool(false));
+  });
 
   plugin.command("portal", async player => {
     let selected_portal_storage = player_runtime_metadata(player, "selected_portal");
@@ -646,6 +742,6 @@ module.exports = plugin => {
       await render_portal(player, player.getLocation(), from_to_portal);
     }
 
-    player.sendMessage(`${ChatColor.PURPLE}Portal activated!`);
+    player.sendMessage(`${ChatColor.DARK_BLUE}Portal activated!`);
   });
 };

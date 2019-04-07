@@ -2,6 +2,8 @@ let { range, sortBy } = require('lodash');
 let { Material, BlockFace, Particle, EntityType } = require('bukkit');
 let Vector = Java.type('org.bukkit.util.Vector');
 
+let { delay } = require('./util.js');
+
 let get_face_for_vector = (vector) => {
   let angles = sortBy(Java.from(BlockFace.values()), (face) => {
     return face.getDirection().angle(vector);
@@ -181,6 +183,7 @@ Drone.DOWN = (vector) => new Vector(0, -1, 0);
 Drone.LEFT = (vector) => vector.rotateAroundY(Math.PI * 0.5);
 Drone.RIGHT = (vector) => vector.rotateAroundY(Math.PI * -0.5);
 
+// Drone.isDevelopment = true;
 Drone.isDevelopment = false;
 
 module.exports = { Drone };

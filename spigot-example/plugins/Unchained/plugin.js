@@ -1,7 +1,9 @@
 let path = require('path');
-let { uniq } = require('lodash');
 
 let plugin_utils = require('./plugin_utils.js');
+
+let parent_plugin = Polyglot.import("plugin");
+let server = parent_plugin.getServer();
 
 let promenade = async (fn) => {
   return await new Promise((resolve, reject) => {
@@ -84,12 +86,16 @@ module.exports = {
     let any_found = false;
 
     for (let package_json of package_jsons) {
-      let plugin_package_json_path = path.join(process.cwd(), package_json);
-      let description = plugin_utils.get_plugin_description(plugin_package_json_path);
+      try {
+        let plugin_package_json_path = path.join(process.cwd(), package_json);
+        let description = plugin_utils.get_plugin_description(plugin_package_json_path);
 
-      if (with_name == null || description.name === with_name) {
-        any_found = true;
-        module.exports.load_plugin(plugin_package_json_path);
+        if (with_name == null || description.name === with_name) {
+          any_found = true;
+          module.exports.load_plugin(plugin_package_json_path);
+        }
+      } catch (err) {
+        console.log(`Plugin '${package_json}' did not load:`, err);
       }
     }
 

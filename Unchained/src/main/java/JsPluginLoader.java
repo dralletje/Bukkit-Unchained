@@ -72,26 +72,6 @@ public final class JsPluginLoader implements PluginLoader {
         server = instance;
     }
 
-    private Value runPlugin(String method, Object ... args) {
-      try {
-        // TODO Load the entry.js bundled with the plugin
-        // Reader stream = new InputStreamReader(Unchained.self.getResource("entry.js"));
-        // Value entry_fn = polyglot.eval(Source.newBuilder("js", stream, "entry.js").build());
-
-        // TODO Consider creating a new context per plugin
-        Context polyglot = Unchained.public_context;
-        File file = new File(Unchained.self.getDataFolder(), "entry.js");
-        Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
-        Value repl_fn = entry_fn.execute("./PluginBridge.js");
-        return repl_fn.execute(method, args);
-        // return null;
-      } catch (Exception e) {
-        // sender.sendMessage(e.getMessage());
-        e.printStackTrace();
-        return null;
-      }
-    }
-
     public Plugin loadPlugin(final File file) throws InvalidPluginException {
         Validate.notNull(file, "File cannot be null");
 
@@ -109,14 +89,14 @@ public final class JsPluginLoader implements PluginLoader {
         final File parentFile = file.getParentFile();
         final File dataFolder = new File(parentFile, description.getName());
 
-        return this.runPlugin("get_plugin", file, this, description, dataFolder).as(JsPlugin.class);
+        return new JsPlugin(this, description, dataFolder, null);
+        // return this.runPlugin("get_plugin", file, this, description, dataFolder).as(JsPlugin.class);
         // return new JsPlugin(this, description, dataFolder, null, value);
     }
 
     public PluginDescriptionFile getPluginDescription(File file) throws InvalidDescriptionException {
-      // return new PluginDescriptionFile​("plugin_name", "1.0.0", "mainclassidk");
-
-      String from_js = this.runPlugin("get_plugin_description", file).asString();
+      Value repl_fn = Unchained.javascript_bridge;
+      String from_js = repl_fn.execute("get_plugin_description", Arrays.asList(file)).asString();
       return new PluginDescriptionFile(new StringReader(from_js));
     }
 

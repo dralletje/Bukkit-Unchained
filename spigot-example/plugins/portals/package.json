@@ -14,7 +14,7 @@
     "dev": true,
     "commands": {
       "portal": {},
-      "create-npc": {}
+      "itemstack": {}
     }
   },
   "dependencies": {

@@ -51,18 +51,6 @@
     },
   };
 
-  let flatten = array => {
-    let flattened = [];
-    for (let sub_array of array) {
-      for (let value of sub_array) {
-        flattened.push(value);
-      }
-    }
-    return flattened;
-  };
-
-  let plugin = Polyglot.import("plugin");
-
   let basic_require = file => {
     if (!file.startsWith("./")) {
       throw new Error(`Only simple './' relative files in basic require`);

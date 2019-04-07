@@ -1,12 +1,9 @@
-let path = require('path');
-let fs = require('fs');
 let EventEmitter = require('events');
 let plugin_utils = require('./plugin_utils.js');
-let events = require('./events.js');
 
 let { ChatColor } = require('bukkit');
 
-let JsPlugin = Java_type('eu.dral.unchained.JsPlugin');
+// let JsPlugin = Java_type('eu.dral.unchained.JsPlugin');
 
 let methods = {
   onTabComplete: (...args) => require('./dev_plugin/onTabComplete.js')(...args),
@@ -21,9 +18,17 @@ let methods = {
     }
 
     if (alias === 'jsplugin') {
-      let plugin_name = [...args].join(' ') || null;
-      require('./plugin.js').load_all(plugin_name);
-      return true;
+      try {
+        console.log('Starting plugin reload...');
+        let plugin_name = [...args].join(' ') || null;
+        require('./plugin.js').load_all(plugin_name)
+        .catch(err => {
+          console.log(`err:`, err)
+        });
+        return true;
+      } catch (err) {
+        console.log(`err:`, err)
+      }
     }
   },
 
@@ -32,27 +37,38 @@ let methods = {
     let description = plugin_utils.get_plugin_description(package_json_path);
     return JSON.stringify(description);
   },
-  get_plugin: (file, loader, description, dataFolder) => {
-    // console.log(`file:`, file)
-    let package_json_path = typeof file === 'string' ? file : file.getPath() ;
-    // let description = plugin_utils.get_plugin_description(package_json_path);
-    // return result.plugin_method;
-    let real_description = plugin_utils.get_plugin_description(package_json_path);
-
-    let JsPlugin = Java_type('eu.dral.unchained.JsPlugin')
-    let java_plugin = new JsPlugin(loader, description, dataFolder, null);
-
-    let is_dev = real_description.dev === true;
-    let js_plugin = new JavascriptPlugin(java_plugin, is_dev);
+  // get_plugin: (file, loader, description, dataFolder) => {
+  //   throw new Error('kbay');
+  //
+  //   // console.log(`file:`, file)
+  //   let package_json_path = typeof file === 'string' ? file : file.getPath() ;
+  //   // let description = plugin_utils.get_plugin_description(package_json_path);
+  //   // return result.plugin_method;
+  //   // let real_description = plugin_utils.get_plugin_description(package_json_path);
+  //
+  //   let JsPlugin = Java_type('eu.dral.unchained.JsPlugin')
+  //   let java_plugin = new JsPlugin(loader, description, dataFolder, null);
+  //
+  //   // let is_dev = real_description.dev === true;
+  //   // let js_plugin = new JavascriptPlugin(java_plugin, is_dev);
+  //   // let plugin_factory = require('../../' + description.getMain());
+  //   // js_plugin.onEnable(() => {
+  //   //   plugin_factory(js_plugin);
+  //   // });
+  //   //
+  //   // java_plugin.setExecutor(js_plugin.execute_from_bridge);
+  //   return java_plugin;
+  // },
+  load_plugin_from_javaplugin: (java_plugin) => {
+    let description = java_plugin.getDescription();
+    let js_plugin = new JavascriptPlugin(java_plugin, false);
 
     let plugin_factory = require('../../' + description.getMain());
-    console.log(`plugin_factory:`, plugin_factory)
     js_plugin.onEnable(() => {
       plugin_factory(js_plugin);
     });
 
-    java_plugin.setExecutor(js_plugin.execute_from_bridge);
-    return java_plugin;
+    return js_plugin.execute_from_bridge;
   },
 }
 

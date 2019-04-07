@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Arrays;
 
 import org.apache.commons.lang.Validate;
 import org.bukkit.Server;
@@ -40,6 +41,8 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
+import org.reflections.*;
+
 /**
  * Represents a Java plugin
  */
@@ -58,33 +61,19 @@ public class JsPlugin extends PluginBase {
     private Context context = null;
     private Value executor = null;
 
-    public JsPlugin() {
-        // final ClassLoader classLoader = this.getClass().getClassLoader();
-        // if (!(classLoader instanceof PluginClassLoader)) {
-        //     throw new IllegalStateException("JsPlugin requires " + PluginClassLoader.class.getName());
-        // }
-        // ((PluginClassLoader) classLoader).initialize(this);
-    }
+    public JsPlugin() {}
 
     @Deprecated
     public JsPlugin(final PluginLoader loader, final Server server, final PluginDescriptionFile description, final File dataFolder, final File file) {
-        // final ClassLoader classLoader = this.getClass().getClassLoader();
-        // if (classLoader instanceof PluginClassLoader) {
-        //     throw new IllegalStateException("Cannot use initialization constructor at runtime");
-        // }
         init(loader, server, description, dataFolder, file);
     }
 
     public JsPlugin(final JsPluginLoader loader, final PluginDescriptionFile description, final File dataFolder, final File file) {
-        // final ClassLoader classLoader = this.getClass().getClassLoader();
-        // if (classLoader instanceof PluginClassLoader) {
-        //     throw new IllegalStateException("Cannot use initialization constructor at runtime");
-        // }
         init(loader, loader.server, description, dataFolder, file);
     }
 
     public void setExecutor(Value executor) {
-      this.executor = executor;
+      // this.executor = executor;
     }
 
     /* Some getters */
@@ -289,6 +278,41 @@ public class JsPlugin extends PluginBase {
         // this.classLoader = classLoader;
         this.configFile = new File(dataFolder, "config.yml");
         this.logger = new PluginLogger(this);
+
+        this.getExecutor();
+    }
+
+    Value getExecutor() {
+      if (this.executor != null) {
+        return this.executor;
+      }
+      if (this.context == null) {
+        Context context = Context.newBuilder("js").allowHostAccess(true).build();
+
+        Reflections reflections = Unchained.reflections;
+        context.getPolyglotBindings().putMember("reflections", reflections);
+
+        context.getPolyglotBindings().putMember("plugin", this);
+        context.getPolyglotBindings().putMember("cwd", System.getProperty("user.dir"));
+
+        this.context = context;
+      }
+
+      try {
+        Context polyglot = this.context;
+        File file = new File(Unchained.self.getDataFolder(), "entry.js");
+        Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
+        Value repl_fn = entry_fn.execute("./PluginBridge.js");
+        Value executor = repl_fn.execute("load_plugin_from_javaplugin", Arrays.asList(this));
+        this.executor = executor;
+        return executor;
+      } catch (Exception e) {
+        // sender.sendMessage(e.getMessage());
+        e.printStackTrace();
+        return null;
+      }
+
+
     }
 
     /**
@@ -308,8 +332,8 @@ public class JsPlugin extends PluginBase {
      */
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-      if (this.executor != null) {
-        return this.executor.execute("onCommand", sender, command, label, args).as(Boolean.class);
+      if (this.getExecutor() != null) {
+        return this.getExecutor().execute("onCommand", sender, command, label, args).as(Boolean.class);
       }
       return false;
     }
@@ -319,8 +343,8 @@ public class JsPlugin extends PluginBase {
      */
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-      if (this.executor != null) {
-        return this.executor.execute("onTabComplete", sender, command, alias, args).as(List.class);
+      if (this.getExecutor() != null) {
+        return this.getExecutor().execute("onTabComplete", sender, command, alias, args).as(List.class);
       } else {
         return null;
       }
@@ -354,14 +378,16 @@ public class JsPlugin extends PluginBase {
 
     @Override
     public void onDisable() {
-      if (this.executor != null) {
-        this.executor.execute("onDisable");
-      }    }
+      if (this.getExecutor() != null) {
+        this.getExecutor().execute("onDisable");
+      }
+      this.context.close();
+    }
 
     @Override
     public void onEnable() {
-      if (this.executor != null) {
-        this.executor.execute("onEnable");
+      if (this.getExecutor() != null) {
+        this.getExecutor().execute("onEnable");
       }
     }
 

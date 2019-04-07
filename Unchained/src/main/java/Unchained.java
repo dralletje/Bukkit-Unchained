@@ -39,7 +39,8 @@ public class Unchained extends JavaPlugin implements Listener {
     };
 
     public static Unchained self;
-    public static Context public_context;
+    public static Value javascript_bridge;
+    public static Reflections reflections;
 
     @Override
     public void onEnable() {
@@ -77,18 +78,9 @@ public class Unchained extends JavaPlugin implements Listener {
     }
 
     private Value pluginBridge(String method, Object ... args) {
-      // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
-      // Reader stream = new InputStreamReader(this.getResource("boot.js"));
-      // Value result = polyglot.eval(Source.newBuilder("js", stream, "boot.js").build());
-
       try {
-        Context polyglot = createContext(null);
-        File file = new File(getDataFolder(), "entry.js");
-        Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
-        Value repl_fn = entry_fn.execute("./PluginBridge.js");
-        return repl_fn.execute(method, args);
+        return this.getJavascriptBridge().execute(method, args);
       } catch (Exception e) {
-        // sender.sendMessage(e.getMessage());
         e.printStackTrace();
         return null;
       }
@@ -97,6 +89,27 @@ public class Unchained extends JavaPlugin implements Listener {
     // public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
     //   return this.pluginBridge("onTabComplete", sender, cmd, alias, args).as(List.class);
     // }
+
+    private Value getJavascriptBridge() {
+      if (this.javascript_bridge == null) {
+        // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
+        // Reader stream = new InputStreamReader(this.getResource("boot.js"));
+        // Value result = polyglot.eval(Source.newBuilder("js", stream, "boot.js").build());
+
+        try {
+          Context polyglot = this.createContext(null);
+          File file = new File(getDataFolder(), "entry.js");
+          Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
+          Value repl_fn = entry_fn.execute("./PluginBridge.js");
+          this.javascript_bridge = repl_fn;
+        } catch (Exception e) {
+          // sender.sendMessage(e.getMessage());
+          e.printStackTrace();
+          return null;
+        }
+      }
+      return this.javascript_bridge;
+    }
 
     private Context createContext(CommandSender sender) {
         if (this.context == null) {
@@ -111,6 +124,8 @@ public class Unchained extends JavaPlugin implements Listener {
               .setScanners(new SubTypesScanner(false /* don't exclude Object.class */), new ResourcesScanner())
               .setUrls(ClasspathHelper.forClassLoader(classLoadersList.toArray(new ClassLoader[0])))
               .filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix("org.bukkit.event"))));
+          Unchained.reflections = reflections;
+
           context.getPolyglotBindings().putMember("reflections", reflections);
 
           context.getPolyglotBindings().putMember("plugin", this);
@@ -120,14 +135,7 @@ public class Unchained extends JavaPlugin implements Listener {
           context.getPolyglotBindings().putMember("JsPlugin", JsPlugin.class);
 
           this.context = context;
-          Unchained.public_context = context;
         }
         return this.context;
     }
-
-    // public void registerEvent(String id, Class<? extends Event> eventClass, EventExecutor executor) {
-    //     //TODO use id to unregister events eventually
-    //
-    //     Bukkit.getServer().getPluginManager().registerEvent(eventClass, this, EventPriority.NORMAL, executor, this);
-    // }
 }

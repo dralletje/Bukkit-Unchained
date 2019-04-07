@@ -17,7 +17,8 @@
     "extends": "react-app",
     "globals": {
       "Java_type": true,
-      "Java": true
+      "Java": true,
+      "Polyglot": true
     }
   }
 }

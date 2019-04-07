@@ -6,7 +6,7 @@ let get_plugin_description = (package_json_path) => {
   let package_json = JSON.parse(package_json_text);
 
   if (package_json.bukkit == null) {
-    throw new Error(`No 'bukkit' key in package.json`);
+    throw new Error(`No 'bukkit' key in package.json @ '${package_json_path}'`);
   }
 
   let result =  {
