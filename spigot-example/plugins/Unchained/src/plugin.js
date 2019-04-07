@@ -2,8 +2,7 @@ let path = require('path');
 
 let plugin_utils = require('./plugin_utils.js');
 
-let parent_plugin = Polyglot.import("plugin");
-let server = parent_plugin.getServer();
+let server = process.binding("server");
 
 let promenade = async (fn) => {
   return await new Promise((resolve, reject) => {
@@ -59,9 +58,6 @@ let register_js_pluginloader = () => {
   let JsPluginLoader = Java_type('eu.dral.unchained.JsPluginLoader');
 
   if (JsPluginLoader.static.initialized === false) {
-    let parent_plugin = Polyglot.import("plugin");
-    let server = parent_plugin.getServer();
-
     server.getPluginManager().registerInterface(JsPluginLoader);
     JsPluginLoader.static.initialized = true
   }
@@ -105,9 +101,6 @@ module.exports = {
   },
   load_plugin: (plugin_package_json_path) => {
     let description = plugin_utils.get_plugin_description(plugin_package_json_path);
-    let parent_plugin = Polyglot.import("plugin");
-    let server = parent_plugin.getServer();
-
     register_js_pluginloader();
 
     // Unload plugin if it is already loaded

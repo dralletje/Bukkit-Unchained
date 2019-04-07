@@ -1,22 +1,22 @@
-let commonJsWrap = (code) => {
-  return `(function(exports, module, require ,__filename ,__dirname) {\n${code}\n})`;
-}
+let path = require('path');
+let fs = require('./fs.js');
 
 let builtin_module_map = {
-  fs: './fs.js',
-  path: './path.js',
-  util: './util.js',
-  bukkit: './bukkit.js',
-  assert: 'assert',
-  child_process: './child_process.js',
+  fs: require('./fs.js'),
+  path: require('path'),
+  util: require('./util.js'),
+  bukkit: require('./bukkit.js'),
+  child_process: require('./child_process.js'),
 };
-
-let path = require('./path.js');
-let fs = require('./fs.js');
 
 let require_cache = {};
 
 let basic_require = (module_path) => {
+  let builtin_match = module_path.match(/builtin\/(.*)/);
+  if (builtin_match != null) {
+    return builtin_module_map[builtin_match[1]];
+  }
+
   if (require_cache[module_path]) {
     return require_cache[module_path].exports;
   }
@@ -24,7 +24,7 @@ let basic_require = (module_path) => {
   require_cache[module_path] = module_object;
 
   let commonJsWrap = (code) => {
-    return `(function(exports, module, require ,__filename ,__dirname) {\n${code}\n})`;
+    return `(function(exports, module, require, unchained_require, __filename ,__dirname) {\n${code}\n})`;
   }
 
   let code = fs.readFileSync(module_object.filename).toString();
@@ -44,7 +44,7 @@ let basic_require = (module_path) => {
     script: wrapped_code,
   });
 
-  export_function(module_object.exports, module_object, module_object.require, filename, dirname);
+  export_function(module_object.exports, module_object, module_object.require, module_object.require, filename, dirname);
 
   return module_object.exports;
 }
@@ -105,7 +105,7 @@ let require_resolve = (base_file, module_id) => {
       let new_base_file = __dirname + __filename;
       if (new_base_file !== base_file || builtin_module_map[module_name] !== module_name) {
         // console.log(`builtin_module_map[module_name]:`, builtin_module_map[module_name])
-        return require_resolve(new_base_file, builtin_module_map[module_name]);
+        return `builtin/${module_name}`;
       }
     }
 
@@ -139,7 +139,9 @@ class Module {
     this.require.resolve = (module_path) => {
       return require_resolve(this.filename, module_path);
     }
+    this.unchained_require = this.require;
   }
+
 }
 
 module.exports = {

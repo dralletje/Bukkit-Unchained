@@ -1,12 +1,18 @@
 const path = require('path');
 
 module.exports = {
-  entry: './entry.js',
+  entry: './src/entry.js',
   mode: 'development',
   output: {
-    filename: 'main.js',
-    path: path.resolve(__dirname, 'dist'),
-    library: 'Unchained',
-    libraryTarget: 'umd',
+    filename: 'entry.js',
+    path: path.resolve(__dirname),
+  },
+  externals: {
+    bukkit: 'bukkit',
+    fs: 'fs',
+    child_process: 'child_process',
+  },
+  node: {
+    process: false,
   },
 };

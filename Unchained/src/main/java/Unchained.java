@@ -100,8 +100,7 @@ public class Unchained extends JavaPlugin implements Listener {
           Context polyglot = this.createContext(null);
           File file = new File(getDataFolder(), "entry.js");
           Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
-          Value repl_fn = entry_fn.execute("./PluginBridge.js");
-          this.javascript_bridge = repl_fn;
+          this.javascript_bridge = entry_fn;
         } catch (Exception e) {
           // sender.sendMessage(e.getMessage());
           e.printStackTrace();
@@ -129,10 +128,10 @@ public class Unchained extends JavaPlugin implements Listener {
           context.getPolyglotBindings().putMember("reflections", reflections);
 
           context.getPolyglotBindings().putMember("plugin", this);
+          context.getPolyglotBindings().putMember("server", this.getServer());
+
           context.getPolyglotBindings().putMember("cwd", System.getProperty("user.dir"));
           // context.getPolyglotBindings().putMember("cwd", this.getDataFolder().getAbsolutePath());
-          context.getPolyglotBindings().putMember("JsPluginLoader", JsPluginLoader.class);
-          context.getPolyglotBindings().putMember("JsPlugin", JsPlugin.class);
 
           this.context = context;
         }

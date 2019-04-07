@@ -293,6 +293,7 @@ public class JsPlugin extends PluginBase {
         context.getPolyglotBindings().putMember("reflections", reflections);
 
         context.getPolyglotBindings().putMember("plugin", this);
+        context.getPolyglotBindings().putMember("server", this.getServer());
         context.getPolyglotBindings().putMember("cwd", System.getProperty("user.dir"));
 
         this.context = context;
@@ -302,8 +303,7 @@ public class JsPlugin extends PluginBase {
         Context polyglot = this.context;
         File file = new File(Unchained.self.getDataFolder(), "entry.js");
         Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
-        Value repl_fn = entry_fn.execute("./PluginBridge.js");
-        Value executor = repl_fn.execute("load_plugin_from_javaplugin", Arrays.asList(this));
+        Value executor = entry_fn.execute("load_plugin_from_javaplugin", Arrays.asList(this));
         this.executor = executor;
         return executor;
       } catch (Exception e) {

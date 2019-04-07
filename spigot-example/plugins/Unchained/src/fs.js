@@ -1,4 +1,4 @@
-let path_module = require('./path.js');
+let path_module = require('path');
 
 let File = Java.type('java.io.File');
 let FileReader = Java.type('java.io.FileReader');
@@ -163,6 +163,7 @@ module.exports = {
 
     try {
       let text = '';
+      let line = null;
       while ((line = buffered.readLine()) !== null) {
         text += line + '\n';
       }
