@@ -636,7 +636,7 @@ module.exports = plugin => {
     let block = event.getClickedBlock();
     let item = event.getItem();
     let player = event.getPlayer();
-    
+
     // let hand = event.getHand();
     // let action = event.getAction();
     // console.log(`action:`, action.name());
@@ -680,10 +680,30 @@ module.exports = plugin => {
           looking_direction: looking_direction.clone().multiply(-1),
         },
       };
+      let to_from_portal = {
+        to: selected_portal,
+        from: {
+          corner_blocks: corner_blocks.slice().reverse(),
+          looking_direction: looking_direction.clone().multiply(-1),
+        },
+      };
+      // let to_from_portal = {
+      //   from: {
+      //     corner_blocks: corner_blocks,
+      //     looking_direction: looking_direction,
+      //   },
+      //   to: {
+      //     corner_blocks: selected_portal.corner_blocks.slice().reverse(),
+      //     looking_direction: selected_portal.looking_direction.clone().multiply(-1),
+      //   },
+      // };
       portals.push(from_to_portal);
+      portals.push(to_from_portal);
       selected_portal_storage.set(null);
+
       player.getInventory().setItemInMainHand(portal_tool(false));
       await render_portal(player, player.getLocation(), from_to_portal);
+      await render_portal(player, player.getLocation(), to_from_portal);
       player.sendMessage(`${ChatColor.DARK_BLUE}Portal activated!`);
     }
   });
@@ -729,6 +749,7 @@ module.exports = plugin => {
 
     if (selected_portal == null) {
       selected_portal_storage.set(portal);
+      player.sendMessage(`${ChatColor.DARK_BLUE}Portal set!`);
     } else {
       let from_to_portal = {
         from: selected_portal,
@@ -737,11 +758,21 @@ module.exports = plugin => {
           looking_direction: looking_direction.clone().multiply(-1),
         },
       };
+      let to_from_portal = {
+        from: {
+          corner_blocks: corner_blocks.slice().reverse(),
+          looking_direction: looking_direction.clone().multiply(-1),
+        },
+        to: selected_portal,
+      };
       portals.push(from_to_portal);
+      portals.push(to_from_portal);
       selected_portal_storage.set(null);
+
       await render_portal(player, player.getLocation(), from_to_portal);
+      await render_portal(player, player.getLocation(), to_from_portal);
+      player.sendMessage(`${ChatColor.DARK_BLUE}Portal activated!`);
     }
 
-    player.sendMessage(`${ChatColor.DARK_BLUE}Portal activated!`);
   });
 };

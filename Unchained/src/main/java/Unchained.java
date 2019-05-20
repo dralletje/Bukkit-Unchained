@@ -28,7 +28,6 @@ import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Unchained extends JavaPlugin implements Listener {
-    private Context context;
     private Map<String, String> langs = new HashMap<String, String>() {
         {
             put("js", ".js");
@@ -38,18 +37,22 @@ public class Unchained extends JavaPlugin implements Listener {
         }
     };
 
-    public static Unchained self;
+    private Context context;
     public static Value javascript_bridge;
     public static Reflections reflections;
 
     @Override
     public void onEnable() {
-        Unchained.self = this;
         if (!getDataFolder().exists()) {
             getDataFolder().mkdir();
         }
 
         this.pluginBridge("onEnable");
+    }
+
+    @Override
+    public void onDisable() {
+        this.getContext().close();
     }
 
     @Override
@@ -63,7 +66,7 @@ public class Unchained extends JavaPlugin implements Listener {
 
           try {
             String src = String.join(" ", args);
-            Value result = this.createContext(null).eval(lang, src);
+            Value result = this.getContext().eval(lang, src);
             sender.sendMessage(result.toString());
           } catch (PolyglotException ex) {
             sender.sendMessage(ChatColor.RED + "Error: " + ex.getMessage());
@@ -97,7 +100,7 @@ public class Unchained extends JavaPlugin implements Listener {
         // Value result = polyglot.eval(Source.newBuilder("js", stream, "boot.js").build());
 
         try {
-          Context polyglot = this.createContext(null);
+          Context polyglot = this.getContext();
           File file = new File(getDataFolder(), "entry.js");
           Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
           this.javascript_bridge = entry_fn;
@@ -110,7 +113,7 @@ public class Unchained extends JavaPlugin implements Listener {
       return this.javascript_bridge;
     }
 
-    private Context createContext(CommandSender sender) {
+    private Context getContext() {
         if (this.context == null) {
           Context context = Context.newBuilder(langs.keySet().toArray(new String[0])).allowHostAccess(true).build();
 

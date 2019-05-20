@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "run-minecraft-server": "cd spigot-example && ../graal-bin/bin/java -Dgraal.LogFile=graallog.log -jar minecraft-server.jar",
-    "compile-unchained": "cd Unchained && mvn package && mv ./target/Unchained.jar ../spigot-example/plugins/Unchained.jar",
+    "minecraft-server": "cd spigot-example && ../graal-bin/bin/java -Dgraal.LogFile=graallog.log -jar minecraft-server.jar",
+    "compile-java": "cd Unchained && mvn package && mv ./target/Unchained.jar ../spigot-example/plugins/Unchained.jar",
+    "watch-javascript": "cd spigot-example/plugins/Unchained && webpack --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
