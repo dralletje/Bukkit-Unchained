@@ -68,7 +68,9 @@ let get_transformation_matrix_for_portal = (portal) => {
       to: JavaVector.to_js(right_top2.toVector().add(to.looking_direction))
     },
     { from: JavaVector.to_js(left_top), to: JavaVector.to_js(left_top2) }
-  ]);
+  ], {
+    world: { from: left.getWorld(), to: left2.getWorld() }
+  });
 
   return transformation_matrix;
 };
@@ -155,8 +157,11 @@ let render_portal = async (player, location, _portal) => {
   // Show mirror image
   {
     let location = player.getLocation();
-    let distance_to_portal = location.distanceSquared(left);
+    if (!is_in_same_world(location, left)) {
+      return;
+    }
 
+    let distance_to_portal = location.distanceSquared(left);
     if (distance_to_portal > 100 ** 2) {
       return;
     }
@@ -200,6 +205,7 @@ let render_portal = async (player, location, _portal) => {
         { up: 3 + portal_height + 8 }
       ])) {
         let mirrored = transformation_matrix.apply_to_location(location);
+        mirrored.setWorld(to.corner_blocks[0].getWorld());
 
         locations.push({ location, mirrored });
 
@@ -325,36 +331,38 @@ let render_portal = async (player, location, _portal) => {
       })
       .filter(x => x != null);
 
-    let own_location_mirrored = transformation_matrix.inverse().apply_to_location(
-      player.getLocation()
-    );
-    let mirrored_player_location = (({ location }) => {
-      if (has_become_real) {
-        return null;
-      }
-
-      let location_vector = location.toVector();
-      let is_inside_view = planes.every(plane =>
-        plane.is_next_to(location_vector)
+    if (is_in_same_world(player.getLocation(), portal_center)) {
+      let own_location_mirrored = transformation_matrix.inverse().apply_to_location(
+        player.getLocation()
       );
+      let mirrored_player_location = (({ location }) => {
+        if (has_become_real) {
+          return null;
+        }
 
-      if (is_inside_view === false) {
-        return null;
-      } else {
-        return location;
-      }
-    })({ location: own_location_mirrored });
-    render_entity_to_player(player, {
-      key: `self-${portal_center.toString()}`,
-      value:
-        mirrored_player_location == null
-          ? null
-          : {
-              type: FakePlayer,
-              location: mirrored_player_location,
-              player: player
-            }
-    });
+        let location_vector = location.toVector();
+        let is_inside_view = planes.every(plane =>
+          plane.is_next_to(location_vector)
+        );
+
+        if (is_inside_view === false) {
+          return null;
+        } else {
+          return location;
+        }
+      })({ location: own_location_mirrored });
+      render_entity_to_player(player, {
+        key: `self-${portal_center.toString()}`,
+        value:
+          mirrored_player_location == null
+            ? null
+            : {
+                type: FakePlayer,
+                location: mirrored_player_location,
+                player: player
+              }
+      });
+    }
 
     let block_diff = locations.length - filtered_block_datas.length;
     console.log(`Blocks being sent:`, filtered_block_datas.length);
@@ -513,6 +521,10 @@ let middle_between_vectors = (v1, v2) => {
     .multiply(0.5);
 };
 
+let is_in_same_world = (location1, location2) => {
+  return location1.getWorld() === location2.getWorld();
+}
+
 let check_for_portal_crossing = (event, _portal) => {
   let { from, to } = _portal;
   let [
@@ -522,6 +534,10 @@ let check_for_portal_crossing = (event, _portal) => {
     bottom_right
   ] = from.corner_blocks.map(x => x.getLocation()).map(x => block_middle(x));
   let plane_point = middle_between_vectors(bottom_left, top_right);
+
+  if (!is_in_same_world(plane_point, event.getTo())) {
+    return;
+  }
 
   let distance_to_portal = plane_point.distanceSquared(event.getTo());
   if (distance_to_portal > EIGHT_SQUARED) {
@@ -554,7 +570,10 @@ let check_for_portal_crossing = (event, _portal) => {
   player.setVelocity(
     transformation_matrix.apply_to_direction(player.getVelocity())
   );
-  event.setTo(transformation_matrix.apply_to_location(event.getTo()));
+
+  let destination = transformation_matrix.apply_to_location(event.getTo());
+  destination.setWorld(_portal.to.corner_blocks[0].getWorld());
+  event.setTo(destination);
 };
 
 let PLAYER_RUNTIME_DATA = {};
@@ -671,8 +690,10 @@ module.exports = plugin => {
     if (selected_portal == null) {
       selected_portal_storage.set(portal);
       player.getInventory().setItemInMainHand(portal_tool(true));
-      player.sendMessage(`${ChatColor.RED}Source portal selected!`);
+      player.sendMessage(`${ChatColor.DARK_BLUE}Source portal selected!`);
     } else {
+      // prettier-ignore
+      player.sendMessage(`${ChatColor.DARK_BLUE}Destination portal selected, activating...`);
       let from_to_portal = {
         from: selected_portal,
         to: {

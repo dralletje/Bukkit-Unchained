@@ -8,6 +8,15 @@ let bkHandlerList = Java.type('org.bukkit.event.HandlerList');
 // handlers.
 var ScriptCraftListener = Java.extend(Java.type('org.bukkit.event.Listener'), {});
 
+let format_error = (err) => {
+  if (err.getMessage()) {
+    err.printStackTrace();
+    return err.getMessage();
+  } else {
+    return err;
+  }
+}
+
 let make_addEventListener_for_plugin = (plugin) => {
   let addEventListener = function(
     eventType,
@@ -33,7 +42,7 @@ let make_addEventListener_for_plugin = (plugin) => {
           } catch (err) {
             // TODO Add global event handling stuff
             // prettier-ignore
-            console.log(`${ChatColor.DARK_RED}[${plugin.getName()}] ${ChatColor.RED}Error in event handler (${eventType}):`, err)
+            console.log(`${ChatColor.DARK_RED}[${plugin.getName()}] ${ChatColor.RED}Error in event handler (${eventType}):`, format_error(err))
             if (event.getPlayer) {
               let player = event.getPlayer();
               // prettier-ignore
