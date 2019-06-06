@@ -287,7 +287,16 @@ public class JsPlugin extends PluginBase {
         return this.executor;
       }
       if (this.context == null) {
-        Context context = Context.newBuilder("js").allowHostAccess(true).build();
+        // OutputStream plugin_out = new BufferedOutputStream()
+        Context context = Context.newBuilder("js")
+          // .out(plugin_out)
+          .allowHostAccess(true)
+          .allowAllAccess(true)
+          .allowHostAccess(true)
+          // .allowPolyglotAccess(true)
+          // .allowExperimentalOptions(true)
+          .option("js.polyglot-builtin", "true")
+          .build();
 
         Reflections reflections = Unchained.reflections;
         context.getPolyglotBindings().putMember("reflections", reflections);

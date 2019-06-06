@@ -120,7 +120,8 @@ public class Unchained extends JavaPlugin implements Listener {
           Context context = Context.newBuilder("js")
             .allowAllAccess(true)
             .allowHostAccess(true)
-            .allowExperimentalOptions(true)
+            // .allowPolyglotAccess(true)
+            // .allowExperimentalOptions(true)
             .option("js.polyglot-builtin", "true")
             .build();
 
