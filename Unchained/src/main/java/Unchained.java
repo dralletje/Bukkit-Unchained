@@ -37,12 +37,14 @@ public class Unchained extends JavaPlugin implements Listener {
         }
     };
 
+    public static Unchained self;
     private Context context;
     public static Value javascript_bridge;
     public static Reflections reflections;
 
     @Override
     public void onEnable() {
+        Unchained.self = this;
         if (!getDataFolder().exists()) {
             getDataFolder().mkdir();
         }
