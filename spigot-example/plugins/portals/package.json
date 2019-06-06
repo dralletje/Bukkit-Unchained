@@ -20,7 +20,7 @@
   "dependencies": {
     "lodash": "^4.17.11",
     "mathjs": "^5.8.0",
-    "minecraft-data": "^2.36.0",
+    "minecraft-data": "^2.37.5",
     "prismarine-nbt": "^1.2.1",
     "protodef": "^1.6.9",
     "uuid-1345": "^0.99.7",

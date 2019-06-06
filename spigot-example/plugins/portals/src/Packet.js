@@ -8,7 +8,7 @@ let MinecraftReflection = Java_type(
 let Packet = {
   packet_manager: once(() => {
     let minecraft_types = require("./minecraft-types.js");
-    let minecraft_data_protocol = require("minecraft-data/minecraft-data/data/pc/1.13.2/protocol.json");
+    let minecraft_data_protocol = require("minecraft-data/minecraft-data/data/pc/1.14.1/protocol.json");
     // let minecraft_data = minecraft_data_factory('1.13.2');
     let ProtoDef = require("protodef").ProtoDef;
 
@@ -47,7 +47,7 @@ let Packet = {
 
   combined_id: (blockdata) => {
     // Most hacky stuff pfff
-    let BLOCK = Java.type("net.minecraft.server.v1_13_R2.Block").class.static;
+    let BLOCK = Java.type("net.minecraft.server.v1_14_R1.Block").class.static;
     let iblockdata = Java_type("com.comphenix.protocol.wrappers.WrappedBlockData")
       .static.createData(blockdata)
       .getHandle();
@@ -70,15 +70,17 @@ let Packet = {
       "entityCount",
       true
     );
-    return {
-      set: value => {
-        return accessor.set(null, value);
-      },
-      get: ({ default: default_value = null } = {}) => {
-        let value = accessor.get(null);
-        return value == null ? default_value : value;
-      }
-    };
+
+    return accessor.get(null);
+    // return {
+    //   set: value => {
+    //     return accessor.set(null, value);
+    //   },
+    //   get: ({ default: default_value = null } = {}) => {
+    //     let value = accessor.get(null);
+    //     return value == null ? default_value : value;
+    //   }
+    // };
   },
 };
 

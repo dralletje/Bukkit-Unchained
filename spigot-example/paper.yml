@@ -11,7 +11,7 @@
 # Docs: https://paper.readthedocs.org/ 
 
 verbose: false
-config-version: 17
+config-version: 18
 settings:
   enable-player-collisions: true
   player-auto-save-rate: -1
@@ -46,6 +46,7 @@ settings:
     page-max: 2560
     total-multiplier: 0.98
 timings:
+  server-name: Unknown Server
   enabled: false
   verbose: false
   server-name-privacy: false
@@ -64,6 +65,7 @@ messages:
     flying-vehicle: Flying is not enabled on this server
 world-settings:
   default:
+    nether-ceiling-void-damage-height: 0
     count-all-mobs-for-spawning: false
     disable-thunder: false
     skeleton-horse-thunder-spawn-chance: 0.01

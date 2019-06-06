@@ -46,6 +46,10 @@ let queue_function = fn => {
         next = args;
       }
     } catch (err) {
+      if (err.printStackTrace) {
+        err.printStackTrace();
+        console.log(`err.getCause():`, err.getCause())
+      }
       console.log(`err:`, err);
       throw err;
     }

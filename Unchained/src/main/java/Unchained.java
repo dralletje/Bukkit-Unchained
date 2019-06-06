@@ -117,7 +117,12 @@ public class Unchained extends JavaPlugin implements Listener {
 
     private Context getContext() {
         if (this.context == null) {
-          Context context = Context.newBuilder(langs.keySet().toArray(new String[0])).allowHostAccess(true).build();
+          Context context = Context.newBuilder("js")
+            .allowAllAccess(true)
+            .allowHostAccess(true)
+            .allowExperimentalOptions(true)
+            .option("js.polyglot-builtin", "true")
+            .build();
 
           // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
           // Reflections reflections = new Reflections("org.bukkit.event");

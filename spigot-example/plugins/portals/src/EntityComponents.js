@@ -17,7 +17,7 @@ class FakePlayer extends React.Component {
     let { player, location } = this.props;
 
     let entity_counter = Packet.get_entity_count();
-    this.entity_id = entity_counter.get();
+    this.entity_id = entity_counter.incrementAndGet();
 
     console.log(`this.entity_id:`, this.entity_id)
 
@@ -35,7 +35,7 @@ class FakePlayer extends React.Component {
       }
     });
 
-    entity_counter.set(entity_counter.get() + 1);
+    // entity_counter.set(entity_counter.get() + 1);
   }
 
   componentDidUpdate(prev_prop) {
