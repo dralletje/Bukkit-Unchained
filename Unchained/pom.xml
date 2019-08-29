@@ -81,11 +81,16 @@
           <version>0.9.11</version>
           <scope>compile</scope>
       </dependency>
-        <dependency>
-            <groupId>com.destroystokyo.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.13.2-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-         </dependency>
+      <dependency>
+          <groupId>com.destroystokyo.paper</groupId>
+          <artifactId>paper-api</artifactId>
+          <version>1.13.2-R0.1-SNAPSHOT</version>
+          <scope>provided</scope>
+       </dependency>
+       <dependency>
+        <groupId>org.java-websocket</groupId>
+        <artifactId>Java-WebSocket</artifactId>
+        <version>1.4.0</version>
+      </dependency>
     </dependencies>
 </project>

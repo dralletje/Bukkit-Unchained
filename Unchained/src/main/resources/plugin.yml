@@ -6,6 +6,6 @@ version: 1.0
 commands:
   jsplugin:
   js:
-  # graaljs:
+  graaljs:
   # graalruby:
   # graalpython:

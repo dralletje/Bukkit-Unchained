@@ -8,7 +8,23 @@ let { Module } = require('./require.js');
 let methods = {
   // onTabComplete: (...args) => require('./dev_plugin/onTabComplete.js')(...args),
   onEnable: () => {
-    console.log('onEnable!');
+    console.log('onEnable from javascript!');
+  },
+  onServerStart: ( ) => {
+    console.log('onServerStart');
+    return (exchange) => {
+      try {
+        console.log(`exchange:`, exchange)
+        let response = "This is the response from javascript";
+        let outputstream = exchange.getResponseBody();
+        var bytes = Array.from(Buffer.from(response));
+        exchange.sendResponseHeaders(200, bytes.length);
+        outputstream.write(bytes);
+        outputstream.close();
+      } catch (err) {
+        console.log(`err.message:`, err.message)
+      }
+    }
   },
   onCommand: (sender, command, alias, args) => {
     // if (alias === 'js') {

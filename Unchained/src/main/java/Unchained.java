@@ -4,6 +4,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.Engine;
 
 import org.reflections.*;
 import org.reflections.util.*;
@@ -47,6 +48,12 @@ public class Unchained extends JavaPlugin implements Listener {
         Unchained.self = this;
         if (!getDataFolder().exists()) {
             getDataFolder().mkdir();
+        }
+
+        try {
+          Http.start_server(8000, this.pluginBridge("onServerStart"));
+        } catch(Exception e) {
+          e.printStackTrace();
         }
 
         this.pluginBridge("onEnable");
@@ -103,9 +110,17 @@ public class Unchained extends JavaPlugin implements Listener {
 
         try {
           Context polyglot = this.getContext();
+
           File file = new File(getDataFolder(), "entry.js");
           Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
           this.javascript_bridge = entry_fn;
+
+          // Start debugger loop
+          File debugger_loop_file = new File(getDataFolder(), "debugger_loop.js");
+          polyglot.eval(Source.newBuilder("js", debugger_loop_file).build());
+          // Value result = polyglot.eval(Source.newBuilder("js", stream, "debugger_loop.js").build());
+          // Value result = polyglot.eval(Source.newBuilder("js", this.getResource("debugger_loop.js")).build());
+
         } catch (Exception e) {
           // sender.sendMessage(e.getMessage());
           e.printStackTrace();
@@ -117,23 +132,25 @@ public class Unchained extends JavaPlugin implements Listener {
 
     private Context getContext() {
         if (this.context == null) {
+          // Engine engine = Engine.newBuilder()
           Context context = Context.newBuilder("js")
             .allowAllAccess(true)
             .allowHostAccess(true)
-            // .allowPolyglotAccess(true)
-            // .allowExperimentalOptions(true)
+            .option("inspect", "8228")
+            .option("inspect.Path", "session")
+            // .option("engine.inspect.Remote", "true")
             .option("js.polyglot-builtin", "true")
             .build();
 
           // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
-          // Reflections reflections = new Reflections("org.bukkit.event");
-          List<ClassLoader> classLoadersList = new LinkedList<ClassLoader>();
-          classLoadersList.add(ClasspathHelper.contextClassLoader());
-          classLoadersList.add(ClasspathHelper.staticClassLoader());
-          Reflections reflections = new Reflections(new ConfigurationBuilder()
-              .setScanners(new SubTypesScanner(false /* don't exclude Object.class */), new ResourcesScanner())
-              .setUrls(ClasspathHelper.forClassLoader(classLoadersList.toArray(new ClassLoader[0])))
-              .filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix("org.bukkit.event"))));
+          Reflections reflections = new Reflections("org.bukkit.event");
+          // List<ClassLoader> classLoadersList = new LinkedList<ClassLoader>();
+          // classLoadersList.add(ClasspathHelper.contextClassLoader());
+          // classLoadersList.add(ClasspathHelper.staticClassLoader());
+          // Reflections reflections = new Reflections(new ConfigurationBuilder()
+          //     .setScanners(new SubTypesScanner(false /* don't exclude Object.class */), new ResourcesScanner())
+          //     .setUrls(ClasspathHelper.forClassLoader(classLoadersList.toArray(new ClassLoader[0])))
+          //     .filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix("org.bukkit.event"))));
           Unchained.reflections = reflections;
 
           context.getPolyglotBindings().putMember("reflections", reflections);

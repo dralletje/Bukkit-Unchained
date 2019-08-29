@@ -36,60 +36,24 @@
     },
   };
 
-  let { format_value } = require('./bootstrap/format_value.js');
   require("./bootstrap/timers.js")(global);
 
-  {
-    let old_log = console.original_log || console.log;
-    console.original_log = old_log;
+  let original_console_log = console.log;
+  let create_pretty_log = require("./bootstrap/console_log.js");
+  let new_console_log = create_pretty_log(console.log)
+  console.log = (...args) => {
+    try {
+      return new_console_log(...args);
+    } catch (err) {
+      console.log(`Error in console.log: ${err.stack}`);
+      return original_console_log(...args);
+    }
+  };
 
-    let is_now_executing_console_log = false;
-
-    let new_log = (...args) => {
-      if (is_now_executing_console_log === true) {
-        return old_log(...args);
-      }
-      is_now_executing_console_log = true;
-
-      let current_line_items = [];
-
-      for (let value of args) {
-        if (typeof value === "string") {
-          current_line_items.push(value);
-          continue;
-        }
-
-        let formatted_lines = format_value(value);
-
-        if (formatted_lines.length === 0) {
-          throw new Error(`Value didn't return anything: '${value}'`);
-        }
-
-        current_line_items.push(formatted_lines[0]);
-        if (formatted_lines.length > 1) {
-          old_log(current_line_items.join(" "));
-
-          let bulk = formatted_lines.slice(1, -1);
-          for (let log_now of bulk) {
-            old_log(log_now);
-          }
-          let last = formatted_lines[formatted_lines.length - 1];
-          current_line_items = [last];
-        }
-      }
-
-      old_log(current_line_items.join(" "));
-      is_now_executing_console_log = false;
-    };
-
-    console.log = (...args) => {
-      try {
-        return new_log(...args);
-      } catch (err) {
-        console.log(`Error in console.log: ${err.stack}`);
-        return old_log(...args);
-      }
-    };
+  console.log(`Runtime:`, global.Runtime)
+  global.Runtime = global.Runtime || {};
+  Runtime.getHeapUsage = () => {
+    console.log('get heap usage');
   }
 
   global.bukkit = require('./bukkit.js');
