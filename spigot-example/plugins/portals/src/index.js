@@ -639,8 +639,6 @@ module.exports = plugin => {
     console.log(`${ChatColor.RED}Error while enabling wordedit gui:`);
     console.log(error);
   }
-  return;
-
   // TODO On block change, apply block change to portals
   // plugin.events.PlayerBreak
 
