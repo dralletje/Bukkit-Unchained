@@ -11,7 +11,7 @@
 # Docs: https://paper.readthedocs.org/ 
 
 verbose: false
-config-version: 18
+config-version: 19
 settings:
   enable-player-collisions: true
   player-auto-save-rate: -1
@@ -65,6 +65,8 @@ messages:
     flying-vehicle: Flying is not enabled on this server
 world-settings:
   default:
+    fix-zero-tick-instant-grow-farms: true
+    per-player-mob-spawns: false
     nether-ceiling-void-damage-height: 0
     count-all-mobs-for-spawning: false
     disable-thunder: false
@@ -134,14 +136,14 @@ world-settings:
       - chest
       - diamond_ore
       - redstone_ore
-      - lit_redstone_ore
       - clay
       - emerald_ore
       - ender_chest
       replacement-blocks:
       - stone
-      - planks
+      - oak_planks
     game-mechanics:
+      disable-relative-projectile-velocity: false
       disable-chest-cat-detection: false
       disable-end-credits: false
       disable-player-crits: false
@@ -180,3 +182,9 @@ world-settings:
     hopper:
       cooldown-when-full: true
       disable-move-event: false
+    generator-settings:
+      flat-bedrock: false
+    alt-item-despawn-rate:
+      enabled: false
+      items:
+        COBBLESTONE: 300

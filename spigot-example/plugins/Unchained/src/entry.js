@@ -50,9 +50,8 @@
     }
   };
 
-  console.log(`Runtime:`, global.Runtime)
   global.Runtime = global.Runtime || {};
-  Runtime.getHeapUsage = () => {
+  global.Runtime.getHeapUsage = () => {
     console.log('get heap usage');
   }
 

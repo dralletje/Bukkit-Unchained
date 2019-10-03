@@ -58,10 +58,7 @@ import java.util.*;
  */
 public final class JsPluginLoader implements PluginLoader {
     final Server server;
-    Context context;
     private final Pattern[] fileFilters = new Pattern[] { Pattern.compile("package\\.json$"), };
-
-    public static Boolean initialized = false;
 
     /**
      * This class was not meant to be constructed explicitly

@@ -14,7 +14,9 @@
     "dev": true,
     "commands": {
       "portal": {},
-      "itemstack": {}
+      "itemstack": {},
+      "we-ui": {},
+      "show-mask": {}
     }
   },
   "dependencies": {

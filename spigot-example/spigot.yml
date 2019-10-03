@@ -60,6 +60,7 @@ advancements:
   - minecraft:story/disabled
 world-settings:
   default:
+    view-distance: default
     seed-outpost: 165745296
     verbose: false
     enable-zombie-pigmen-portal-spawns: true
@@ -91,6 +92,9 @@ world-settings:
       hopper-transfer: 8
       hopper-check: 1
     growth:
+      bamboo-modifier: 100
+      sweetberry-modifier: 100
+      kelp-modifier: 100
       cactus-modifier: 100
       cane-modifier: 100
       melon-modifier: 100

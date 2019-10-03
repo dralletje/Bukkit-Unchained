@@ -1,8 +1,10 @@
 let path = require('path');
+let chalk = require('chalk');
 
 let plugin_utils = require('./plugin_utils.js');
 
 let server = process.binding("server");
+
 
 let promenade = async (fn) => {
   return await new Promise((resolve, reject) => {
@@ -63,40 +65,50 @@ let register_js_pluginloader = () => {
   }
 }
 
+let find_folders_with_package_json = async () => {
+  let glob = require('glob');
+  let package_jsons = await promenade((callback) => {
+    glob("plugins/*/package.json", {}, callback);
+  });
+
+  let package_json_paths = package_jsons.map(relative_path => path.join(process.cwd(), relative_path));
+
+  return package_json_paths;
+}
+
 module.exports = {
   load_all: async (with_name = null) => {
-    let glob = require('glob');
-    let package_jsons = await promenade((callback) => {
-      glob("plugins/*/package.json", {}, callback);
-    });
-    package_jsons = package_jsons.filter(x => !x.includes('Graaljs'));
+    let package_json_paths = await find_folders_with_package_json();
 
-    // let bukkitjs = await promenade((callback) => {
-    //   glob("plugins/*.bukkitjs", {}, callback);
-    // });
-    // bukkitjs.map(bukkitjs => {
-    //   console.log(`bukkitjs:`, bukkitjs)
-    // })
-    // console.log(`bukkitjs:`, bukkitjs);
-
-    let any_found = false;
-
-    for (let package_json of package_jsons) {
-      try {
-        let plugin_package_json_path = path.join(process.cwd(), package_json);
-        let description = plugin_utils.get_plugin_description(plugin_package_json_path);
-
-        if (with_name == null || description.name === with_name) {
-          any_found = true;
-          module.exports.load_plugin(plugin_package_json_path);
-        }
-      } catch (err) {
-        console.log(`Plugin '${package_json}' did not load:`, err);
-      }
+    if (package_json_paths.length === 0) {
+      // prettier-ignore
+      throw new Error(`No valid plugins found in the plugins/ directory`);
     }
 
-    if (any_found !== true) {
-      throw new Error(`No plugin for name '${with_name}' found`);
+    let with_matching_name =
+      with_name === null
+      ? package_json_paths
+      : (
+        package_json_paths.filter(path => {
+          let plugin_description = plugin_utils.get_plugin_description(path)
+          return plugin_description.name === with_name
+        })
+      );
+
+    if (with_matching_name.length === 0) {
+      throw new Error(`No plugin called "${with_name}" found`);
+    }
+
+    for (let package_json_path of package_json_paths) {
+      try {
+        module.exports.load_plugin(package_json_path);
+      } catch (error) {
+        // prettier-ignore
+        console.log(chalk.red(`Plugin "${path.relative(process.cwd(), package_json_path)}" failed to load due to an error:`));
+        console.log(chalk.red(`${chalk.dim("Message:")} ${error.message}`));
+        console.log(chalk.red.dim(error.stack));
+        console.log('');
+      }
     }
   },
   load_plugin: (plugin_package_json_path) => {
@@ -125,6 +137,7 @@ module.exports = {
 
     // Enable the plugin
     server.getPluginManager().enablePlugin(plugin);
+    // Try to register the helpmap correctly
     get_helpmap().initializeCommands();
   }
 }

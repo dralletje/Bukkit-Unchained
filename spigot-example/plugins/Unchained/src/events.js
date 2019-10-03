@@ -1,15 +1,14 @@
 let { ChatColor } = require('bukkit');
-let bkEventPriority = Java.type('org.bukkit.event.EventPriority');
+let bukkit_EventPriority = Java.type('org.bukkit.event.EventPriority');
 let bkHandlerList = Java.type('org.bukkit.event.HandlerList');
+
 // let bukkit_pluginmanager = org.bukkit.Bukkit.pluginManager;
 
-// Ask Nashorn to generate a class implementing the Listener
-// interface, so that we may instantiate it to tag our event
-// handlers.
-var ScriptCraftListener = Java.extend(Java.type('org.bukkit.event.Listener'), {});
+// Create a class based on the listener interface so we can `new Xxx()` it
+var UnchainedListener = Java.extend(Java.type('org.bukkit.event.Listener'), {});
 
 let format_error = (err) => {
-  if (err.getMessage()) {
+  if (err.getMessage && err.getMessage()) {
     err.printStackTrace();
     return err.getMessage();
   } else {
@@ -23,7 +22,7 @@ let make_addEventListener_for_plugin = (plugin) => {
     handler,
     priority = 'HIGHEST'
   ) {
-    let priority_symbol = bkEventPriority[priority.toUpperCase()];
+    let priority_symbol = bukkit_EventPriority[priority.toUpperCase()];
 
     var eventExecutor = function(listener, event) {
       // console.log(`whatsthisidk:`, whatsthisidk)
@@ -36,32 +35,33 @@ let make_addEventListener_for_plugin = (plugin) => {
       // }
 
       (async () => {
-        // try {
           try {
             await handler(event);
           } catch (err) {
-            // TODO Add global event handling stuff
-            // prettier-ignore
-            console.log(`${ChatColor.DARK_RED}[${plugin.getName()}] ${ChatColor.RED}Error in event handler (${eventType}):`, format_error(err))
-            if (event.getPlayer) {
-              let player = event.getPlayer();
+            try {
+              // TODO Add global event handling stuff
               // prettier-ignore
-              player.sendMessage(`${ChatColor.DARK_RED}[${plugin.getName()}] ${ChatColor.RED}Error in event handler (${eventType}): ${err.message}`)
+              console.log(`${ChatColor.DARK_RED}[${plugin.getName()}] ${ChatColor.RED}Error in event handler (${eventType}):`, format_error(err))
+              if (event.getPlayer && event.getPlayer()) {
+                let player = event.getPlayer();
+                // prettier-ignore
+                player.sendMessage(`${ChatColor.DARK_RED}[${plugin.getName()}] ${ChatColor.RED}Error in event handler (${eventType}): ${err.message}`)
+              }
+            } catch (error) {
+              // This gets called if there is something to do with the
+              // `event.getPlayer()` stuff, not sure if this will ever call
+              // BUT IF it does, I want to catch it!!
+
+              // prettier-ignore
+              print('Error error:');
+              print(error)
             }
           }
-        // } catch (err) {
-        //   // This gets called if there is something to do with the
-        //   // `event.getPlayer()` stuff, not sure if this will ever call
-        //   // BUT IF it does, I want to catch it!!
-        //
-        //   // prettier-ignore
-        //   print('Error error:', err);
-        // }
       })();
     };
 
     // Create an instance of our empty Listener implementation to track the handler
-    var listener = new ScriptCraftListener();
+    var listener = new UnchainedListener();
 
     let bukkit_pluginmanager = plugin.getServer().getPluginManager();
 

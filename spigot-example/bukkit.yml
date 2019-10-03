@@ -13,6 +13,7 @@
 
 
 settings:
+  minimum-api: none
   allow-end: false
   warn-on-overload: true
   permissions-file: permissions.yml

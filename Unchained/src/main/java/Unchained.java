@@ -45,18 +45,20 @@ public class Unchained extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
-        Unchained.self = this;
-        if (!getDataFolder().exists()) {
-            getDataFolder().mkdir();
-        }
+      Unchained.self = this;
+      if (!getDataFolder().exists()) {
+        getDataFolder().mkdir();
+      }
 
-        try {
-          Http.start_server(8000, this.pluginBridge("onServerStart"));
-        } catch(Exception e) {
-          e.printStackTrace();
-        }
+      // try {
+      //   Http.start_server(8000, this.pluginBridge("onServerStart"));
+      // } catch(Exception e) {
+      //   e.printStackTrace();
+      // }
 
-        this.pluginBridge("onEnable");
+      this.getLogger().info("Running plugin bridge onEnable");
+
+      this.pluginBridge("onEnable");
     }
 
     @Override
@@ -66,27 +68,8 @@ public class Unchained extends JavaPlugin implements Listener {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (label.startsWith("graal")) {
-          String lang = label.replace("graal", "");
-          if (!langs.containsKey(lang)) {
-              sender.sendMessage(ChatColor.RED + "Language " + lang + " not found!");
-              return true;
-          }
-
-          try {
-            String src = String.join(" ", args);
-            Value result = this.getContext().eval(lang, src);
-            sender.sendMessage(result.toString());
-          } catch (PolyglotException ex) {
-            sender.sendMessage(ChatColor.RED + "Error: " + ex.getMessage());
-            ex.printStackTrace();
-          }
-
-          return true;
-        } else {
-          this.pluginBridge("onCommand", sender, command, label, args);
-          return true;
-        }
+      this.pluginBridge("onCommand", sender, command, label, args);
+      return true;
     }
 
     private Value pluginBridge(String method, Object ... args) {
@@ -104,25 +87,32 @@ public class Unchained extends JavaPlugin implements Listener {
 
     private Value getJavascriptBridge() {
       if (this.javascript_bridge == null) {
+
+        this.getLogger().info("Initializing javascript bridge");
         // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
         // Reader stream = new InputStreamReader(this.getResource("boot.js"));
         // Value result = polyglot.eval(Source.newBuilder("js", stream, "boot.js").build());
 
         try {
           Context polyglot = this.getContext();
+          this.getLogger().info("Got context!");
 
           File file = new File(getDataFolder(), "entry.js");
           Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
           this.javascript_bridge = entry_fn;
 
+          this.getLogger().info("Javascript bridge initialized!");
+
           // Start debugger loop
-          File debugger_loop_file = new File(getDataFolder(), "debugger_loop.js");
-          polyglot.eval(Source.newBuilder("js", debugger_loop_file).build());
+          // File debugger_loop_file = new File(getDataFolder(), "debugger_loop.js");
+          // polyglot.eval(Source.newBuilder("js", debugger_loop_file).build());
+
           // Value result = polyglot.eval(Source.newBuilder("js", stream, "debugger_loop.js").build());
           // Value result = polyglot.eval(Source.newBuilder("js", this.getResource("debugger_loop.js")).build());
 
         } catch (Exception e) {
           // sender.sendMessage(e.getMessage());
+          this.getLogger().info("Initializing javascript bridge failed:");
           e.printStackTrace();
           return null;
         }
@@ -136,8 +126,8 @@ public class Unchained extends JavaPlugin implements Listener {
           Context context = Context.newBuilder("js")
             .allowAllAccess(true)
             .allowHostAccess(true)
-            .option("inspect", "8228")
-            .option("inspect.Path", "session")
+            // .option("inspect", "8228")
+            // .option("inspect.Path", "session")
             // .option("engine.inspect.Remote", "true")
             .option("js.polyglot-builtin", "true")
             .build();

@@ -1,49 +1,48 @@
 let plugin = Polyglot.import("plugin");
 let server = plugin.getServer();
 
-let Runnable = Java.type('java.lang.Runnable');
+let Runnable = Java.type("java.lang.Runnable");
 
-function bukkitSetTimeout(callback, delayInMillis) {
+let callback_to_runnable = callback => {
   let MyRunnable = Java.extend(Runnable, {
     run: function() {
       callback();
-    },
-  })
+    }
+  });
   let _runnable = new MyRunnable();
+  return _runnable;
+};
 
-  var delay = Math.ceil(delayInMillis / 50);
-  var task = server.getScheduler().runTaskLater(plugin, _runnable, delay);
-  return task;
+let bukkit_set_timeout = (callback, delay_in_milliseconds) => {
+  var delay = Math.ceil(delay_in_milliseconds / 50);
+  var task = server.getScheduler().runTaskLater(plugin, callback_to_runnable(callback), delay);
+  return task.getTaskId();
 }
-function bukkitClearTimeout(task) {
-  task.cancel();
+
+let bukkit_clear_timeout = (task_id) => {
+  server.getScheduler().cancelTask(task_id);
 }
-function bukkitSetInterval(callback, intervalInMillis) {
-  let MyRunnable = Java.extend(Runnable, {
-    run: function() {
-      callback();
-    },
-  })
-  let _runnable = new MyRunnable();
 
-
-  var delay = Math.ceil(intervalInMillis / 50);
+let bukkit_set_interval = (callback, interval_in_milliseconds) => {
+  var delay = Math.ceil(interval_in_milliseconds / 50);
   var task = server
     .getScheduler()
-    .runTaskTimer(
-      plugin,
-      _runnable,
-      delay,
-      delay
-    );
-  return task;
+    .runTaskTimer(plugin, callback_to_runnable(callback), delay, delay);
+  return task.getTaskId();
 }
-function bukkitClearInterval(bukkitTask) {
-  bukkitTask.cancel();
+let bukkit_clear_interval = (task_id) => {
+  server.getScheduler().cancelTask(task_id);
 }
-module.exports = function(g) {
-  g.setTimeout = bukkitSetTimeout;
-  g.clearTimeout = bukkitClearTimeout;
-  g.setInterval = bukkitSetInterval;
-  g.clearInterval = bukkitClearInterval;
+
+module.exports = function(global) {
+  global.setTimeout = bukkit_set_timeout;
+  global.clearTimeout = bukkit_clear_timeout;
+  global.setInterval = bukkit_set_interval;
+  global.clearInterval = bukkit_clear_interval;
+
+  global.setImmediate = (callback) => {
+    server
+      .getScheduler()
+      .runTask(plugin, callback_to_runnable(callback));
+  };
 };

@@ -38,15 +38,7 @@ let get_transformation_matrix_for_portal = (portal) => {
   if (portal.corner_blocks) {
     portal = {
       from: portal,
-      to: {
-        corner_blocks: [
-          portal.corner_blocks[3],
-          portal.corner_blocks[2],
-          portal.corner_blocks[1],
-          portal.corner_blocks[0],
-        ],
-        looking_direction: portal.looking_direction.clone().multiply(-1),
-      },
+      to: reverse_portal(portal),
     };
   }
 
@@ -67,6 +59,10 @@ let get_transformation_matrix_for_portal = (portal) => {
       from: JavaVector.to_js(right_top.toVector().add(from.looking_direction)),
       to: JavaVector.to_js(right_top2.toVector().add(to.looking_direction))
     },
+    // {
+    //   from: JavaVector.to_js(right_top.toVector().add(right_top.toVector().crossProduct(left.toVector()))),
+    //   to: JavaVector.to_js(right_top2.toVector().add(right_top2.toVector().crossProduct(left2.toVector())))
+    // },
     { from: JavaVector.to_js(left_top), to: JavaVector.to_js(left_top2) }
   ], {
     world: { from: left.getWorld(), to: left2.getWorld() }
@@ -598,8 +594,52 @@ let player_runtime_metadata = (player, key) => {
 
 let Reakkit = require('./Reakkit.js');
 
+let plugin_item = ({ material, title, description, active }) => {
+  let ItemStack = Java.type('org.bukkit.inventory.ItemStack');
+  let ItemFlag = Java.type('org.bukkit.inventory.ItemFlag');
+  let Enchantment = Java.type('org.bukkit.enchantments.Enchantment');
+
+  let itemstack = new ItemStack(material);
+  let itemmeta = itemstack.getItemMeta();
+
+  itemmeta.setDisplayName(title);
+  if (description != null) {
+    if (typeof description === 'string') {
+      description = description.split('\n');
+    }
+    itemmeta.setLore(description);
+  }
+  itemmeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+  itemmeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+
+  if (active) {
+    itemmeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
+  }
+
+  itemstack.setItemMeta(itemmeta);
+  return itemstack;
+}
+
+let reverse_portal = (portal) => {
+  return {
+    ...portal,
+    corner_blocks: portal.corner_blocks.slice().reverse(),
+    looking_direction: portal.looking_direction.clone().multiply(-1),
+  }
+}
+
 module.exports = plugin => {
   let portals = [];
+
+  try {
+    let worldedit_gui = require('./worldedit-gui/index.js');
+    console.log(`worldedit_gui:`, worldedit_gui)
+    worldedit_gui(plugin);
+  } catch (error) {
+    console.log(`${ChatColor.RED}Error while enabling wordedit gui:`);
+    console.log(error);
+  }
+  return;
 
   // TODO On block change, apply block change to portals
   // plugin.events.PlayerBreak
@@ -622,32 +662,6 @@ module.exports = plugin => {
   // plugin.events.PlayerAnimation(event => {
   //   console.log(`event.getAnimationType().name():`, event.getAnimationType().name())
   // })
-
-  let ItemStack = Java.type('org.bukkit.inventory.ItemStack');
-  let ItemFlag = Java.type('org.bukkit.inventory.ItemFlag');
-  let Enchantment = Java.type('org.bukkit.enchantments.Enchantment');
-
-  let plugin_item = ({ material, title, description, active }) => {
-    let itemstack = new ItemStack(material);
-    let itemmeta = itemstack.getItemMeta();
-
-    itemmeta.setDisplayName(title);
-    if (description != null) {
-      if (typeof description === 'string') {
-        description = description.split('\n');
-      }
-      itemmeta.setLore(description);
-    }
-    itemmeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-    itemmeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-
-    if (active) {
-      itemmeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
-    }
-
-    itemstack.setItemMeta(itemmeta);
-    return itemstack;
-  }
 
   // let InventorySlot = Java.type('org.bukkit.inventory.EquipmentSlot');
   plugin.events.PlayerInteract(async (event) => {
@@ -690,34 +704,19 @@ module.exports = plugin => {
     if (selected_portal == null) {
       selected_portal_storage.set(portal);
       player.getInventory().setItemInMainHand(portal_tool(true));
-      player.sendMessage(`${ChatColor.DARK_BLUE}Source portal selected!`);
+      player.sendMessage(`${ChatColor.BLUE}Source portal selected!`);
     } else {
       // prettier-ignore
-      player.sendMessage(`${ChatColor.DARK_BLUE}Destination portal selected, activating...`);
+      player.sendMessage(`${ChatColor.BLUE}Destination portal selected, activating...`);
       let from_to_portal = {
         from: selected_portal,
-        to: {
-          corner_blocks: corner_blocks.slice().reverse(),
-          looking_direction: looking_direction.clone().multiply(-1),
-        },
+        to: reverse_portal({ corner_blocks, looking_direction }),
       };
       let to_from_portal = {
-        to: selected_portal,
-        from: {
-          corner_blocks: corner_blocks.slice().reverse(),
-          looking_direction: looking_direction.clone().multiply(-1),
-        },
+        from: { corner_blocks, looking_direction },
+        to: reverse_portal(selected_portal),
       };
-      // let to_from_portal = {
-      //   from: {
-      //     corner_blocks: corner_blocks,
-      //     looking_direction: looking_direction,
-      //   },
-      //   to: {
-      //     corner_blocks: selected_portal.corner_blocks.slice().reverse(),
-      //     looking_direction: selected_portal.looking_direction.clone().multiply(-1),
-      //   },
-      // };
+
       portals.push(from_to_portal);
       portals.push(to_from_portal);
       selected_portal_storage.set(null);
