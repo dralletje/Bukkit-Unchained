@@ -3,7 +3,6 @@ const path = require('path');
 module.exports = {
   entry: './src/entry.js',
   mode: 'development',
-  devtool: 'inline-cheap-source-map',
   output: {
     filename: 'entry.js',
     path: path.resolve(__dirname),

@@ -36,6 +36,16 @@
     },
   };
 
+  let Array_from = Array.from;
+  global.Array.from = (array, ...props) => {
+    if (Java.isJavaObject(array)) {
+      array = array.toArray ? array.toArray() : array;
+      return Java.from(array);
+    } else {
+      return Array.from(array, ...props);
+    }
+  }
+
   require("./bootstrap/timers.js")(global);
 
   let original_console_log = console.log;

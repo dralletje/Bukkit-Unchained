@@ -1,3 +1,5 @@
+let { sortBy, first, last } = require('lodash');
+
 let flatten = array => {
   let flattened = [];
   for (let sub_array of array) {
@@ -11,6 +13,9 @@ let flatten = array => {
 let format_value_single_line = (object, path = []) => {
 
 }
+
+let StringWriter = Java.type('java.io.StringWriter');
+let PrintWriter = Java.type('java.io.PrintWriter');
 
 let format_error = (error, path = []) => {
   if (error.stack == null && error.getStack != null) {
@@ -60,6 +65,15 @@ let format_value = (value, path = []) => {
     return format_error(value, path);
   }
 
+  if (value instanceof Java.type('java.lang.Exception')) {
+    let sw = new StringWriter();
+    let pw = new PrintWriter(sw);
+    value.printStackTrace(pw);
+    let lines = sw.toString().split('\n');
+
+    return lines.filter(line => !line.includes('org.graalvm.compiler') && !line.includes('com.oracle.truffle'));
+  }
+
   if (path.includes(value)) {
     return ["[Circular Reference]"];
   }
@@ -103,7 +117,7 @@ let format_value = (value, path = []) => {
       if (entries.length === 0) {
         return [`{}`];
       } else {
-        if (path.length > 3) {
+        if (path.length > 5) {
           return [`${color.gray}{ ${color.white}... ${color.gray}}`];
         }
         let all_expanded = [
@@ -130,7 +144,6 @@ let format_value = (value, path = []) => {
       }
     } catch (err) {
       // An error is thrown when trying to apply `Object.entries()` to a java object.
-      // In which case we just `toString()` it, as that seems to work..
       let keys = Object.getOwnPropertyNames(value);
       let classs = value.getClass ? value.getClass() : 'No class';
 
@@ -145,19 +158,39 @@ let format_value = (value, path = []) => {
         }
       }
 
+      let methods = value.getClass ? Java.from(value.getClass().getDeclaredMethods()) : [];
       return [
         `${color.gray}{ [Java:${color.gold}${classs.getName ? classs.getName() : 'NO_NAME'}${color.gray}]`,
         ...keys.map(key => {
           if (typeof value[key] === 'function') {
+
+            let arity = null;
+            let matching_methods = methods.filter(method => method.getName() === key);
+            if (matching_methods.length !== 0) {
+              let by_param_count = sortBy(matching_methods, x => x.getParameterCount());
+              if (first(by_param_count).getParameterCount() === last(by_param_count).getParameterCount()) {
+                let count = first(by_param_count).getParameterCount();
+                arity = count === 0 ? '' : String(count);
+              } else {
+                // prettier-ignore
+                arity = `${first(by_param_count).getParameterCount()}-${last(by_param_count).getParameterCount()}`
+              }
+            }
+
             let possible_value = '';
-            if (key.match(/^get[A-Z]/) || key.match(/^is[A-Z]/)) {
+            if ((key.match(/^get[A-Z]/) || key.match(/^is[A-Z]/)) && arity === '') {
               try {
                 possible_value = ` ${color.dark_gray}// ${crop_value(value[key]())}`;
               } catch (err) {
-                possible_value = ` ${color.dark_gray}// ${color.dark_red}Err: ${crop_value(err.getMessage ? err.getMessage() : err.message)}`;
+                let message = err.getMessage ? err.getMessage() : err.message;
+                // let arity_match = message.match(/Arity error - expected: (\d+) actual: 0/);
+                // if (arity_match) {
+                //
+                // }
+                possible_value = ` ${color.dark_gray}// ${color.dark_red}Err: ${crop_value(message)}`;
               }
             }
-            return `  ${color.yellow}${key}${color.gray}(),${possible_value}`;
+            return `  ${color.yellow}${key}${color.gray}(${arity || ''}),${possible_value}`;
           } else {
             return `  ${color.yellow}${key}: ${color.blue}${value[key]}`
           }
