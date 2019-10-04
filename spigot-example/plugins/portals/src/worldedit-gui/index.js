@@ -8,7 +8,7 @@ let {
 } = require("bukkit");
 let { chunk, flatten } = require("lodash");
 
-let Tag = Java_type('com.sk89q.worldedit.world.block.BlockCategories').static;
+let Tag = Java_type("com.sk89q.worldedit.world.block.BlockCategories").static;
 
 let Bukkit = Java.type("org.bukkit.Bukkit");
 let ItemStack = Java.type("org.bukkit.inventory.ItemStack");
@@ -135,12 +135,7 @@ let Special_Items = {
 //   ]
 // }),
 
-let WoolCategories = [
-  Tag.BANNERS,
-  Tag.BEDS,
-  Tag.CARPETS,
-];
-console.log(`WoolCategories:`, WoolCategories)
+let WoolCategories = [Tag.BANNERS, Tag.BEDS, Tag.CARPETS];
 let WoodCategories = [
   Tag.WOODEN_DOORS,
   Tag.WOODEN_FENCES,
@@ -154,9 +149,8 @@ let WoodCategories = [
   Tag.STANDING_SIGNS,
   Tag.WOODEN_TRAPDOORS,
   Tag.WOODEN_BUTTONS,
-  Tag.WOODEN_PRESSURE_PLATES,
+  Tag.WOODEN_PRESSURE_PLATES
 ];
-console.log(`WoodCategories:`, WoodCategories)
 
 let create_mask_inventory = () => {
   return [
@@ -177,109 +171,121 @@ let bukkit_adapter = Java_type("com.sk89q.worldedit.bukkit.BukkitAdapter")
 let RequestExtent = Java_type(
   "com.sk89q.worldedit.session.request.RequestExtent"
 );
+
 let expression_to_mask = expression => {
   if (expression.length === 0) {
-    return { type: 'null' };
+    return { mask: { type: "null" }, rest: [] };
   }
   if (expression.length === 1) {
     let item = expression[0];
     if (Special_Items.EXISTING.equals(item)) {
       return {
-        type: "com.sk89q.worldedit.function.mask.ExistingBlockMask",
-        extent: new RequestExtent(),
+        mask: {
+          type: "com.sk89q.worldedit.function.mask.ExistingBlockMask",
+          extent: new RequestExtent()
+        },
+        rest: []
       };
     }
     if (Special_Items.SOLID.equals(item)) {
       return {
-        type: "com.sk89q.worldedit.function.mask.SolidBlockMask",
-        extent: new RequestExtent(),
+        mask: {
+          type: "com.sk89q.worldedit.function.mask.SolidBlockMask",
+          extent: new RequestExtent()
+        },
+        rest: []
       };
     }
     return {
-      type: "com.sk89q.worldedit.function.mask.BlockMask",
-      extent: new RequestExtent(),
-      blocks: [bukkit_adapter.asBlockState(item).toBaseBlock()]
+      mask: {
+        type: "com.sk89q.worldedit.function.mask.BlockMask",
+        extent: new RequestExtent(),
+        blocks: [bukkit_adapter.asBlockState(item).toBaseBlock()]
+      },
+      rest: []
     };
   }
 
   if (expression.length >= 2) {
-    let [first, second, ...rest] = expression;
+    let [first, ...rest] = expression;
     if (Special_Items.UNDER.equals(first)) {
+      let result = expression_to_mask(rest);
       return {
-        type: "com.sk89q.worldedit.function.mask.MaskUnion",
-        masks: [
-          {
-            type: "com.sk89q.worldedit.function.mask.OffsetMask",
-            offset: { x: 0, y: 1, z: 0 },
-            mask: expression_to_mask([second])
-          },
-          expression_to_mask(rest)
-        ]
+        mask: {
+          type: "com.sk89q.worldedit.function.mask.OffsetMask",
+          offset: { x: 0, y: 1, z: 0 },
+          mask: result.mask
+        },
+        rest: result.rest
       };
     }
 
     if (Special_Items.ABOVE.equals(first)) {
+      let result = expression_to_mask(rest);
       return {
-        type: "com.sk89q.worldedit.function.mask.MaskUnion",
-        masks: [
-          {
-            type: "com.sk89q.worldedit.function.mask.OffsetMask",
-            offset: { x: 0, y: -1, z: 0 },
-            mask: expression_to_mask([second])
-          },
-          expression_to_mask(rest)
-        ]
+        mask: {
+          type: "com.sk89q.worldedit.function.mask.OffsetMask",
+          offset: { x: 0, y: -1, z: 0 },
+          mask: result.mask
+        },
+        rest: result.rest
       };
     }
 
     if (Special_Items.NOT.equals(first)) {
+      let result = expression_to_mask(rest);
       return {
-        type: "com.sk89q.worldedit.function.mask.MaskUnion",
-        masks: [
-          {
-            type: "com.sk89q.worldedit.function.mask.Masks$1",
-            mask: expression_to_mask([second])
-          },
-          expression_to_mask(rest)
-        ]
+        mask: {
+          type: "com.sk89q.worldedit.function.mask.Masks$1",
+          mask: result.mask
+        },
+        rest: result.rest
       };
     }
 
     if (Special_Items.PLANKS.equals(first)) {
+      let [second, ...event_more_rest] = rest;
       let block_type = bukkit_adapter.asBlockType(second.getType());
-      console.log(`block_type:`, block_type)
-      let category = WoodCategories.find(category => category.contains(block_type))
+      let category = WoodCategories.find(category =>
+        category.contains(block_type)
+      );
       if (category) {
         return {
-          type: "com.sk89q.worldedit.function.mask.BlockCategoryMask",
-          extent: new RequestExtent(),
-          category: category,
+          mask: {
+            type: "com.sk89q.worldedit.function.mask.BlockCategoryMask",
+            extent: new RequestExtent(),
+            category: category
+          },
+          rest: event_more_rest
         };
       } else {
-        return {type: 'null'};
+        return { type: "null" };
       }
     }
 
     if (Special_Items.WOOL.equals(first)) {
+      let [second, ...event_more_rest] = rest;
       let block_type = bukkit_adapter.asBlockType(second.getType());
-      let category = WoolCategories.find(category => category.contains(block_type))
+      let category = WoolCategories.find(category =>
+        category.contains(block_type)
+      );
       if (category) {
         return {
-          type: "com.sk89q.worldedit.function.mask.BlockCategoryMask",
-          extent: new RequestExtent(),
-          category: category,
+          mask: {
+            type: "com.sk89q.worldedit.function.mask.BlockCategoryMask",
+            extent: new RequestExtent(),
+            category: category
+          },
+          rest: event_more_rest
         };
       } else {
-        return {type: 'null'};
+        return { type: "null" };
       }
     }
 
     return {
-      type: "com.sk89q.worldedit.function.mask.MaskUnion",
-      masks: [
-        expression_to_mask([first]),
-        expression_to_mask([second, ...rest])
-      ]
+      mask: expression_to_mask([first]),
+      rest: rest
     };
   }
 
@@ -294,45 +300,50 @@ let mask_to_item_stacks = mask => {
     return mask.masks.map(x => flatten(mask_to_item_stacks(x)));
   }
   // Negation
-  if (mask.type === 'com.sk89q.worldedit.function.mask.Masks$1') {
-    return [
-      Special_Items.NOT,
-      ...flatten(mask_to_item_stacks(mask.mask)),
-    ]
+  if (mask.type === "com.sk89q.worldedit.function.mask.Masks$1") {
+    return [Special_Items.NOT, ...flatten(mask_to_item_stacks(mask.mask))];
   }
 
-  if (mask.type === 'com.sk89q.worldedit.function.mask.BlockCategoryMask') {
+  if (mask.type === "com.sk89q.worldedit.function.mask.BlockCategoryMask") {
     if (WoodCategories.includes(mask.category)) {
+      let block_type = Array.from(mask.category.getAll())[0];
       return [
         Special_Items.PLANKS,
         create_item_stack({
-          material: Array.from(mask.category.getAll())[0],
-        }),
-      ]
+          material: bukkit_adapter.adapt(block_type),
+        })
+      ];
     }
     if (WoolCategories.includes(mask.category)) {
+      let block_type = Array.from(mask.category.getAll())[0];
       return [
         Special_Items.WOOL,
         create_item_stack({
-          material: Array.from(mask.category.getAll())[0],
-        }),
-      ]
+          material: bukkit_adapter.adapt(block_type),
+        })
+      ];
     }
+    console.log("Hmmm", mask.category);
     return [];
   }
 
-  if (mask.type === 'com.sk89q.worldedit.function.mask.OffsetMask') {
+  if (mask.type === 'com.sk89q.worldedit.function.mask.ExistingBlockMask') {
+    return [Special_Items.EXISTING];
+  }
+  if (mask.type === 'com.sk89q.worldedit.function.mask.SolidBlockMask') {
+    return [Special_Items.SOLID];
+  }
+
+  if (mask.type === "com.sk89q.worldedit.function.mask.OffsetMask") {
     if (mask.offset.z !== 0 || mask.offset.x !== 0) {
       return [];
     }
-    let above_or_below = mask.offset.y < 0 ? Special_Items.ABOVE : Special_Items.UNDER;
-    return [
-      above_or_below,
-      ...flatten(mask_to_item_stacks(mask.mask)),
-    ]
+    let above_or_below =
+      mask.offset.y < 0 ? Special_Items.ABOVE : Special_Items.UNDER;
+    return [above_or_below, ...flatten(mask_to_item_stacks(mask.mask))];
   }
+
   if (mask.type === "com.sk89q.worldedit.function.mask.BlockMask") {
-    console.log(`mask.blocks:`, mask.blocks);
     let itemstack = mask.blocks.map(block => {
       let material = bukkit_adapter.adapt(block.getBlockType());
       return create_item_stack({
@@ -341,7 +352,9 @@ let mask_to_item_stacks = mask => {
     });
     return [itemstack];
   }
-  console.log(`mask:`, mask);
+
+  console.log(`UNKNOWN MASK:`, mask);
+  return [];
 };
 
 module.exports = plugin => {
@@ -357,7 +370,7 @@ module.exports = plugin => {
   plugin.command("show-mask", async player => {
     let session = worldedit_session_for_player(player);
     let mask = Mask.from_java(session.getMask());
-    console.log(`mask:`, mask);
+    console.log(`MASK:`, mask);
     if (mask.type !== "null") {
       session.setMask(Mask.to_java(mask));
     }
@@ -436,9 +449,21 @@ module.exports = plugin => {
 
     let new_mask = {
       type: "com.sk89q.worldedit.function.mask.MaskIntersection",
-      masks: separate_expressions.map(expression =>
-        expression_to_mask(expression)
-      )
+      masks: separate_expressions.map(expression => {
+        let expressions_left = expression;
+        let masks_to_union = [];
+        while (expressions_left.length > 0) {
+          console.log(`expression:`, expression)
+          let { mask, rest } = expression_to_mask(expression);
+          console.log(`mask, rest:`, mask, rest)
+          masks_to_union = [...masks_to_union, mask];
+          expressions_left = rest;
+        }
+        return {
+          type: "com.sk89q.worldedit.function.mask.MaskUnion",
+          masks: masks_to_union
+        };
+      })
     };
 
     let player = event.getPlayer();

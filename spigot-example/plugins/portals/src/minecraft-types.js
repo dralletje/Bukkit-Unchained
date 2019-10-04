@@ -11,9 +11,7 @@ module.exports = {
   'entityMetadataLoop': [readEntityMetadata, writeEntityMetadata, sizeOfEntityMetadata]
 }
 
-console.log('## 4');
 var PartialReadError = require('protodef').utils.PartialReadError
-console.log('## 5');
 
 function readUUID (buffer, offset) {
   if (offset + 16 > buffer.length) { throw new PartialReadError() }

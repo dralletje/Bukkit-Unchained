@@ -19,7 +19,6 @@ class FakePlayer extends React.Component {
     let entity_counter = Packet.get_entity_count();
     this.entity_id = entity_counter.incrementAndGet();
 
-    console.log(`this.entity_id:`, this.entity_id)
 
     Packet.send_packet(player, {
       name: "named_entity_spawn",

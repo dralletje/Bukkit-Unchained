@@ -178,7 +178,7 @@ let render_portal = async (player, location, _portal) => {
     drone.setSpeed(10);
 
     let transformation_matrix = get_transformation_matrix_for_portal(_portal);
-    console.log("== UPDATING PORTAL ==");
+    // console.log("== UPDATING PORTAL ==");
 
     let portal_center = middle_between_vectors(left, right_top)
       .clone()
@@ -189,7 +189,7 @@ let render_portal = async (player, location, _portal) => {
 
     let has_become_real = player_portal.isReal === false && isReal === true;
 
-    console_time("Cuboid chunks");
+    // console_time("Cuboid chunks");
     let portal_width = left.distance(right);
     let portal_height = right_top.distance(right);
 
@@ -210,9 +210,9 @@ let render_portal = async (player, location, _portal) => {
         }
       }
     }
-    console_timeEnd("Cuboid chunks");
+    // console_timeEnd("Cuboid chunks");
 
-    console_time("Get blockdatas");
+    // console_time("Get blockdatas");
     let block_datas =
       player_portal.block_datas ||
       locations
@@ -285,10 +285,10 @@ let render_portal = async (player, location, _portal) => {
           return { location, mirrored, mirrored_block_data };
         })
         .filter(x => x != null);
-    console_timeEnd("Get blockdatas");
-
-    console.log(`has_become_real:`, has_become_real);
-    console.log(`block_datas.length:`, block_datas.length)
+    // console_timeEnd("Get blockdatas");
+    //
+    // console.log(`has_become_real:`, has_become_real);
+    // console.log(`block_datas.length:`, block_datas.length)
 
     let filtered_block_datas = block_datas
       .map(({ location, mirrored, mirrored_block_data }) => {
@@ -361,10 +361,9 @@ let render_portal = async (player, location, _portal) => {
     }
 
     let block_diff = locations.length - filtered_block_datas.length;
-    console.log(`Blocks being sent:`, filtered_block_datas.length);
-    // console.log(`block_diff:`, block_diff);
+    // console.log(`Blocks being sent:`, filtered_block_datas.length);
 
-    console_time("Get chunks");
+    // console_time("Get chunks");
     let chunks = {};
     for (let { location, blockdata } of filtered_block_datas) {
       let chunk = location.getChunk();
@@ -388,9 +387,9 @@ let render_portal = async (player, location, _portal) => {
         })
       );
     }
-    console_timeEnd("Get chunks");
-
-    console_time("Send chunks");
+    // console_timeEnd("Get chunks");
+    //
+    // console_time("Send chunks");
     // prettier-ignore
     for (let [chunk_key, { records, chunk_x, chunk_z }] of Object.entries(
       chunks
@@ -404,7 +403,7 @@ let render_portal = async (player, location, _portal) => {
         }
       });
     }
-    console_timeEnd("Send chunks");
+    // console_timeEnd("Send chunks");
 
     set_player_portal({
       isReal: isReal,
@@ -633,7 +632,6 @@ module.exports = plugin => {
 
   try {
     let worldedit_gui = require('./worldedit-gui/index.js');
-    console.log(`worldedit_gui:`, worldedit_gui)
     worldedit_gui(plugin);
   } catch (error) {
     console.log(`${ChatColor.RED}Error while enabling wordedit gui:`);
