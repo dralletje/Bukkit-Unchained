@@ -76,6 +76,28 @@ let find_folders_with_package_json = async () => {
   return package_json_paths;
 }
 
+let get_private_property = (object, field_name) => {
+  try {
+    let field = object.getClass().getDeclaredField(field_name);
+    field.setAccessible(true);
+    return field.get(object);
+  } catch (error) {
+    console.log(`Error while taking ${field_name} from `, object);
+    console.log(error)
+  }
+};
+
+let get_private_method = (object, field_name) => {
+  try {
+    let method = object.getClass().getDeclaredMethod(field_name);
+    method.setAccessible(true);
+    return () => method.invoke(object);
+  } catch (error) {
+    console.log(`Error while called method ${field_name} on `, object);
+    console.log(error)
+  }
+};
+
 module.exports = {
   load_all: async (with_name = null) => {
     let package_json_paths = await find_folders_with_package_json();
@@ -86,12 +108,16 @@ module.exports = {
     }
 
     let with_matching_name =
-      with_name === null
+      with_name == null
       ? package_json_paths
       : (
         package_json_paths.filter(path => {
-          let plugin_description = plugin_utils.get_plugin_description(path)
-          return plugin_description.name === with_name
+          try {
+            let plugin_description = plugin_utils.get_plugin_description(path)
+            return plugin_description.name === with_name
+          } catch (err) {
+            return false;
+          }
         })
       );
 
@@ -99,7 +125,7 @@ module.exports = {
       throw new Error(`No plugin called "${with_name}" found`);
     }
 
-    for (let package_json_path of package_json_paths) {
+    for (let package_json_path of with_matching_name) {
       try {
         module.exports.load_plugin(package_json_path);
       } catch (error) {
@@ -110,6 +136,12 @@ module.exports = {
         console.log('');
       }
     }
+
+    // Send new commands
+    try {
+      let sync_commands = get_private_method(server, 'syncCommands');
+      sync_commands();
+    } catch (error) {}
   },
   load_plugin: (plugin_package_json_path) => {
     let description = plugin_utils.get_plugin_description(plugin_package_json_path);

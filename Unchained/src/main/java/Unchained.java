@@ -50,14 +50,6 @@ public class Unchained extends JavaPlugin implements Listener {
         getDataFolder().mkdir();
       }
 
-      // try {
-      //   Http.start_server(8000, this.pluginBridge("onServerStart"));
-      // } catch(Exception e) {
-      //   e.printStackTrace();
-      // }
-
-      this.getLogger().info("Running plugin bridge onEnable");
-
       this.pluginBridge("onEnable");
     }
 
@@ -95,13 +87,10 @@ public class Unchained extends JavaPlugin implements Listener {
 
         try {
           Context polyglot = this.getContext();
-          this.getLogger().info("Got context!");
 
           File file = new File(getDataFolder(), "entry.js");
           Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
           this.javascript_bridge = entry_fn;
-
-          this.getLogger().info("Javascript bridge initialized!");
 
           // Start debugger loop
           // File debugger_loop_file = new File(getDataFolder(), "debugger_loop.js");

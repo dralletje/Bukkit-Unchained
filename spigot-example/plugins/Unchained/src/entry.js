@@ -1,4 +1,11 @@
 {
+  let std_stream = () => {
+    return {
+      write: () => {},
+      isTTY: false,
+    }
+  }
+
   global.plugin = Polyglot.import('plugin');
   global.Java_type = (name) => {
     let class_loader = global.plugin.getClass().getClassLoader();
@@ -17,8 +24,12 @@
       }
     }
   };
+  global.Buffer = require('buffer').Buffer;
   global.server = global.plugin.getServer();
+  global.navigator = {};
+  global.window = { navigator: global.navigator };
   global.process = {
+    umask: () => 0x777,
     browser: true,
     version: 'v10.8.0',
     platform: "darwin",
@@ -34,6 +45,7 @@
     binding: (name) => {
       return Polyglot.import(name);
     },
+    stderr: std_stream(),
   };
 
   let Array_from = Array.from;
@@ -42,7 +54,7 @@
       array = array.toArray ? array.toArray() : array;
       return Java.from(array);
     } else {
-      return Array.from(array, ...props);
+      return Array_from(array, ...props);
     }
   }
 

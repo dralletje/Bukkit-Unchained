@@ -637,6 +637,23 @@ module.exports = plugin => {
     console.log(`${ChatColor.RED}Error while enabling wordedit gui:`);
     console.log(error);
   }
+
+  try {
+    let worldedit_gui = require('./webpack-test/index.js');
+    worldedit_gui(plugin);
+  } catch (error) {
+    console.log(`${ChatColor.RED}Error while enabling webpack test:`);
+    console.log(error);
+  }
+
+  // try {
+  //   let http_server = require('./http-server/index.js');
+  //   http_server(plugin);
+  // } catch (error) {
+  //   console.log(`${ChatColor.RED}Error while enabling wordedit gui:`);
+  //   console.log(error);
+  // }
+
   // TODO On block change, apply block change to portals
   // plugin.events.PlayerBreak
 

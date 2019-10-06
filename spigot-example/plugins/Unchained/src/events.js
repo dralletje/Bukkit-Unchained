@@ -1,61 +1,32 @@
-let { ChatColor } = require('bukkit');
+let { ChatColor, Unchained } = require('bukkit');
 let bukkit_EventPriority = Java.type('org.bukkit.event.EventPriority');
-let bkHandlerList = Java.type('org.bukkit.event.HandlerList');
+
+// let bkHandlerList = Java.type('org.bukkit.event.HandlerList');
 
 // let bukkit_pluginmanager = org.bukkit.Bukkit.pluginManager;
 
 // Create a class based on the listener interface so we can `new Xxx()` it
 var UnchainedListener = Java.extend(Java.type('org.bukkit.event.Listener'), {});
 
-let format_error = (err) => {
-  if (err.getMessage && err.getMessage()) {
-    err.printStackTrace();
-    return err.getMessage();
-  } else {
-    return err;
-  }
-}
-
 let make_addEventListener_for_plugin = (plugin) => {
-  let addEventListener = function(
+  let addEventListener = (
     eventType,
     handler,
-    priority = 'HIGHEST'
-  ) {
+    { priority = 'HIGHEST' } = {},
+  ) => {
     let priority_symbol = bukkit_EventPriority[priority.toUpperCase()];
 
     var eventExecutor = function(listener, event) {
-      // console.log(`whatsthisidk:`, whatsthisidk)
-      // function cancel() {
-      //   if (evt instanceof Java.type('org.bukkit.event.Cancellable')) {
-      //     evt.cancelled = true;
-      //   } else {
-      //     throw new Error('Event not cancellable');
-      //   }
-      // }
-
       (async () => {
           try {
             await handler(event);
-          } catch (err) {
-            try {
-              // TODO Add global event handling stuff
-              // prettier-ignore
-              console.log(`${ChatColor.DARK_RED}[${plugin.getName()}] ${ChatColor.RED}Error in event handler (${eventType}):`, format_error(err))
-              if (event.getPlayer && event.getPlayer()) {
-                let player = event.getPlayer();
-                // prettier-ignore
-                player.sendMessage(`${ChatColor.DARK_RED}[${plugin.getName()}] ${ChatColor.RED}Error in event handler (${eventType}): ${err.message}`)
-              }
-            } catch (error) {
-              // This gets called if there is something to do with the
-              // `event.getPlayer()` stuff, not sure if this will ever call
-              // BUT IF it does, I want to catch it!!
-
-              // prettier-ignore
-              print('Error error:');
-              print(error)
-            }
+          } catch (error) {
+            Unchained.handle_error({
+              error: error,
+              location: `event handler`,
+              name: eventType.getName(),
+              player: event.getPlayer && event.getPlayer(),
+            });
           }
       })();
     };

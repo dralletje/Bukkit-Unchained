@@ -1,14 +1,6 @@
 let path = require('path');
 let fs = require('./fs.js');
 
-let builtin_module_map = {
-  fs: require('./fs.js'),
-  path: require('path'),
-  util: require('./util.js'),
-  bukkit: require('./bukkit.js'),
-  child_process: require('./child_process.js'),
-};
-
 let require_cache = {};
 
 let basic_require = (module_path) => {
@@ -143,6 +135,15 @@ class Module {
   }
 
 }
+
+let builtin_module_map = {
+  fs: require('./fs.js'),
+  path: require('path'),
+  util: require('./util.js'),
+  bukkit: require('./bukkit.js'),
+  child_process: require('./child_process.js'),
+  module: Module,
+};
 
 module.exports = {
   Module: Module,

@@ -100,6 +100,7 @@ class JavascriptPlugin extends EventEmitter {
 
       if (event === 'onTabComplete') {
         let [sender, command, alias, command_args] = args;
+        console.log('Tab complete', command.getName())
         if (this.commandMap.has(command.getName())) {
           let handler = this.commandMap.get(command.getName())
           if (handler.onTabComplete) {
@@ -143,6 +144,29 @@ class JavascriptPlugin extends EventEmitter {
     }
 
     this.commandMap.set(alias, handler)
+  }
+
+  create_http_server(port, handler_fn) {
+    let HttpServer = Java.type('com.sun.net.httpserver.HttpServer');
+    let InetSocketAddress = Java.type('java.net.InetSocketAddress');
+    let HttpHandler = Java.type('com.sun.net.httpserver.HttpHandler')
+
+    let JavascriptHttpHandler = Java.extend(HttpHandler, {
+      handle: (exchange) => {
+        handler_fn(exchange);
+      },
+    });
+
+    let server = HttpServer.create(new InetSocketAddress(port), 0);
+    server.createContext("/", new JavascriptHttpHandler());
+    server.setExecutor(null); // creates a default executor
+    server.start();
+
+    this.on('onDisable', () => {
+      server.stop(0);
+    });
+
+    return server;
   }
 }
 

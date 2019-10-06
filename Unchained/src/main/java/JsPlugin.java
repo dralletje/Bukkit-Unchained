@@ -385,8 +385,12 @@ public class JsPlugin extends PluginBase {
 
     @Override
     public void onDisable() {
-      if (this.getExecutor() != null) {
-        this.getExecutor().execute("onDisable");
+      try {
+        if (this.getExecutor() != null) {
+          this.getExecutor().execute("onDisable");
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
       }
       this.context.close();
     }

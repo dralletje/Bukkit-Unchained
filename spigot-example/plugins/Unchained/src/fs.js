@@ -112,11 +112,22 @@ class IOException extends Error {
   }
 }
 
-module.exports = {
+let callbackify = (async_fn) => {
+  return async (...args) => {
+    if (typeof args[args.length - 1] === 'function') {
+      let result = await async_fn(...args.slice(0, -1));
+      args[args.length - 1](result);
+    }
+    await async_fn(...args);
+  }
+};
+
+let fs = module.exports = {
   existsSync: (path) => {
     let file = new File(path_module.resolve(path));
     return file.exists();
   },
+
   readdir: (directory_path, options, callback) => {
     try {
       if (callback == null) {
@@ -157,6 +168,7 @@ module.exports = {
       callback(err, null);
     }
   },
+
   readFileSync: (path) => {
     let file = new File(path_module.resolve(path));
     let buffered = new BufferedReader(new FileReader(file));
@@ -174,8 +186,33 @@ module.exports = {
       buffered.close();
     }
   },
+  readFile: callbackify((...args) => fs.readFileSync(...args)),
+
   statSync: (path) => {
     let file = new File(path_module.resolve(path));
     return new Stats(file);
-  }
+  },
+  stat: callbackify((...args) => fs.statSync(...args)),
+
+  "readlink": () => '/linked/file',
+  "readlinkSync": () => '/linked/file',
+
+  mkdir: (file, buffer) => {
+    console.log('Mkdir file...', file, buffer);
+  },
+  rmdir: (file, buffer) => {
+    console.log('rmdir file...', file, buffer);
+  },
+  writeFile: (file, buffer) => {
+    console.log('Writing file...', file, buffer);
+  },
+  appendFile: (file, buffer) => {
+    console.log('Appending file...', file, buffer);
+  },
+  unlink: (file, buffer) => {
+    console.log('Appending file...', file, buffer);
+  },
+  chmod: (file, buffer) => {
+    console.log('Appending file...', file, buffer);
+  },
 };
