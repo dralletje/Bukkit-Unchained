@@ -5,8 +5,12 @@
   "main": "index.js",
   "scripts": {
     "minecraft-server": "cd spigot-example && ../graal-bin/bin/java -Dgraal.LogFile=graallog.log -jar minecraft-server.jar",
+    "loom": "cd loom && npm start",
+    "bundler": "cd Bundler && npm start",
     "compile-java": "cd Unchained && mvn package && mv ./target/Unchained.jar ../spigot-example/plugins/Unchained.jar",
-    "watch-javascript": "cd spigot-example/plugins/Unchained && webpack --watch",
+    "watch-javascript": "cd spigot-example/plugins/Unchained && npm run watch",
+    "watch-dev-plugin": "cd spigot-example/plugins/dev_plugin && npm run watch",
+    "watch-portals-plugin": "cd spigot-example/plugins/portals && npm run watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

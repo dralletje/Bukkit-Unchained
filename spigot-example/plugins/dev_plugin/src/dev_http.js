@@ -1,7 +1,7 @@
 let { ChatColor } = require('bukkit');
 let Bukkit = require('bukkit');
 let server = Polyglot.import('server');
-let fs = require('fs');
+let { EventEmitter } = require('events');
 
 // let webpack = require('./webpack.js');
 // webpack.default('1 + 1').then((we) => {
@@ -63,6 +63,8 @@ class Session {
 let { create_isolated_plugin } = require('./isolated_plugin.js');
 
 module.exports = (plugin) => {
+  let dev_events = new EventEmitter();
+
   // let command = register_command({
   //   plugin: plugin,
   //   name: 'test-command6',
@@ -127,6 +129,24 @@ module.exports = (plugin) => {
     }
   });
 
+  plugin.command('set', {
+    onCommand: (player, _1, _2, args) => {
+      if (args[0] != null) {
+        dev_events.emit('set-build-config', { plot_id: 'only-one-for-now', key: args[0], player: player });
+      }
+      return true;
+    },
+    onTabComplete: (player, _1, _2, args) => {
+      let result = [];
+      dev_events.emit('get-build-keys', { plot_id: 'only-one-for-now', set_result: new_results => {
+        result = new_results;
+      } })
+      let text = args[0];
+
+      return result.map(x => x.name).filter(x => x.startsWith(text));
+    },
+  })
+
   plugin.command('enter', {
     onCommand: (sender, command, alias, args) => {
       if (!location_filter(sender.getLocation())) {
@@ -134,8 +154,20 @@ module.exports = (plugin) => {
         return true;
       }
 
-      set_players_in_session('only-one-for-now', [...get_players_in_session('only-one-for-now'), sender]);
-      server.getPluginManager().callEvent(new PlayerJoinEvent(sender, "Player joined!"));
+      let can_join = false;
+      dev_events.emit('player-join', {
+        player: sender,
+        plot_id: 'only-one-for-now',
+        set_can_join: (new_can_join) => {
+          console.log(`new_can_join:`, new_can_join)
+          can_join = new_can_join;
+        }
+      })
+
+      if (can_join) {
+        set_players_in_session('only-one-for-now', [...get_players_in_session('only-one-for-now'), sender]);
+        server.getPluginManager().callEvent(new PlayerJoinEvent(sender, "Player joined!"));
+      }
     },
   });
 
@@ -159,8 +191,8 @@ module.exports = (plugin) => {
   }
 
   // TEST
-  let dev_plugin_data_path = plugin.java.getDataFolder().toPath().toString();
-  let js_plugin_data_path = `${dev_plugin_data_path}/data/${'only-one-for-now'}.json`;
+  // let dev_plugin_data_path = plugin.java.getDataFolder().toPath().toString();
+  // let js_plugin_data_path = `${dev_plugin_data_path}/data/${'only-one-for-now'}.json`;
 
   // try {
   //   let build_storage_cache = JSON.parse(fs.readFileSync(js_plugin_data_path).toString());
@@ -188,6 +220,8 @@ module.exports = (plugin) => {
       let dev_plugin = create_isolated_plugin({
         plugin: plugin,
         active_session: active_session,
+        events: dev_events,
+        plot_id: session_id,
         filters: {
           location: location_filter,
           player: (player) => {
@@ -196,34 +230,6 @@ module.exports = (plugin) => {
         },
       });
       let new_module = { exports: {} };
-
-      let dev_plugin_data_path = plugin.java.getDataFolder().toPath().toString();
-      let js_plugin_data_path = `${dev_plugin_data_path}/data/${session_id}.json`;
-
-      let build_storage_cache = null;
-      let storage = {
-        build: {
-          set: (change) => {
-            let value = {
-              ...storage.build.get(),
-              ...change,
-            }
-            build_storage_cache = value;
-            fs.writeFileSync(js_plugin_data_path, JSON.stringify(value, null, 2));
-          },
-          get: () => {
-            try {
-              if (build_storage_cache == null) {
-                build_storage_cache = JSON.parse(fs.readFileSync(js_plugin_data_path).toString());
-              }
-              return build_storage_cache;
-            } catch (error) {
-              console.log(`Build storage get error:`, error);
-              return {};
-            }
-          }
-        }
-      }
 
       let injects = [
         { name: 'plugin', value: dev_plugin },
@@ -234,7 +240,6 @@ module.exports = (plugin) => {
         { name: 'clearTimeout', value: dev_plugin.timers.clearTimeout },
         { name: 'setInterval', value: dev_plugin.timers.setInterval },
         { name: 'clearInterval', value: dev_plugin.timers.clearInterval },
-        { name: 'storage', value: storage },
       ]
 
       // TODO Make this use the local `require` so it can import bukkit
