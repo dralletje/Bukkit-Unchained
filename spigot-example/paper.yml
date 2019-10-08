@@ -46,7 +46,7 @@ settings:
     page-max: 2560
     total-multiplier: 0.98
 timings:
-  server-name: Unknown Server
+  server-name: Dev Server
   enabled: false
   verbose: false
   server-name-privacy: false
@@ -69,9 +69,9 @@ world-settings:
     per-player-mob-spawns: false
     nether-ceiling-void-damage-height: 0
     count-all-mobs-for-spawning: false
-    disable-thunder: false
+    disable-thunder: true
     skeleton-horse-thunder-spawn-chance: 0.01
-    disable-ice-and-snow: false
+    disable-ice-and-snow: true
     keep-spawn-loaded: true
     skip-entity-ticking-in-chunks-scheduled-for-unload: true
     armor-stands-do-collision-entity-lookups: true
@@ -79,10 +79,10 @@ world-settings:
     auto-save-interval: -1
     nether-ceiling-void-damage: false
     allow-non-player-entities-on-scoreboards: false
-    grass-spread-tick-rate: 1
+    grass-spread-tick-rate: 0
     use-faster-eigencraft-redstone: false
     baby-zombie-movement-speed: 0.5
-    mob-spawner-tick-rate: 1
+    mob-spawner-tick-rate: 0
     water-over-lava-flow-speed: 5
     bed-search-radius: 1
     container-update-tick-rate: 1
@@ -106,7 +106,7 @@ world-settings:
     max-auto-save-chunks-per-tick: 24
     save-queue-limit-for-auto-save: 50
     remove-corrupt-tile-entities: false
-    enable-treasure-maps: true
+    enable-treasure-maps: false
     treasure-maps-return-already-discovered: false
     experience-merge-max-value: -1
     max-chunk-sends-per-tick: 81

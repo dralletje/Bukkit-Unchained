@@ -1,5 +1,3 @@
-let { color, colorize } = require("./bootstrap/format_value.js");
-
 // let Tag = Java.type('org.bukkit.Tag');
 // let Tags = Object.keys(Tag).map(key => [key, Tag[key]]).filter(([key, value]) => value instanceof Tag)
 
@@ -8,6 +6,8 @@ let  ChatColor = Java.type("org.bukkit.ChatColor");
 let plugin = Polyglot.import('plugin');
 
 let TAG = `${ChatColor.DARK_RED}[${plugin.getName()}]`;
+
+let Packet = require('./BukkitModules/Packet.js');
 
 let Unchained = {
   handle_error: ({
@@ -41,13 +41,6 @@ let Unchained = {
 };
 
 module.exports = {
-  get color() {
-    console.log(
-      `require('bukkit').color is deprecated, use .ChatColor instead`
-    );
-    console.log(`(new Error()).stack:`, new Error().stack);
-    return color;
-  },
   Bukkit: Java.type("org.bukkit.Bukkit"),
   Color: Java.type("org.bukkit.Color"),
   colorize: text =>
@@ -60,6 +53,7 @@ module.exports = {
   Particle: Java.type("org.bukkit.Particle"),
 
   Unchained: Unchained,
+  Packet: Packet,
 
   get Entity() {},
 

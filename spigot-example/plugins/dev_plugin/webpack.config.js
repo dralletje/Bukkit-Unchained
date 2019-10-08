@@ -5,7 +5,7 @@ module.exports = {
   mode: 'development',
   output: {
     filename: 'dev_plugin.js',
-    path: path.resolve(__dirname),
+    path: path.resolve(__dirname, 'dist'),
     library: 'dev_plugin',
     libraryTarget: 'umd',
   },
@@ -18,5 +18,6 @@ module.exports = {
   },
   node: {
     process: false,
+    module: false,
   }
 };

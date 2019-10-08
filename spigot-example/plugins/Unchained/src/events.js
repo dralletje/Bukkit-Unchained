@@ -1,7 +1,7 @@
 let { ChatColor, Unchained } = require('bukkit');
 let bukkit_EventPriority = Java.type('org.bukkit.event.EventPriority');
 
-// let bkHandlerList = Java.type('org.bukkit.event.HandlerList');
+let BukkitHandlerList = Java.type('org.bukkit.event.HandlerList');
 
 // let bukkit_pluginmanager = org.bukkit.Bukkit.pluginManager;
 
@@ -44,16 +44,17 @@ let make_addEventListener_for_plugin = (plugin) => {
       plugin
     );
 
-    // result.unregister = function() {
-    //   bkHandlerList.unregisterAll(listener);
-    // };
-    //
-    // return result;
+    return {
+      dispose: () => {
+        BukkitHandlerList.unregisterAll(listener);
+      },
+    };
   };
 
   let results = {
     on: addEventListener,
     addEventListener: addEventListener,
+    as_list: [],
   };
   // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
   let reflections = Polyglot.import('reflections');
@@ -69,8 +70,15 @@ let make_addEventListener_for_plugin = (plugin) => {
 
     let [_1, namespace, event_name] = match;
     results[event_name] = (...args) => {
-      addEventListener(event_class, ...args);
+      return addEventListener(event_class, ...args);
     };
+    results.as_list.push({
+      name: event_name,
+      JavaClass: event_class,
+      addListener: (...args) => {
+        return addEventListener(event_class, ...args);
+      },
+    })
   }
   return results;
 }

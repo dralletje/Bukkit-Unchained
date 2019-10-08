@@ -1,23 +1,30 @@
-let path_module = require('path');
+let path_module = require("path");
 
-let File = Java.type('java.io.File');
-let FileReader = Java.type('java.io.FileReader');
-let BufferedReader = Java.type('java.io.BufferedReader');
+let File = Java.type("java.io.File");
+let JavaString = Java.type("java.lang.String");
 
-class TextBuffer {
-  constructor(text_contents) {
-    this.text_contents = text_contents;
+let StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
+let NioFiles = Java.type("java.nio.file.Files");
+let { get: path_from_string } = Java.type("java.nio.file.Paths");
+
+// TODO I want to convert as much as possible to the newer `java.nio.file.Files` api
+// https://docs.oracle.com/javase/7/docs/api/index.html?java/nio/file/Files.html
+
+class JavaBuffer {
+  constructor(java_bytes) {
+    this.java_bytes = java_bytes;
   }
 
   toString() {
-    return this.text_contents;
+    return new JavaString(this.java_bytes, StandardCharsets.UTF_8);
   }
 }
 
+// TODO update to NioFiles
 class Stats {
   constructor(java_file) {
     if (java_file.exists() === false) {
-      throw new IOException(`File '${java_file}' does not exist`, 'ENOENT');
+      throw new IOException(`File '${java_file}' does not exist`, "ENOENT");
     }
     this.java_file = java_file;
   }
@@ -43,7 +50,10 @@ class Stats {
     return false;
   }
   isSymbolicLink() {
-    return this.java_file.getAbsolutePath().toString() !== this.java_file.getCanonicalPath().toString();
+    return (
+      this.java_file.getAbsolutePath().toString() !==
+      this.java_file.getCanonicalPath().toString()
+    );
   }
 
   get dev() {
@@ -112,18 +122,33 @@ class IOException extends Error {
   }
 }
 
-let callbackify = (async_fn) => {
+let callbackify = async_fn => {
   return async (...args) => {
-    if (typeof args[args.length - 1] === 'function') {
+    if (typeof args[args.length - 1] === "function") {
       let result = await async_fn(...args.slice(0, -1));
       args[args.length - 1](result);
     }
     await async_fn(...args);
-  }
+  };
 };
 
-let fs = module.exports = {
-  existsSync: (path) => {
+let cast_to_bytes = (value) => {
+  if (typeof value === 'string') {
+    let JavaString = Java.type('java.lang.String');
+    let CharSet = Java.type('java.nio.charset.Charset');
+    return JavaString.class.getDeclaredMethod('getBytes', CharSet.class).invoke(value, StandardCharsets.UTF_8)
+  }
+  if (value instanceof Buffer) {
+    throw new Error('Alright alright I\'ll unity Buffer and byte[]')
+  }
+  if (value instanceof Java.type('byte[]')) {
+    return value;
+  }
+  throw new Error("Unknown value type given to a place that expects bytes[] or a string");
+}
+
+let fs = (module.exports = {
+  existsSync: path => {
     let file = new File(path_module.resolve(path));
     return file.exists();
   },
@@ -142,7 +167,7 @@ let fs = module.exports = {
       let folder = new File(path_module.resolve(directory_path));
 
       if (!folder.exists()) {
-         // prettier-ignore
+        // prettier-ignore
         throw new IOException(`Path '${directory_path}' does not exist`, 'ENOENT');
       }
 
@@ -169,50 +194,46 @@ let fs = module.exports = {
     }
   },
 
-  readFileSync: (path) => {
-    let file = new File(path_module.resolve(path));
-    let buffered = new BufferedReader(new FileReader(file));
+  readFileSync: path => {
+    let bytes = NioFiles.readAllBytes(
+      path_from_string(path_module.resolve(path))
+    );
+    return new JavaBuffer(bytes);
 
-    try {
-      let text = '';
-      let line = null;
-      while ((line = buffered.readLine()) !== null) {
-        text += line + '\n';
-      }
-
-      // Act like a buffer, quick
-      return new TextBuffer(text);
-    } finally {
-      buffered.close();
-    }
+    // NOTE This should work as well, but I noticed it being pretty slow.
+    // .... Should have a look at the performance of `Java.from` performance.
+    // return Buffer.from(Array.from(bytes));
   },
   readFile: callbackify((...args) => fs.readFileSync(...args)),
 
-  statSync: (path) => {
+  statSync: path => {
     let file = new File(path_module.resolve(path));
     return new Stats(file);
   },
   stat: callbackify((...args) => fs.statSync(...args)),
 
-  "readlink": () => '/linked/file',
-  "readlinkSync": () => '/linked/file',
+  // TODO
+  readlink: () => "/linked/file",
+  readlinkSync: () => "/linked/file",
 
-  mkdir: (file, buffer) => {
-    console.log('Mkdir file...', file, buffer);
+  mkdir: (path, buffer) => {
+    console.log("Mkdir file...", path, buffer);
   },
-  rmdir: (file, buffer) => {
-    console.log('rmdir file...', file, buffer);
+  rmdir: (path, buffer) => {
+    console.log("rmdir file...", path, buffer);
   },
-  writeFile: (file, buffer) => {
-    console.log('Writing file...', file, buffer);
+  writeFileSync: (path, buffer) => {
+    let file = path_from_string(path);
+    NioFiles.write(file, cast_to_bytes(buffer));
   },
+  writeFile: callbackify((...args) => fs.writeFileSync(...args)),
   appendFile: (file, buffer) => {
-    console.log('Appending file...', file, buffer);
+    console.log("Appending file...", file, buffer);
   },
   unlink: (file, buffer) => {
-    console.log('Appending file...', file, buffer);
+    console.log("Appending file...", file, buffer);
   },
   chmod: (file, buffer) => {
-    console.log('Appending file...', file, buffer);
-  },
-};
+    console.log("Appending file...", file, buffer);
+  }
+});

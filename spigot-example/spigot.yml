@@ -92,22 +92,22 @@ world-settings:
       hopper-transfer: 8
       hopper-check: 1
     growth:
-      bamboo-modifier: 100
-      sweetberry-modifier: 100
-      kelp-modifier: 100
-      cactus-modifier: 100
-      cane-modifier: 100
-      melon-modifier: 100
-      mushroom-modifier: 100
-      pumpkin-modifier: 100
-      sapling-modifier: 100
-      beetroot-modifier: 100
-      carrot-modifier: 100
-      potato-modifier: 100
-      wheat-modifier: 100
-      netherwart-modifier: 100
-      vine-modifier: 100
-      cocoa-modifier: 100
+      bamboo-modifier: 0
+      sweetberry-modifier: 0
+      kelp-modifier: 0
+      cactus-modifier: 0
+      cane-modifier: 0
+      melon-modifier: 0
+      mushroom-modifier: 0
+      pumpkin-modifier: 0
+      sapling-modifier: 0
+      beetroot-modifier: 0
+      carrot-modifier: 0
+      potato-modifier: 0
+      wheat-modifier: 0
+      netherwart-modifier: 0
+      vine-modifier: 0
+      cocoa-modifier: 0
     entity-activation-range:
       raiders: 48
       animals: 32

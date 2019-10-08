@@ -60,7 +60,7 @@ public final class JsPluginLoader implements PluginLoader {
     final Server server;
     private final Pattern[] fileFilters = new Pattern[] { Pattern.compile("package\\.json$"), };
     public static Boolean initialized = false;
-    
+
     /**
      * This class was not meant to be constructed explicitly
      */
@@ -85,7 +85,7 @@ public final class JsPluginLoader implements PluginLoader {
         }
 
         final File parentFile = file.getParentFile();
-        final File dataFolder = new File(parentFile, description.getName());
+        final File dataFolder = parentFile;
 
         return new JsPlugin(this, description, dataFolder, null);
         // return this.runPlugin("get_plugin", file, this, description, dataFolder).as(JsPlugin.class);

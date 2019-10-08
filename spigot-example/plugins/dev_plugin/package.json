@@ -1,7 +1,7 @@
 {
   "name": "dev_plugin",
   "version": "1.0.0",
-  "main": "dev_plugin.js",
+  "main": "dist/dev_plugin.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,7 +11,13 @@
     "api-version": "1.13",
     "commands": {
       "jsrepl": {
-        "description": "Does basically nothing"
+        "description": "Execute inline javascript"
+      },
+      "enter": {
+        "description": "Enter a plugin plot"
+      },
+      "leave": {
+        "description": "Leave a plugin plot"
       }
     }
   },

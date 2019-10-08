@@ -78,7 +78,7 @@
   }
 
   global.bukkit = require('./bukkit.js');
-  global.fs = require('./fs.js');
+  global.fs = require('./builtins/fs.js');
 
   // let path = require("path");
   // let { Module } = require("./require.js");
@@ -87,7 +87,6 @@
   // let sub_module = new Module(FILE_LOCATION);
 
   global.window = {};
-  // global.fs = basic_require('./fs.js');
 
   // let _ = module.require("lodash");
   // module.exports = sub_module.require;

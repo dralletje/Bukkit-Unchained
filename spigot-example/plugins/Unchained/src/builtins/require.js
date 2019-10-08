@@ -140,7 +140,7 @@ let builtin_module_map = {
   fs: require('./fs.js'),
   path: require('path'),
   util: require('./util.js'),
-  bukkit: require('./bukkit.js'),
+  bukkit: require('../bukkit.js'),
   child_process: require('./child_process.js'),
   module: Module,
 };

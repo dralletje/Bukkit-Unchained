@@ -72,7 +72,6 @@ let Packet = {
     );
 
     return accessor.get(null);
-    
     // return {
     //   set: value => {
     //     return accessor.set(null, value);

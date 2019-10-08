@@ -8,7 +8,7 @@ let util = require('util');
  */
 /* legacy: obj, showHidden, depth, colors*/
 function inspect(obj, opts) {
-  return require('./bootstrap/format_value.js').format_value(obj).join('\n');
+  return require('../bootstrap/format_value.js').format_value(obj).join('\n');
 }
 
 module.exports = {
