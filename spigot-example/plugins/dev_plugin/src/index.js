@@ -225,6 +225,13 @@ module.exports = (plugin) => {
     console.log(err);
   }
 
+  // try {
+  //   require('./conversation.js').create_conversation(plugin);
+  // } catch (err) {
+  //   console.log('Could\'t load conversation plugin');
+  //   console.log(err);
+  // }
+
   plugin.command('jsrepl', {
     onCommand: (sender, command, alias, args) => {
       repl(plugin, sender, [...args].join(' '));

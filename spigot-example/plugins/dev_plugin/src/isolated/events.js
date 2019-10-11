@@ -74,7 +74,7 @@ let java_is_subclass = (subclass, superclass) => {
   }
 };
 
-export let create_isolated_events = ({ plugin, active_session, filters }) => {
+export let create_isolated_events = ({ plugin, active_session, adapt }) => {
   let isolated_events = {};
   for (let { name: event_name, addListener, JavaClass } of plugin.events
     .as_list) {
@@ -91,18 +91,21 @@ export let create_isolated_events = ({ plugin, active_session, filters }) => {
           if (event.isCancelled && event.isCancelled()) {
             return;
           }
-          for (let location of parent_class.get_locations(event)) {
-            if (filters.location(location) !== true) {
-              return;
-            }
-          }
-          for (let player of parent_class.get_players(event)) {
-            if (filters.player(player) !== true) {
-              return;
-            }
-          }
 
-          handler(event);
+          let js_event = null
+          try {
+            js_event = adapt.from_java(event);
+          } catch {}
+
+          if (js_event == null) return;
+          handler(js_event);
+
+          try {
+            js_event.validate();
+          } catch (err) {
+            console.log(`err:`, err);
+            event.setCancelled(true);
+          }
 
           // Plugin specific error handling
         },

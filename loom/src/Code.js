@@ -17,10 +17,16 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.css";
 import brace from "brace";
 import AceEditor from "react-ace";
 
-import "brace/mode/javascript";
+import javascript_mode from "brace/mode/javascript";
 import "brace/theme/solarized_dark";
 
+// // eslint-disable-next-line
+// import eslint_worker from 'worker-loader!./eslint-worker.js';
+
 import { Flex } from "./Elements.js";
+
+// console.log(`eslint_worker:`, eslint_worker())
+// console.log(`javascript_mode:`, javascript_mode.Mode)
 
 let AceTheme = styled.div`
   .ace_editor {

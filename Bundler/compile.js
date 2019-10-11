@@ -88,6 +88,25 @@ let compile = async ({ files, entry_file }) => {
       process: false,
       module: false,
     },
+    module: {
+      rules: [
+        {
+          test: /\.m?js$/,
+          exclude: /(node_modules|bower_components)/,
+          use: {
+            loader: require.resolve("babel-loader"),
+            options: {
+              plugins: [
+                require.resolve("@babel/plugin-syntax-dynamic-import"),
+                require.resolve("@babel/plugin-syntax-import-meta"),
+                [require.resolve("@babel/plugin-proposal-class-properties"), { loose: true }],
+                require.resolve("@babel/plugin-proposal-json-strings")
+              ]
+            }
+          }
+        }
+      ]
+    },
   });
 
   compiler.inputFileSystem = memFs;

@@ -1,40 +1,11 @@
 import fs from "fs";
-let Location = Java.type("org.bukkit.Location");
+import { range } from 'lodash';
 
+let Location = Java.type("org.bukkit.Location");
+let Material = Java.type('org.bukkit.Material');
 let server = Polyglot.import('server');
 
-class Region {
-  constructor(from, to) {
-    this.from = from;
-    this.to = to;
-  }
-
-  contains(location) {
-    let from_x_higher = this.from.getX() > location.getX();
-    let to_x_higher = this.to.getX() > location.getX();
-    let from_y_higher = this.from.getY() > location.getY();
-    let to_y_higher = this.to.getY() > location.getY();
-    let from_z_higher = this.from.getZ() > location.getZ();
-    let to_z_higher = this.to.getZ() > location.getZ();
-
-    if (
-      from_x_higher !== to_x_higher &&
-      from_y_higher !== to_y_higher &&
-      from_z_higher !== to_z_higher
-    ) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-}
-Region.from_worldedit = WorldeditRegion => {
-  let BlockVector3 = Java_type("com.sk89q.worldedit.math.BlockVector3");
-  return new Region(
-    WorldeditRegion.getMinimumPoint(),
-    WorldeditRegion.getMaximumPoint().add(BlockVector3.static.at(1, 1, 1))
-  );
-};
+let world = server.getWorlds()[0];
 
 let worldedit_session_for_player = player => {
   return Java_type("com.sk89q.worldedit.WorldEdit")
@@ -43,10 +14,70 @@ let worldedit_session_for_player = player => {
     .findByName(player.getName());
 };
 
-export let create_isolated_buildconfig = ({ plugin, plot_id }) => {
-  let world = server.getWorlds()[0];
+export let create_isolated_buildconfig = ({ plugin, plot_id, adapt }) => {
+  class Region {
+    constructor(from, to) {
+      this.from = from;
+      this.to = to;
+    }
+
+    contains(location) {
+      let from_x_higher = this.from.getX() > location.getX();
+      let to_x_higher = this.to.getX() > location.getX();
+      let from_y_higher = this.from.getY() > location.getY();
+      let to_y_higher = this.to.getY() > location.getY();
+      let from_z_higher = this.from.getZ() > location.getZ();
+      let to_z_higher = this.to.getZ() > location.getZ();
+
+      if (
+        from_x_higher !== to_x_higher &&
+        from_y_higher !== to_y_higher &&
+        from_z_higher !== to_z_higher
+      ) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+  Region.prototype[Symbol.iterator] = function*() {
+      let start_x = this.from.getBlockX();
+      let start_y = this.from.getBlockY();
+      let start_z = this.from.getBlockZ();
+
+      let end_x = this.to.getBlockX();
+      let end_y = this.to.getBlockY();
+      let end_z = this.to.getBlockZ();
+
+      for(let x of range(start_x, end_x)) {
+        for(let y of range(start_y, end_y)) {
+          for(let z of range(start_z, end_z)) {
+            yield adapt.from_java(new Location(world, x, y, z));
+          }
+        }
+      }
+  }
+  Region.from_worldedit = WorldeditRegion => {
+    let BlockVector3 = Java_type("com.sk89q.worldedit.math.BlockVector3");
+    return new Region(
+      WorldeditRegion.getMinimumPoint(),
+      WorldeditRegion.getMaximumPoint().add(BlockVector3.static.at(1, 1, 1))
+    );
+  };
 
   let BuildConfigTypes = {
+    material: {
+      get_from_player: player => {
+        let target_block = player.getTargetBlock(5);
+        return target_block.getType();
+      },
+      to_plain: material => {
+        return material.toString();
+      },
+      from_plain: material => {
+        return Material.valueOf(material);
+      },
+    },
     location: {
       get_from_player: player => {
         return player.getLocation();
@@ -161,11 +192,12 @@ export let create_isolated_buildconfig = ({ plugin, plot_id }) => {
           if (value == null) {
             throw new Error(`Key '${key}' has not been set yet`)
           }
-          return BuildConfigTypes[type].from_plain(value);
+          let adapted_value = adapt.from_java(BuildConfigTypes[type].from_plain(value));
+          return adapted_value;
         },
         set: (value) => {
           storage.set({
-            [key]: BuildConfigTypes[type].to_plain(value),
+            [key]: BuildConfigTypes[type].to_plain(adapt.to_java(value)),
           });
         },
       };

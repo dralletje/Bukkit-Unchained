@@ -2,6 +2,8 @@ import { create_isolated_events } from './isolated/events.js';
 import { create_isolated_timers } from './isolated/timers.js';
 import { create_isolated_buildconfig } from './isolated/buildconfig.js';
 
+import { make_adapters } from './isolated/primitives.js';
+
 let { ChatColor } = require("bukkit");
 
 let server = Polyglot.import("server");
@@ -46,16 +48,28 @@ export let create_isolated_plugin = ({
   plot_id,
   events
 }) => {
+  let adapt = make_adapters(filters);
+
   let isolated_events = create_isolated_events({
     plugin,
     active_session,
-    filters
+    adapt
   });
-  let isolated_buildconfig = create_isolated_buildconfig({ plugin, plot_id })
+
+  let isolated_buildconfig = create_isolated_buildconfig({ plugin, plot_id, adapt })
 
   let server = plugin.java.getServer();
 
-  events.on("set-build-config", event => {
+  let disposable_on = (name, listener) => {
+    events.on(name, listener);
+    active_session.add_active_process({
+      dispose: () => {
+        events.off(name, listener);
+      },
+    })
+  }
+
+  disposable_on("set-build-config", event => {
     if (event.plot_id !== plot_id) return;
     let { key, player } = event;
     try {
@@ -68,14 +82,15 @@ export let create_isolated_plugin = ({
       // prettier-ignore
       player.sendMessage(`${ChatColor.RED}Couldn't set '${key}', because:`);
       // prettier-ignore
+      console.log(`error:`, error)
       player.sendMessage(`${ChatColor.DARK_RED}${error.message}`);
     }
   });
-  events.on("get-build-keys", event => {
+  disposable_on("get-build-keys", event => {
     if (event.plot_id !== plot_id) return;
     event.set_result(isolated_buildconfig.get_build_keys());
   });
-  events.on('player-join', event => {
+  disposable_on('player-join', event => {
     if (event.plot_id !== plot_id) return;
     let incomplete_fields = isolated_buildconfig.get_build_keys().filter(x => !x.complete);
     if (incomplete_fields.length !== 0) {
@@ -89,12 +104,23 @@ export let create_isolated_plugin = ({
     }
   })
 
-  let main_world = server.getWorlds()[0];
+  disposable_on('player-leave', event => {
+    if (event.plot_id !== plot_id) return;
+
+  })
+
+  let java_world = server.getWorlds()[0];
+  let main_world = adapt.from_java(java_world);
+
   return {
     buildconfig: isolated_buildconfig,
-    world: server.getWorlds()[0],
+    world: main_world,
     getPlayers: () => {
-      return Array.from(main_world.getPlayers()).filter(filters.player);
+      return main_world.getPlayers();
+    },
+    createNamespacedKey: (name) => {
+      let NamespacedKey = Java.type('org.bukkit.NamespacedKey');
+      return new NamespacedKey(plugin.java, `${plot_id}.${name}`)
     },
     addCommand: ({
       name,
@@ -115,6 +141,8 @@ export let create_isolated_plugin = ({
       });
       active_session.add_active_process(disposable);
     },
+    classes: adapt.classes,
+    adapt: adapt.from_java,
     events: isolated_events,
     timers: create_isolated_timers({ plugin, active_session })
   };

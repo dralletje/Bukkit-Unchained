@@ -29,19 +29,11 @@ import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Unchained extends JavaPlugin implements Listener {
-    private Map<String, String> langs = new HashMap<String, String>() {
-        {
-            put("js", ".js");
-            put("python", ".py");
-            put("ruby", ".rb");
-            //TODO add more langs
-        }
-    };
-
     public static Unchained self;
-    private Context context;
     public static Value javascript_bridge;
     public static Reflections reflections;
+
+    private Context context;
 
     @Override
     public void onEnable() {
@@ -112,9 +104,14 @@ public class Unchained extends JavaPlugin implements Listener {
     private Context getContext() {
         if (this.context == null) {
           // Engine engine = Engine.newBuilder()
+          //   .allowExperimentalOptions()
+          //   .build();
+
           Context context = Context.newBuilder("js")
             .allowAllAccess(true)
             .allowHostAccess(true)
+            .option("js.ecmascript-version", "2020")
+            .option("js.experimental-foreign-object-prototype", "true")
             // .option("inspect", "8228")
             // .option("inspect.Path", "session")
             // .option("engine.inspect.Remote", "true")

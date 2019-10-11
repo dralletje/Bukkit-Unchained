@@ -2,6 +2,7 @@ let { ChatColor } = require('bukkit');
 let Bukkit = require('bukkit');
 let server = Polyglot.import('server');
 let { EventEmitter } = require('events');
+let Location = Java.type('org.bukkit.Location');
 
 // let webpack = require('./webpack.js');
 // webpack.default('1 + 1').then((we) => {
@@ -62,6 +63,8 @@ class Session {
 
 let { create_isolated_plugin } = require('./isolated_plugin.js');
 
+let float = (n) => Java.type('java.lang.Float').parseFloat(String(n))
+
 module.exports = (plugin) => {
   let dev_events = new EventEmitter();
 
@@ -103,11 +106,42 @@ module.exports = (plugin) => {
     set_players_in_session('only-one-for-now', get_players_in_session('only-one-for-now').filter(x => x !== player));
     player.sendActionBar(`${ChatColor.BLACK}Left plugin area`);
     player.setGameMode(GameMode.CREATIVE);
+    player.setCompassTarget(new Location(server.getWorlds()[0], 0, 0, 0));
+    player.setDisplayName(player.getName());
+    player.setExhaustion(0)
+    player.setExp(0)
+    // player.setFlying(false)
+    player.setFlySpeed(float(0.2))
+    player.setFoodLevel(20)
+    player.setHealth(20);
+    // player.setHealthScale(1)
+    // player.setHealthScaled(false)
+    player.setLevel(0)
+    player.setPlayerListHeaderFooter("Dev server!", "Cool footer");
+    player.setPlayerListName(player.getName());
+    // player.setSaturation(0);
+    // player.setScoreboard(null)
+    player.setTotalExperience(0)
+    player.setWalkSpeed(float(0.2));
+
+    player.resetPlayerTime()
+    player.resetPlayerWeather()
+    player.resetTitle();
+    // player.setResourcePack(String url)
+
+    // let bossbars = server.getBossBars();
+    // let list = [];
+    // bossbars.forEachRemaining((element) => list.push(element));
+    // for (let bossbar of list) {
+    //   bossbar.removePlayer(player);
+    // }
   }
 
   let GameMode = Java.type('org.bukkit.GameMode');
   let PlayerJoinEvent = Java.type('org.bukkit.event.player.PlayerJoinEvent');
   plugin.events.PlayerMove((event) => {
+    if (event.isCancelled()) return;
+
     let to_is_in = location_filter(event.getTo());
     let from_is_in = location_filter(event.getFrom());
     if (!to_is_in && from_is_in) {
@@ -190,18 +224,12 @@ module.exports = (plugin) => {
     players_in_session.set(session_id, players);
   }
 
-  // TEST
-  // let dev_plugin_data_path = plugin.java.getDataFolder().toPath().toString();
-  // let js_plugin_data_path = `${dev_plugin_data_path}/data/${'only-one-for-now'}.json`;
-
-  // try {
-  //   let build_storage_cache = JSON.parse(fs.readFileSync(js_plugin_data_path).toString());
-  //   console.log(`build_storage_cache:`, build_storage_cache)
-  // } catch (error) {
-  //   console.log(`Build storage get error:`, error);
-  //   return {};
-  // }
-  // fs.writeFileSync(js_plugin_data_path, JSON.stringify({ hey2: true }));
+  // let Engine = Java.type('org.graalvm.polyglot.Engine');
+  // let Context = Java.type('org.graalvm.polyglot.Context');
+  // let shared_engine = Engine.newBuilder()
+  //   .option("inspect", "8228")
+  //   .option("inspect.Path", "session")
+  //   .build()
 
 
   console.log('Http server');
@@ -241,6 +269,34 @@ module.exports = (plugin) => {
         { name: 'setInterval', value: dev_plugin.timers.setInterval },
         { name: 'clearInterval', value: dev_plugin.timers.clearInterval },
       ]
+
+      // // TODO Isolate the heck out of this
+      // let context = Context.newBuilder("js")
+      //   // .engine(shared_engine)
+      //   .allowAllAccess(true)
+      //   .option('js.ecmascript-version', "2020")
+      //   // .option('js.experimental-foreign-object-prototype', "true")
+      //   .option("js.polyglot-builtin", "true")
+      //   // .option("engine.inspect.Remote", "true")
+      //   .build();
+      //
+      // let Unchained = Java_type('eu.dral.unchained.Unchained')
+      //
+      // console.log('Context built2');
+      //
+      // // let jsBindings = context.getBindings('js');
+      // // for (let {name, value} of injects) {
+      // //   console.log(`name:`, name);
+      // //   console.log(`value:`, value)
+      // //   jsBindings.putMember(name, value);
+      // // }
+      //
+      // console.log('Bindings put');
+      //
+      // let Source = Java.type('org.graalvm.polyglot.Source');
+      // let source = Source.newBuilder("js", body.script, '/index.js').build();
+      // context.eval(source)
+      // console.log('Script executed');
 
       // TODO Make this use the local `require` so it can import bukkit
       Polyglot.eval('js', `((${injects.map(x => x.name).join(', ')}) => { ${body.script} })`)(...injects.map(x => x.value));
