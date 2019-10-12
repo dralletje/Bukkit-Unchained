@@ -113,8 +113,6 @@ class JavascriptPlugin extends EventEmitter {
         return;
       }
       if (event === 'defaultWorldGenerator') {
-        console.log('CONSOLE', args);
-        console.log(`this.world_generator:`, this.world_generator)
         return this.world_generator;
       }
       console.log(`event:`, event)
