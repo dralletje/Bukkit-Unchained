@@ -9,6 +9,7 @@ let methods = {
   // onTabComplete: (...args) => require('./dev_plugin/onTabComplete.js')(...args),
   onEnable: () => {
     console.log('onEnable from javascript!');
+    require('./plugin.js').load_all(null)
   },
   onCommand: (sender, command, alias, args) => {
     // if (alias === 'js') {
@@ -111,12 +112,21 @@ class JavascriptPlugin extends EventEmitter {
         this.emit('onDisable');
         return;
       }
+      if (event === 'defaultWorldGenerator') {
+        console.log('CONSOLE', args);
+        console.log(`this.world_generator:`, this.world_generator)
+        return this.world_generator;
+      }
       console.log(`event:`, event)
     }
 
     let make_addEventListener_for_plugin = require('./events.js').make_addEventListener_for_plugin;
     let events = make_addEventListener_for_plugin(java_plugin);
     this.events = events;
+  }
+
+  setDefaultChunkGenerator(world_generator) {
+    this.world_generator = world_generator;
   }
 
   onEnable(fn) {

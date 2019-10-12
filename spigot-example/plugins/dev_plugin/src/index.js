@@ -13,6 +13,15 @@ module.exports = plugin => {
     console.log(err);
   }
 
+  try {
+    let chunk_generator = require("./PlotGenerator.js")(plugin);
+    plugin.setDefaultChunkGenerator(chunk_generator)
+  } catch (err) {
+    console.log("Could't load plot generator plugin");
+    console.log(err);
+  }
+
+
   // try {
   //   require('./conversation.js').create_conversation(plugin);
   // } catch (err) {

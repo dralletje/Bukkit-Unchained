@@ -36,3 +36,6 @@ ticks-per:
   monster-spawns: 1
   autosave: 6000
 aliases: now-in-commands.yml
+worlds:
+  world:
+    generator: dev_plugin

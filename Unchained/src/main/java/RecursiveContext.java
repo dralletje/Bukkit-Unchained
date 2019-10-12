@@ -30,7 +30,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.Plugin;
 
 public class RecursiveContext {
-    // public static Reflections reflections = new Reflections("org.bukkit.event");
+    // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
+    public static Reflections reflections = new Reflections("org.bukkit.event");
+
     private Context context;
     private Value entry;
     private Value dispose;
@@ -47,9 +49,12 @@ public class RecursiveContext {
     }
 
     public static Context createContext(Plugin plugin) {
+      Engine engine = Engine.newBuilder().build();
+
       Context context = Context.newBuilder("js")
         .allowAllAccess(true)
         .allowHostAccess(true)
+        .engine(engine)
         .option("js.ecmascript-version", "2020")
         .option("js.experimental-foreign-object-prototype", "true")
         // .option("inspect", "8228")
@@ -58,9 +63,7 @@ public class RecursiveContext {
         .option("js.polyglot-builtin", "true")
         .build();
 
-      // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
-      Reflections reflections = new Reflections("org.bukkit.event");
-      // RecursiveContext.reflections = reflections;
+      Reflections reflections = RecursiveContext.reflections;
 
       context.getPolyglotBindings().putMember("reflections", reflections);
 
@@ -103,7 +106,7 @@ public class RecursiveContext {
       if (this.dispose != null) {
         this.dispose.execute();
       }
-      
+
       this.dispose = this.invokeJavascriptBridge("load_plugin", new String[]{source, JsonObject});
     }
 

@@ -3,9 +3,7 @@ author: Dral
 api-version: 1.13
 main: eu.dral.unchained.Unchained
 version: 1.0
+load: STARTUP
+depend: [WorldEdit]
 commands:
   jsplugin:
-  js:
-  graaljs:
-  # graalruby:
-  # graalpython:
