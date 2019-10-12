@@ -133,6 +133,7 @@ module.exports = {
         console.log(chalk.red(`Plugin "${path.relative(process.cwd(), package_json_path)}" failed to load due to an error:`));
         console.log(chalk.red(`${chalk.dim("Message:")} ${error.message}`));
         console.log(chalk.red.dim(error.stack));
+        error.printStackTrace();
         console.log('');
       }
     }

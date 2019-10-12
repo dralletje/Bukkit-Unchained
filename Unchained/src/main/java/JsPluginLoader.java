@@ -47,10 +47,6 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
-import org.reflections.*;
-import org.reflections.util.*;
-import org.reflections.scanners.*;
-
 import java.util.*;
 
 /**
@@ -93,8 +89,8 @@ public final class JsPluginLoader implements PluginLoader {
     }
 
     public PluginDescriptionFile getPluginDescription(File file) throws InvalidDescriptionException {
-      Value repl_fn = Unchained.javascript_bridge;
-      String from_js = repl_fn.execute("get_plugin_description", Arrays.asList(file)).asString();
+      RecursiveContext repl_fn = Unchained.javascript_bridge;
+      String from_js = repl_fn.invokeJavascriptBridge("get_plugin_description", Arrays.asList(file)).asString();
       return new PluginDescriptionFile(new StringReader(from_js));
     }
 

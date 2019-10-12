@@ -24,7 +24,8 @@
       "Java_type": true,
       "Java": true,
       "Polyglot": true,
-      "print": true
+      "print": true,
+      "loadWithNewGlobal": true
     }
   },
   "dependencies": {

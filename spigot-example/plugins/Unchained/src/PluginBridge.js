@@ -51,6 +51,15 @@ let methods = {
 
     return js_plugin.execute_from_bridge;
   },
+  // Needs to only take strings, just so I can call this from another JS context
+  load_plugin: (source, json_args) => {
+    let { entry_path, ...args } = JSON.parse(json_args);
+    let module = new Module(entry_path);
+    let plugin_factory = module.require('./' + path_module.basename(entry_path));
+
+    let plugin = new JavascriptPlugin(Polyglot.import('plugin'))
+    return plugin_factory.worker(plugin, source, args);
+  }
 }
 
 
@@ -155,8 +164,11 @@ class JavascriptPlugin extends EventEmitter {
 }
 
 module.exports = (method, args) => {
+  if (typeof args === 'string') {
+    args = [args];
+  }
   if (methods[method]) {
-    return methods[method](...Java.from(args));
+    return methods[method](...Array.from(args));
   } else {
     console.log(`Unknown PluginBridge method '${method}'`);
   }

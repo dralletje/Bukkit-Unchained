@@ -134,7 +134,7 @@ let AllowedClasses = [
   { java_class: Java.type("org.bukkit.Color") },
   { java_class: Java.type("org.bukkit.DyeColor") },
   { java_class: Java.type("org.bukkit.block.banner.PatternType") },
-  { java_class: Java.type("org.bukkit.Tag") },
+  // { java_class: Java.type("org.bukkit.Tag") },
   { java_class: Java.type("org.bukkit.block.banner.Pattern") },
   { java_class: Java.type('org.bukkit.WeatherType') },
 

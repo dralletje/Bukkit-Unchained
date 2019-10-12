@@ -30,7 +30,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class Unchained extends JavaPlugin implements Listener {
     public static Unchained self;
-    public static Value javascript_bridge;
+    public static RecursiveContext javascript_bridge;
     public static Reflections reflections;
 
     private Context context;
@@ -58,87 +58,24 @@ public class Unchained extends JavaPlugin implements Listener {
 
     private Value pluginBridge(String method, Object ... args) {
       try {
-        return this.getJavascriptBridge().execute(method, args);
+        return this.getJavascriptBridge().invokeJavascriptBridge(method, args);
       } catch (Exception e) {
         e.printStackTrace();
         return null;
       }
     }
 
-    // public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
-    //   return this.pluginBridge("onTabComplete", sender, cmd, alias, args).as(List.class);
-    // }
-
-    private Value getJavascriptBridge() {
+    private RecursiveContext getJavascriptBridge() {
+      // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
+      // Reader stream = new InputStreamReader(this.getResource("boot.js"));
+      // Source source = Source.newBuilder("js", stream, "boot.js").build();
       if (this.javascript_bridge == null) {
-
-        this.getLogger().info("Initializing javascript bridge");
-        // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
-        // Reader stream = new InputStreamReader(this.getResource("boot.js"));
-        // Value result = polyglot.eval(Source.newBuilder("js", stream, "boot.js").build());
-
-        try {
-          Context polyglot = this.getContext();
-
-          File file = new File(getDataFolder(), "entry.js");
-          Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
-          this.javascript_bridge = entry_fn;
-
-          // Start debugger loop
-          // File debugger_loop_file = new File(getDataFolder(), "debugger_loop.js");
-          // polyglot.eval(Source.newBuilder("js", debugger_loop_file).build());
-
-          // Value result = polyglot.eval(Source.newBuilder("js", stream, "debugger_loop.js").build());
-          // Value result = polyglot.eval(Source.newBuilder("js", this.getResource("debugger_loop.js")).build());
-
-        } catch (Exception e) {
-          // sender.sendMessage(e.getMessage());
-          this.getLogger().info("Initializing javascript bridge failed:");
-          e.printStackTrace();
-          return null;
-        }
+        this.javascript_bridge = new RecursiveContext();
       }
       return this.javascript_bridge;
     }
 
     private Context getContext() {
-        if (this.context == null) {
-          // Engine engine = Engine.newBuilder()
-          //   .allowExperimentalOptions()
-          //   .build();
-
-          Context context = Context.newBuilder("js")
-            .allowAllAccess(true)
-            .allowHostAccess(true)
-            .option("js.ecmascript-version", "2020")
-            .option("js.experimental-foreign-object-prototype", "true")
-            // .option("inspect", "8228")
-            // .option("inspect.Path", "session")
-            // .option("engine.inspect.Remote", "true")
-            .option("js.polyglot-builtin", "true")
-            .build();
-
-          // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
-          Reflections reflections = new Reflections("org.bukkit.event");
-          // List<ClassLoader> classLoadersList = new LinkedList<ClassLoader>();
-          // classLoadersList.add(ClasspathHelper.contextClassLoader());
-          // classLoadersList.add(ClasspathHelper.staticClassLoader());
-          // Reflections reflections = new Reflections(new ConfigurationBuilder()
-          //     .setScanners(new SubTypesScanner(false /* don't exclude Object.class */), new ResourcesScanner())
-          //     .setUrls(ClasspathHelper.forClassLoader(classLoadersList.toArray(new ClassLoader[0])))
-          //     .filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix("org.bukkit.event"))));
-          Unchained.reflections = reflections;
-
-          context.getPolyglotBindings().putMember("reflections", reflections);
-
-          context.getPolyglotBindings().putMember("plugin", this);
-          context.getPolyglotBindings().putMember("server", this.getServer());
-
-          context.getPolyglotBindings().putMember("cwd", System.getProperty("user.dir"));
-          // context.getPolyglotBindings().putMember("cwd", this.getDataFolder().getAbsolutePath());
-
-          this.context = context;
-        }
-        return this.context;
+        return this.javascript_bridge.getContext();
     }
 }

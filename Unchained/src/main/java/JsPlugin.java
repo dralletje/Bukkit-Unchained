@@ -55,10 +55,9 @@ public class JsPlugin extends PluginBase {
     private File dataFolder = null;
     private boolean naggable = true;
     private FileConfiguration newConfig = null;
-    private File configFile = null;
     private PluginLogger logger = null;
 
-    private Context context = null;
+    private RecursiveContext context = null;
     private Value executor = null;
 
     public JsPlugin() {}
@@ -162,48 +161,24 @@ public class JsPlugin extends PluginBase {
         this.description = description;
         this.dataFolder = dataFolder;
         // this.classLoader = classLoader;
-        this.configFile = new File(dataFolder, "config.yml");
         this.logger = new PluginLogger(this);
 
         this.getExecutor();
     }
 
-    Value getExecutor() {
-      if (this.executor != null) {
-        return this.executor;
-      }
+    RecursiveContext getContext() {
       if (this.context == null) {
-        // OutputStream plugin_out = new BufferedOutputStream()
-        Context context = Context.newBuilder("js")
-          // .out(plugin_out)
-          .allowAllAccess(true)
-          // .allowPolyglotAccess(true)
-          // .allowExperimentalOptions(true)
-          .option("js.polyglot-builtin", "true")
-          .build();
-
-        Reflections reflections = Unchained.reflections;
-        context.getPolyglotBindings().putMember("reflections", reflections);
-
-        context.getPolyglotBindings().putMember("plugin", this);
-        context.getPolyglotBindings().putMember("server", this.getServer());
-        context.getPolyglotBindings().putMember("cwd", System.getProperty("user.dir"));
-
-        this.context = context;
+        this.context = new RecursiveContext(this);
       }
+      return this.context;
+    }
 
-      try {
-        Context polyglot = this.context;
-        File file = new File(Unchained.self.getDataFolder(), "entry.js");
-        Value entry_fn = polyglot.eval(Source.newBuilder("js", file).build());
-        Value executor = entry_fn.execute("load_plugin_from_javaplugin", Arrays.asList(this));
-        this.executor = executor;
-        return executor;
-      } catch (Exception e) {
-        // sender.sendMessage(e.getMessage());
-        e.printStackTrace();
-        return null;
+    Value getExecutor() {
+      if (this.executor == null) {
+        this.context = this.getContext();
+        this.executor = this.context.invokeJavascriptBridge("load_plugin_from_javaplugin", Arrays.asList(this));
       }
+      return this.executor;
     }
 
     /**

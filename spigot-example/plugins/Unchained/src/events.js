@@ -56,6 +56,7 @@ let make_addEventListener_for_plugin = (plugin) => {
     addEventListener: addEventListener,
     as_list: [],
   };
+
   // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
   let reflections = Polyglot.import('reflections');
   // let event_classes = reflections.getSubTypesOf(Java.type('java.lang.Object').class);
