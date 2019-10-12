@@ -14,8 +14,14 @@
       "jsrepl": {
         "description": "Execute inline javascript"
       },
+      "claim": {
+        "description": "Claim a plot"
+      },
       "enter": {
         "description": "Enter a plugin plot"
+      },
+      "build": {
+        "description": "Build on your plot"
       },
       "leave": {
         "description": "Leave a plugin plot"
@@ -35,6 +41,7 @@
     "lodash": "^4.17.11",
     "thenify": "^3.3.0",
     "uglify-js": "^3.6.0",
+    "uuid": "^3.3.3",
     "webpack-cli": "^3.3.9"
   },
   "devDependencies": {

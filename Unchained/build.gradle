@@ -26,6 +26,7 @@ jar {
 dependencies {
     compile 'org.reflections:reflections:0.9.11'
     compile 'org.java-websocket:Java-WebSocket:1.4.0'
+    compile 'org.mongodb:mongodb-driver-sync:3.11.0'
 
     compileOnly 'org.graalvm:graal-sdk:1.0.0-rc6'
     compileOnly 'com.oracle.truffle:truffle-api:1.0.0-rc6'

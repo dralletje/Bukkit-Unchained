@@ -1,4 +1,24 @@
 let PlayerEntity = Java.type("org.bukkit.entity.Player");
+let ChatColor = Java.type('org.bukkit.ChatColor')
+
+let start_timer = (label) => {
+  let initial_time = Date.now();
+  let last_time = Date.now();
+
+  return {
+    log: (message) => {
+      let seconds_spent = (Date.now() - last_time) / 1000;
+      let color = seconds_spent < 0.8 ? ChatColor.GREEN : ChatColor.RED
+      last_time = Date.now();
+      console.log(label, message, `took ${color}${(seconds_spent.toFixed(3))}s`);
+    },
+    end: () => {
+      let seconds_spent = (Date.now() - initial_time) / 1000;
+      let color = seconds_spent < 1 ? ChatColor.GREEN : ChatColor.RED
+      console.log(label, `Completed!, spent ${color}${seconds_spent.toFixed(3)}s ${ChatColor.RESET}in total`);
+    }
+  }
+}
 
 let java_get_prototype_chain = function*(java_class) {
   let current_class = java_class.class || java_class;
@@ -35,9 +55,7 @@ let AllowedClasses = [
     java_class: Java.type("org.bukkit.Server")
   },
 
-  {
-    java_class: Java.type("org.bukkit.inventory.Merchant")
-  },
+  { java_class: Java.type("org.bukkit.inventory.Merchant") },
   {
     java_class: Java.type("org.bukkit.inventory.Inventory"),
     get_location: inventory => [inventory.getLocation()],
@@ -180,6 +198,8 @@ for (let event_class of event_classes) {
 
 
 export let make_adapters = filters => {
+  // let adapt_timer = start_timer(` ${ChatColor.DARK_BLUE}ADAPT:${ChatColor.WHITE}`);
+
   let adapted_classes = {};
   let adapt = {
     classes: adapted_classes,
@@ -402,10 +422,13 @@ export let make_adapters = filters => {
     return JavaAdapter;
   };
 
+  // adapt_timer.log('Init');
+
   for (let allowed_class of AllowedClasses) {
     let name = get_class(allowed_class.java_class).getName();
     try {
       adapt_class(allowed_class);
+      // adapt_timer.log(name);
     } catch (err) {
       console.log(`Error while adapting '${name}':`);
       console.log(err);
