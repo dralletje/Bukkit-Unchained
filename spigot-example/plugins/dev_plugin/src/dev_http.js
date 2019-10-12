@@ -1,8 +1,4 @@
-let { ChatColor } = require('bukkit');
-let Bukkit = require('bukkit');
 let server = Polyglot.import('server');
-let { EventEmitter } = require('events');
-let Location = Java.type('org.bukkit.Location');
 
 // let webpack = require('./webpack.js');
 // webpack.default('1 + 1').then((we) => {
@@ -29,11 +25,8 @@ let send_response = (exchange, response) => {
   outputstream.close();
 }
 
-let make_value_plain = require('./plain_value.js');
-
-let float = (n) => Java.type('java.lang.Float').parseFloat(String(n))
-
 module.exports = (plugin) => {
+  let server = plugin.getServer ? plugin.getServer() : plugin.java.getServer();
   // plugin.command('set', {
   //   onCommand: (player, _1, _2, args) => {
   //     if (args[0] != null) {
@@ -67,6 +60,18 @@ module.exports = (plugin) => {
     },
   });
 
+  let CreatureSpawnEvent = Java.type(
+    "org.bukkit.event.entity.CreatureSpawnEvent"
+  );
+  plugin.events.CreatureSpawn(event => {
+    if (
+      !event.getCause ||
+      event.getCause() !== CreatureSpawnEvent.SpawnReason.CUSTOM
+    ) {
+      event.setCancelled(true);
+    }
+  });
+
   // let Engine = Java.type('org.graalvm.polyglot.Engine');
   // let Context = Java.type('org.graalvm.polyglot.Context');
   // let shared_engine = Engine.newBuilder()
@@ -79,7 +84,9 @@ module.exports = (plugin) => {
   console.log('Http server');
   let http_server = plugin.create_http_server(8001, (exchange) => {
     try {
-      current_context.close();
+      try {
+        current_context.close();
+      } catch (err) {}
 
       let body = parse_input_json(exchange);
 

@@ -72,6 +72,8 @@ let compile = async ({ files, entry_file }) => {
   const compiler = webpack({
     context: '/',
     entry: entry,
+    // devtool: 'cheap-module-eval-source-map',
+    devtool: 'eval-source-map',
     output: {
       filename: "output.js",
       libraryTarget: 'umd',

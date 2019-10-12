@@ -41,6 +41,8 @@ let { ChatColor } = require("bukkit");
 let float = n => Java.type("java.lang.Float").parseFloat(String(n));
 
 let server = Polyglot.import("server");
+let Bukkit = require("bukkit");
+let Location = Java.type("org.bukkit.Location");
 
 let BukkitCommand = Java.type("org.bukkit.command.defaults.BukkitCommand");
 let register_command = ({
@@ -75,47 +77,39 @@ let register_command = ({
   };
 };
 
-export let create_isolated_plugin = ({ plugin, source, config }) => {
-  // let session_id = `${config.plot_x}:${config.plot_y}`;
-  let session_id = "only-one-for-now";
+let start_timer = (label) => {
+  let initial_time = Date.now();
+  let last_time = Date.now();
 
+  return {
+    log: (message) => {
+      let seconds_spent = (Date.now() - last_time) / 1000;
+      let color = seconds_spent < 0.8 ? ChatColor.GREEN : ChatColor.RED
+      last_time = Date.now();
+      console.log(label, message, `took ${color}${(seconds_spent.toFixed(3))}s`);
+    },
+    end: () => {
+      let seconds_spent = (Date.now() - initial_time) / 1000;
+      let color = seconds_spent < 1 ? ChatColor.GREEN : ChatColor.RED
+      console.log(label, `Completed!, spent ${color}${seconds_spent.toFixed(3)}s ${ChatColor.RESET}in total`);
+    }
+  }
+}
+
+export let create_isolated_plugin = ({ plugin, source, config }) => {
+  let session_id = `${config.plot_x}:${config.plot_y}`;
+  // let session_id = "only-one-for-now";
+
+  let timer = start_timer(`${ChatColor.DARK_PURPLE}WORKER:${ChatColor.RESET}`);
   console.log("Starting worker...");
 
-  let { ChatColor } = require("bukkit");
-  let Bukkit = require("bukkit");
-  let server = Polyglot.import("server");
-  let { EventEmitter } = require("events");
-  let Location = Java.type("org.bukkit.Location");
-
-  console.log("#1");
-
-  console.log("#2");
-  // let command = register_command({
-  //   plugin: plugin,
-  //   name: 'test-command6',
-  //   description: 'A test command',
-  //   usageMessage: '',
-  // });
+  timer.log('Load libraries')
 
   let active_session = new Session();
 
   plugin.on("onDisable", () => {
     active_session.teardown();
   });
-
-  let CreatureSpawnEvent = Java.type(
-    "org.bukkit.event.entity.CreatureSpawnEvent"
-  );
-  plugin.events.CreatureSpawn(event => {
-    if (
-      !event.getCause ||
-      event.getCause() !== CreatureSpawnEvent.SpawnReason.CUSTOM
-    ) {
-      event.setCancelled(true);
-    }
-  });
-
-  console.log("#3");
 
   let location_boundaries = {
     x: { min: -31, max: 34 },
@@ -137,6 +131,8 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
       return players_in_session.includes(player);
     }
   };
+
+  timer.log('Filters');
 
   let leave_plugin_plot = player => {
     players_in_session = players_in_session.filter(x => x !== player);
@@ -201,42 +197,6 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
     })
   );
 
-  let adapt = make_adapters(filters);
-
-  let isolated_events = create_isolated_events({
-    plugin,
-    active_session,
-    adapt
-  });
-
-  let isolated_buildconfig = create_isolated_buildconfig({
-    plugin,
-    plot_id: session_id,
-    adapt
-  });
-
-  // disposable_on("set-build-config", event => {
-  //   if (event.plot_id !== plot_id) return;
-  //   let { key, player } = event;
-  //   try {
-  //     let value = isolated_buildconfig.set_from_player(key, player);
-  //     // prettier-ignore
-  //     player.sendMessage(`${ChatColor.GREEN}Set '${key}' to value`);
-  //     // prettier-ignore
-  //     player.sendMessage(`${ChatColor.DARK_GREEN}${JSON.stringify(value)}`);
-  //   } catch (error) {
-  //     // prettier-ignore
-  //     player.sendMessage(`${ChatColor.RED}Couldn't set '${key}', because:`);
-  //     // prettier-ignore
-  //     console.log(`error:`, error)
-  //     player.sendMessage(`${ChatColor.DARK_RED}${error.message}`);
-  //   }
-  // });
-  // disposable_on("get-build-keys", event => {
-  //   if (event.plot_id !== plot_id) return;
-  //   event.set_result(isolated_buildconfig.get_build_keys());
-  // });
-
   let PlayerJoinEvent = Java.type("org.bukkit.event.player.PlayerJoinEvent");
   active_session.add_active_process(
     plugin.events.PlayerJoin(event => {
@@ -280,6 +240,50 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
     })
   );
 
+  timer.log('Events');
+
+  let adapt = make_adapters(filters);
+
+  timer.log('Adapters');
+
+  let isolated_events = create_isolated_events({
+    plugin,
+    active_session,
+    adapt
+  });
+
+  timer.log('Isolated events');
+
+  let isolated_buildconfig = create_isolated_buildconfig({
+    plugin,
+    plot_id: session_id,
+    adapt
+  });
+
+  timer.log('Isolated buildconfig');
+
+  // disposable_on("set-build-config", event => {
+  //   if (event.plot_id !== plot_id) return;
+  //   let { key, player } = event;
+  //   try {
+  //     let value = isolated_buildconfig.set_from_player(key, player);
+  //     // prettier-ignore
+  //     player.sendMessage(`${ChatColor.GREEN}Set '${key}' to value`);
+  //     // prettier-ignore
+  //     player.sendMessage(`${ChatColor.DARK_GREEN}${JSON.stringify(value)}`);
+  //   } catch (error) {
+  //     // prettier-ignore
+  //     player.sendMessage(`${ChatColor.RED}Couldn't set '${key}', because:`);
+  //     // prettier-ignore
+  //     console.log(`error:`, error)
+  //     player.sendMessage(`${ChatColor.DARK_RED}${error.message}`);
+  //   }
+  // });
+  // disposable_on("get-build-keys", event => {
+  //   if (event.plot_id !== plot_id) return;
+  //   event.set_result(isolated_buildconfig.get_build_keys());
+  // });
+
   let java_world = server.getWorlds()[0];
   let main_world = adapt.from_java(java_world);
 
@@ -318,11 +322,11 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
     timers: create_isolated_timers({ plugin, active_session })
   };
 
+  timer.log('Isolated plugin');
+
   let new_module = { exports: {} };
 
   let players_in_session = [];
-
-  console.log("#4");
 
   let injects = [
     { name: "plugin", value: dev_plugin },
@@ -339,6 +343,8 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
     "js",
     `((${injects.map(x => x.name).join(", ")}) => { ${source} })`
   )(...injects.map(x => x.value));
+
+  timer.log('Eval');
 
   return () => {
     console.log("Diposing");
