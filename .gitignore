@@ -12,6 +12,4 @@ spigot-example/plugins/ProtocolLib/lastupdate
 spigot-example/plugins/WorldEdit/sessions/*
 spigot-example/usercache.json
 
-Unchained/target
-
 node_modules

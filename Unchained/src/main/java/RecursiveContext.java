@@ -114,6 +114,10 @@ public class RecursiveContext {
       if (this.dispose != null) {
         this.dispose.execute();
       }
-      this.context.close();
+      try {
+        this.context.close(true);
+      } catch (Exception error) {
+        
+      }
     }
 }
