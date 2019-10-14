@@ -1,10 +1,12 @@
+let ChatColor = Java.type('org.bukkit.ChatColor');
+
 module.exports = plugin => {
   try {
     let dev_http = require("./dev_http.js");
     if (plugin.java.getServer().getWorlds().length === 0) {
       plugin.events.WorldLoad(() => {
         dev_http(plugin);
-      })
+      });
     } else {
       dev_http(plugin);
     }
@@ -22,12 +24,11 @@ module.exports = plugin => {
 
   try {
     let chunk_generator = require("./PlotGenerator.js")(plugin);
-    plugin.setDefaultChunkGenerator(chunk_generator)
+    plugin.setDefaultChunkGenerator(chunk_generator);
   } catch (err) {
     console.log("Could't load plot generator plugin");
     console.log(err);
   }
-
 
   // try {
   //   require('./conversation.js').create_conversation(plugin);
@@ -39,5 +40,5 @@ module.exports = plugin => {
 
 module.exports.worker = (plugin, source, config) => {
   let { create_isolated_plugin } = require("./isolated_plugin.js");
-  return create_isolated_plugin({ plugin, source, config })
+  return create_isolated_plugin({ plugin, source, config });
 };

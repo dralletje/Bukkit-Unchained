@@ -260,39 +260,7 @@ let format_value_recursive = (value, path = []) => {
   }
 
   if (typeof value === "object") {
-    try {
-      let entries = Object.entries(value);
-      if (entries.length === 0) {
-        return [`{}`];
-      } else {
-        if (path.length > 5) {
-          return [`${ChatColor.GRAY}{ ${ChatColor.WHITE}... ${ChatColor.GRAY}}`];
-        }
-        let all_expanded = [
-          `${ChatColor.GRAY}{`,
-          ...flatten(
-            entries.slice(0, 30).map(([key, inner_value]) => {
-              let formatted = format_value(inner_value, [
-                ...path,
-                value
-              ]).join("\n  ")
-              return `  ${ChatColor.GOLD}${key}: ${ChatColor.RED}${formatted},`.split("\n");
-            })
-          ),
-          entries.length > 30
-          ? `  ${entries.length - 30} more items...`
-          : '',
-          `${ChatColor.GRAY}}`
-        ];
-
-        if (all_expanded.length <= entries.length + 2 && all_expanded.every(x => x.length < 20)) {
-          return [`${all_expanded.join(' ').replace(/ +/g, ' ').replace(/, *(..)?}/g, ' $1}')}`];
-        } else {
-          return all_expanded;
-        }
-      }
-    } catch (err) {
-      // An error is thrown when trying to apply `Object.entries()` to a java object.
+    if (Java.isJavaObject(value)) {
       let keys = Object.getOwnPropertyNames(value);
       let classs = value.getClass ? value.getClass() : 'No class';
 
@@ -346,6 +314,37 @@ let format_value_recursive = (value, path = []) => {
         }),
         `${ChatColor.GRAY}}`
       ];
+    } else {
+      let entries = Object.entries(value);
+      if (entries.length === 0) {
+        return [`{}`];
+      } else {
+        if (path.length > 5) {
+          return [`${ChatColor.GRAY}{ ${ChatColor.WHITE}... ${ChatColor.GRAY}}`];
+        }
+        let all_expanded = [
+          `${ChatColor.GRAY}{`,
+          ...flatten(
+            entries.slice(0, 30).map(([key, inner_value]) => {
+              let formatted = format_value(inner_value, [
+                ...path,
+                value
+              ]).join("\n  ")
+              return `  ${ChatColor.GOLD}${key}: ${ChatColor.RED}${formatted},`.split("\n");
+            })
+          ),
+          entries.length > 30
+          ? `  ${entries.length - 30} more items...`
+          : '',
+          `${ChatColor.GRAY}}`
+        ];
+
+        if (all_expanded.length <= entries.length + 2 && all_expanded.every(x => x.length < 20)) {
+          return [`${all_expanded.join(' ').replace(/ +/g, ' ').replace(/, *(..)?}/g, ' $1}')}`];
+        } else {
+          return all_expanded;
+        }
+      }
     }
   } else if (typeof value === "function") {
     let as_string = `${value}`;

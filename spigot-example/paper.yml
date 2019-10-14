@@ -37,8 +37,8 @@ settings:
     online-mode: false
     secret: ''
   watchdog:
-    early-warning-every: 5000
-    early-warning-delay: 10000
+    early-warning-every: 60000
+    early-warning-delay: 600000
   spam-limiter:
     tab-spam-increment: 1
     tab-spam-limit: 500

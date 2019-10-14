@@ -41,11 +41,18 @@ export let create_build_plugin = ({
         // prettier-ignore
         player.sendMessage(`${ChatColor.DARK_RED}${error.message}`);
       }
+    },
+    onTabComplete: (player, alias, args) => {
+      let result = buildconfig.get_build_keys();
+      let text = args[0];
+
+      return result.map(x => x.name).filter(x => x.startsWith(text));
     }
   });
   commands.handleDefault((event, player) => {
     let message = event.getMessage();
 
+    console.log(`message:`, message)
     if (message.startsWith('/leave')) {
       event.setCancelled(false);
       return;
@@ -54,14 +61,21 @@ export let create_build_plugin = ({
     if (message.startsWith('//')) {
       // set global mask
       let RegionMask = Java_type('com.sk89q.worldedit.function.mask.RegionMask');
-      let AbstractMask = Java_type('com.sk89q.worldedit.function.mask.AbstractMask');
       let CuboidRegion = Java_type('com.sk89q.worldedit.regions.CuboidRegion');
 
-      let my_mask = new AbstractMask({
+      let session = worldedit_session_for_player(adapt.to_java(player));
+      let AbstractMask = Java_type('com.sk89q.worldedit.function.mask.AbstractMask');
+      let MyMask = Java.extend(AbstractMask, {
         test: filters.location,
       })
-      let session = worldedit_session_for_player(adapt.to_java(player));
-      session.setMask(my_mask)
+      session.setMask(new MyMask())
+
+      // session.setMask(new RegionMask(new CuboidRegion(
+      //   BlockVector3.static.at(bounds.x.min, 0, bounds.z.min),
+      //   BlockVector3.static.at(bounds.x.max, 255, bounds.z.max)
+      // )))
+      // console.log(`event:`, event)
+      // console.log(`event.setCancelled:`, event.setCancelled)
       event.setCancelled(false);
     }
   });
@@ -87,9 +101,9 @@ export let create_build_plugin = ({
     );
   }
 
-  let CuboidRegionSelector = Java_type(
-    "com.sk89q.worldedit.regions.selector.CuboidRegionSelector"
-  );
+  // prettier-ignore
+  let CuboidRegionSelector = Java_type("com.sk89q.worldedit.regions.selector.CuboidRegionSelector");
+  // prettier-ignore
   let BlockVector3 = Java_type("com.sk89q.worldedit.math.BlockVector3");
 
   let set_worldedit_region = (player, primary, block_location) => {
@@ -128,21 +142,22 @@ export let create_build_plugin = ({
       let position_string = primary
         ? `${ChatColor.BLUE}#1`
         : `${ChatColor.DARK_PURPLE}#2`;
-      event.setCancelled(true);
       set_worldedit_region(
         adapt.to_java(player),
         primary,
         adapt.to_java(event.getClickedBlock())
       );
-      player.sendMessage(
-        `${ChatColor.GREEN}Selected ${position_string} ${ChatColor.GREEN}position for worldedit region`
-      );
+
+      // prettier-ignore
+      event.setCancelled(true);
+      player.sendMessage(`${ChatColor.GREEN}Selected ${position_string} ${ChatColor.GREEN}position for worldedit region`);
     }
   });
 
   return {
     apply_to: player => {
       console.log(`Builder player.getName():`, player.getName());
+      commands.activateFor(player)
     }
   };
 };

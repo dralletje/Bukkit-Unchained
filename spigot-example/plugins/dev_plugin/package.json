@@ -39,9 +39,12 @@
     "bluebird": "^3.7.0",
     "json-loader": "^0.5.7",
     "lodash": "^4.17.11",
+    "minecraft-data": "^2.39.1",
+    "prismarine-nbt": "^1.2.1",
     "thenify": "^3.3.0",
     "uglify-js": "^3.6.0",
     "uuid": "^3.3.3",
+    "uuid-1345": "^0.99.7",
     "webpack-cli": "^3.3.9"
   },
   "devDependencies": {

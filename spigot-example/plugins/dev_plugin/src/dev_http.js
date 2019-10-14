@@ -8,7 +8,7 @@ let uuid = require('uuid/v4');
 // webpack.default('1 + 1').then((we) => {
 //   console.log(`webpack:`, we)
 // })
-
+let Packet = require('./Packet.js');
 
 let parse_input_json = (exchange) => {
   let Collectors = Java.type('java.util.stream.Collectors');
@@ -167,6 +167,9 @@ module.exports = (plugin) => {
         active_plots.get(plot_id).context.emit(event)
       }
     },
+    onTabComplete: () => {
+      return ['hey'];
+    }
   });
 
   // TODO Put this inside plugins?
@@ -179,6 +182,25 @@ module.exports = (plugin) => {
       }
     },
   });
+
+  // plugin.events.PlayerCommandSend(event => {
+  //   console.log(`event.getCommands():`, event.getCommands())
+  // })
+
+  let valid_commands = ['/claim', '/leave', '/enter', '/build', '/set'];
+  plugin.events.PlayerCommandPreprocess(event => {
+    let player = event.getPlayer();
+    let message = event.getMessage();
+    player.sendMessage(`${ChatColor.GRAY}${message}`)
+    if (valid_commands.some(x => message.startsWith(x))) {
+      return;
+    }
+    if (event.message.startsWith('//')) {
+      event.setCancelled(true);
+      player.sendMessage(`${ChatColor.RED}You can only use worldedit while in builder mode!`);
+    }
+    event.setCancelled(true);
+  }, { priority: 'LOWEST' });
 
   let CreatureSpawnEvent = Java.type(
     "org.bukkit.event.entity.CreatureSpawnEvent"
@@ -214,6 +236,22 @@ module.exports = (plugin) => {
       console.log(`event_name:`, event_name);
     }
   }
+
+  plugin.command('set', {
+    onCommand: (player, _1, _2, args) => {
+      return true;
+    },
+    onTabComplete: (player, _1, _2, args) => {
+      let result = ['hey', 'wow', 'cool'];
+      let text = args[0];
+
+      return result.filter(x => x.startsWith(text));
+    },
+  });
+
+  Packet.addOutgoingPacketListener(Packet.fromServer.TAB_COMPLETE, event => {
+    console.log(`event.getData():`, event.getData())
+  })
 
   console.log('Http server');
   let http_server = plugin.create_http_server(8001, (exchange) => {

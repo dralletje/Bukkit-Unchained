@@ -9,6 +9,7 @@ import { create_isolated_commands } from "./isolated/commands.js";
 import { create_build_plugin } from "./build_plugin.js";
 
 import { make_adapters } from "./isolated/primitives.js";
+import Packet from './Packet.js';
 
 class Session {
   constructor() {
@@ -97,12 +98,8 @@ let start_timer = label => {
     end: () => {
       let seconds_spent = (Date.now() - initial_time) / 1000;
       let color = seconds_spent < 1 ? ChatColor.GREEN : ChatColor.RED;
-      console.log(
-        label,
-        `Completed!, spent ${color}${seconds_spent.toFixed(3)}s ${
-          ChatColor.RESET
-        }in total`
-      );
+      // prettier-ignore
+      console.log(label, `Completed!, spent ${color}${seconds_spent.toFixed(3)}s ${ChatColor.RESET}in total`);
     }
   };
 };
@@ -139,11 +136,11 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
   let CHUNK = 16;
   let location_boundaries = {
     x: {
-      min: config.plot_x * CHUNK * 5 + CHUNK,
+      min: config.plot_x * CHUNK * 5 + CHUNK - 1,
       max: (config.plot_x + 1) * CHUNK * 5
     },
     z: {
-      min: config.plot_z * CHUNK * 5 + CHUNK,
+      min: config.plot_z * CHUNK * 5 + CHUNK - 1,
       max: (config.plot_z + 1) * CHUNK * 5
     }
   };
@@ -212,6 +209,13 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
     //   bossbar.removePlayer(player);
     // }
   };
+
+  active_session.add_active_process(
+    plugin.events.TabComplete(event => {
+      console.log('TABCOMPLETE')
+      console.log(`event.getBuffer():`, event.getBuffer())
+    })
+  )
 
   let GameMode = Java.type("org.bukkit.GameMode");
   active_session.add_active_process(
@@ -353,6 +357,10 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
   }
 
   let dev_plugin = {
+    // Packet: Packet,
+    send_packet: (player, packet) => {
+      return Packet.send_packet(adapt.to_java(player), packet);
+    },
     buildconfig: isolated_buildconfig,
     world: main_world,
     getServer: () => isolated_server,
