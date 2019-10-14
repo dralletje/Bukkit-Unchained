@@ -1,6 +1,13 @@
 module.exports = plugin => {
   try {
-    require("./dev_http.js")(plugin);
+    let dev_http = require("./dev_http.js");
+    if (plugin.java.getServer().getWorlds().length === 0) {
+      plugin.events.WorldLoad(() => {
+        dev_http(plugin);
+      })
+    } else {
+      dev_http(plugin);
+    }
   } catch (err) {
     console.log("Could't load dev http plugin");
     console.log(err);

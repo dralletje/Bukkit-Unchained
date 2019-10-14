@@ -15,5 +15,6 @@ module.exports = {
   node: {
     process: false,
     module: false,
+    setImmediate: false,
   },
 };

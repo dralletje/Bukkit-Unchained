@@ -7,15 +7,14 @@
   }
 
   global.plugin = Polyglot.import('plugin');
+  require("./bootstrap/timers.js")(global);
+
+  let class_loader = global.plugin.getClass().getClassLoader();
+  let findClass_method = class_loader.getClass().getDeclaredMethod("findClass", Java.type('java.lang.String'));
+  findClass_method.setAccessible(true);
   global.Java_type = (name) => {
-    let class_loader = global.plugin.getClass().getClassLoader();
-
-    let m = class_loader.getClass().getDeclaredMethod("findClass", Java.type('java.lang.String'));
-    m.setAccessible(true);
-
     try {
-      let result = m.invoke(class_loader, name);
-      return result;
+      return findClass_method.invoke(class_loader, name);
     } catch (e) {
       if (e instanceof Java.type('java.lang.reflect.InvocationTargetException')) {
         throw e.getTargetException();
@@ -24,6 +23,7 @@
       }
     }
   };
+
   global.Buffer = require('buffer').Buffer;
   global.server = global.plugin.getServer();
   global.navigator = {};
@@ -40,7 +40,11 @@
       return Polyglot.import("cwd");
     },
     nextTick: (callback) => {
-      callback();
+      if (global.plugin.isEnabled()) {
+        setImmediate(callback);
+      } else {
+        callback();
+      }
     },
     binding: (name) => {
       return Polyglot.import(name);
@@ -57,8 +61,6 @@
       return Array_from(array, ...props);
     }
   }
-
-  require("./bootstrap/timers.js")(global);
 
   let original_console_log = console.log;
   let create_pretty_log = require("./bootstrap/console_log.js");

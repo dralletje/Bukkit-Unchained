@@ -89,6 +89,7 @@ let compile = async ({ files, entry_file }) => {
     node: {
       process: false,
       module: false,
+      setImmediate: false,
     },
     module: {
       rules: [

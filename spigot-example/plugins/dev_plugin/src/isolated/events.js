@@ -88,9 +88,9 @@ export let create_isolated_events = ({ plugin, active_session, adapt }) => {
     isolated_events[`on${event_name}`] = handler => {
       let result = addListener(
         event => {
-          if (event.isCancelled && event.isCancelled()) {
-            return;
-          }
+          // if (event.isCancelled && event.isCancelled()) {
+          //   return;
+          // }
 
           let js_event = null
           try {
@@ -109,10 +109,11 @@ export let create_isolated_events = ({ plugin, active_session, adapt }) => {
 
           // Plugin specific error handling
         },
-        { priority: "LOWEST" }
+        { priority: "HIGHEST" }
       );
       active_session.add_active_process(result);
     };
   }
+
   return isolated_events;
 };

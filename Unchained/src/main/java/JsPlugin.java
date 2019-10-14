@@ -16,32 +16,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Arrays;
 
-import org.apache.commons.lang.Validate;
 import org.bukkit.Server;
-import org.bukkit.Warning.WarningState;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.configuration.InvalidConfigurationException;
+// import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.plugin.AuthorNagException;
-import org.bukkit.plugin.PluginAwareness;
 import org.bukkit.plugin.PluginBase;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginLogger;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.ByteStreams;
-
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-
-import org.reflections.*;
 
 /**
  * Represents a Java plugin
@@ -71,9 +58,6 @@ public class JsPlugin extends PluginBase {
         init(loader, loader.server, description, dataFolder, file);
     }
 
-    public void setExecutor(Value executor) {
-      // this.executor = executor;
-    }
 
     /* Some getters */
     @Override
@@ -141,18 +125,6 @@ public class JsPlugin extends PluginBase {
             }
         }
     }
-
-    /**
-     * @deprecated This method is legacy and will be removed - it must be
-     *     replaced by the specially provided constructor(s).
-     */
-    // @Deprecated
-    // protected final void initialize(PluginLoader loader, Server server, PluginDescriptionFile description, File dataFolder, File file) {
-    //     if (server.getWarningState() == WarningState.OFF) {
-    //         return;
-    //     }
-    //     getLogger().log(Level.WARNING, getClass().getName() + " is already initialized", server.getWarningState() == WarningState.DEFAULT ? null : new AuthorNagException("Explicit initialization"));
-    // }
 
     final void init(PluginLoader loader, Server server, PluginDescriptionFile description, File dataFolder, File file) {
         this.loader = loader;

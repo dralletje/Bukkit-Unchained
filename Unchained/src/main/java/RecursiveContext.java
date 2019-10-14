@@ -6,36 +6,42 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.Engine;
 
-import org.reflections.*;
-import org.reflections.util.*;
-import  org.reflections.scanners.*;
-
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.*;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.event.Event;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
-import org.bukkit.plugin.EventExecutor;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.Plugin;
 
+import org.reflections.Reflections;
+// import org.reflections.util.*;
+// import  org.reflections.scanners.*;
+
 public class RecursiveContext {
+    public static class InterContextEvent {
+      public String name;
+      public Map<String, Object> data;
+
+      public InterContextEvent(String name) {
+        this.name = name;
+        this.data = null;
+      }
+
+      public InterContextEvent(String name, Value value_data) {
+        this.name = name;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        for (String key : value_data.getMemberKeys()) {
+          data.put(key, value_data.getMember(key).as(Object.class));
+        }
+        this.data = data;
+      }
+    }
+
     // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
     public static Reflections reflections = new Reflections("org.bukkit.event");
 
     private Context context;
     private Value entry;
-    private Value dispose;
+    private Value emit_event;
 
     public static Value loadEntry(Context polyglot, Source entry_js) {
       Value entry_fn = polyglot.eval(entry_js);
@@ -84,6 +90,9 @@ public class RecursiveContext {
       try {
         Context context = RecursiveContext.createContext(plugin);
 
+        // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
+        // Reader stream = new InputStreamReader(this.getResource("boot.js"));
+        // Source source = Source.newBuilder("js", stream, "boot.js").build();
         File file = new File(Unchained.self.getDataFolder(), "entry.js");
         Source source = Source.newBuilder("js", file).build();
         Value entry = RecursiveContext.loadEntry(context, source);
@@ -103,21 +112,30 @@ public class RecursiveContext {
       return this.entry.execute(method, args);
     }
     public void loadPlugin(String source, String JsonObject) {
-      if (this.dispose != null) {
-        this.dispose.execute();
-      }
+      this.emit(new InterContextEvent("close"));
 
-      this.dispose = this.invokeJavascriptBridge("load_plugin", new String[]{source, JsonObject});
+      this.emit_event = this.invokeJavascriptBridge("load_plugin", new String[]{source, JsonObject});
+    }
+
+    public InterContextEvent emit(InterContextEvent event) {
+      if (this.emit_event != null) {
+        try {
+          return this.emit_event.execute(event).as(InterContextEvent.class);
+        } catch (Exception error) {
+          error.printStackTrace();
+          return null;
+        }
+      } else {
+        return null;
+      }
     }
 
     public void close() {
-      if (this.dispose != null) {
-        this.dispose.execute();
-      }
+      this.emit(new InterContextEvent("close"));
       try {
         this.context.close(true);
       } catch (Exception error) {
-        
+
       }
     }
 }

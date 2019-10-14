@@ -1,14 +1,6 @@
 package eu.dral.unchained;
 
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.Engine;
-
-import org.reflections.*;
-import org.reflections.util.*;
-import  org.reflections.scanners.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,9 +23,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class Unchained extends JavaPlugin implements Listener {
     public static Unchained self;
     public static RecursiveContext javascript_bridge;
-    public static Reflections reflections;
-
-    private Context context;
 
     @Override
     public void onEnable() {
@@ -47,7 +36,7 @@ public class Unchained extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        this.getContext().close();
+        this.javascript_bridge.close();
     }
 
     @Override
@@ -66,16 +55,9 @@ public class Unchained extends JavaPlugin implements Listener {
     }
 
     private RecursiveContext getJavascriptBridge() {
-      // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
-      // Reader stream = new InputStreamReader(this.getResource("boot.js"));
-      // Source source = Source.newBuilder("js", stream, "boot.js").build();
       if (this.javascript_bridge == null) {
         this.javascript_bridge = new RecursiveContext();
       }
       return this.javascript_bridge;
-    }
-
-    private Context getContext() {
-        return this.javascript_bridge.getContext();
     }
 }

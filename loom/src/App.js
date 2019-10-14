@@ -4,6 +4,8 @@ import JsonTree from "react-json-tree";
 import "./App.css";
 import { Codeblock } from "./Code.js";
 import { Flex, SubtleButton } from "./Elements.js";
+import { Router, Link } from "@reach/router"
+
 
 let WindowEvent = ({ event_name, handler }) => {
   let current_handler = React.useRef(handler);
@@ -63,8 +65,6 @@ let scoped_storage = key => {
     }
   };
 };
-
-let files_storage = scoped_storage("files");
 
 let FileTab = ({ name, onChangeName, isActive, onClick, onRemove }) => {
   let [is_updating_name, set_is_updating_name] = React.useState(false);
@@ -137,6 +137,7 @@ let FilesEditor = ({ value: files, onChange }) => {
       <Flex row style={{ color: "white" }}>
         {files_array.map(([name, content]) => (
           <FileTab
+            key={name}
             name={name}
             isActive={name === current_file}
             onClick={() => {
@@ -188,16 +189,8 @@ let FilesEditor = ({ value: files, onChange }) => {
   );
 };
 
-function App() {
-  let [files, set_files] = React.useState(
-    files_storage.get() || { "index.js": `` }
-  );
-
+function Editor({ session_id, files, set_files }) {
   let [do_action, { loading, result, error }] = useAction();
-
-  React.useEffect(() => {
-    files_storage.set(files);
-  }, [files]);
 
   let execute_code = async () => {
     do_action(async () => {
@@ -207,6 +200,7 @@ function App() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          key: session_id,
           files: files
         })
       });
@@ -292,8 +286,7 @@ function App() {
             )}
             {result && result.error && (
               <div style={{ color: "rgb(210, 38, 38)" }}>
-                           <div style={{ color: "rgb(210, 38, 38)", fontWeight: "bold" }}>
-Got an error:</div>
+                <div style={{ color: "rgb(210, 38, 38)", fontWeight: "bold" }}>Got an error:</div>
                 <div style={{ fontWeight: 'bold' }}>{result.error.message}</div>
                 <pre style={{ color: 'white', width: '100%', overflow: 'scroll' }}>{result.error.stack}</pre>
               </div>
@@ -303,6 +296,27 @@ Got an error:</div>
       </Flex>
     </div>
   );
+}
+
+let files_storage = scoped_storage("files");
+let LoadEditor = ({ session_id, ...props }) => {
+  // let [files, set_files] = React.useState(null);
+  let [files, set_files] = React.useState(
+    files_storage.get() || { "index.js": `` }
+  );
+  React.useEffect(() => {
+    files_storage.set(files);
+  }, [files]);
+
+  return <Editor session_id={session_id} files={files} set_files={set_files} />
+}
+
+let App = () => {
+  return (
+    <Router>
+       <LoadEditor path="/editor/:session_id" />
+    </Router>
+  )
 }
 
 export default App;

@@ -37,6 +37,7 @@ module.exports = {
   },
   node: {
     process: false,
-    module: false
+    module: false,
+    setImmediate: false,
   }
 };

@@ -1,6 +1,12 @@
+import { EventEmitter } from "events";
+import { mapValues } from "lodash";
+
 import { create_isolated_events } from "./isolated/events.js";
 import { create_isolated_timers } from "./isolated/timers.js";
 import { create_isolated_buildconfig } from "./isolated/buildconfig.js";
+import { create_isolated_commands } from "./isolated/commands.js";
+
+import { create_build_plugin } from "./build_plugin.js";
 
 import { make_adapters } from "./isolated/primitives.js";
 
@@ -77,43 +83,69 @@ let register_command = ({
   };
 };
 
-let start_timer = (label) => {
+let start_timer = label => {
   let initial_time = Date.now();
   let last_time = Date.now();
 
   return {
-    log: (message) => {
+    log: message => {
       let seconds_spent = (Date.now() - last_time) / 1000;
-      let color = seconds_spent < 0.8 ? ChatColor.GREEN : ChatColor.RED
+      let color = seconds_spent < 0.8 ? ChatColor.GREEN : ChatColor.RED;
       last_time = Date.now();
-      console.log(label, message, `took ${color}${(seconds_spent.toFixed(3))}s`);
+      console.log(label, message, `took ${color}${seconds_spent.toFixed(3)}s`);
     },
     end: () => {
       let seconds_spent = (Date.now() - initial_time) / 1000;
-      let color = seconds_spent < 1 ? ChatColor.GREEN : ChatColor.RED
-      console.log(label, `Completed!, spent ${color}${seconds_spent.toFixed(3)}s ${ChatColor.RESET}in total`);
+      let color = seconds_spent < 1 ? ChatColor.GREEN : ChatColor.RED;
+      console.log(
+        label,
+        `Completed!, spent ${color}${seconds_spent.toFixed(3)}s ${
+          ChatColor.RESET
+        }in total`
+      );
     }
-  }
-}
+  };
+};
 
 export let create_isolated_plugin = ({ plugin, source, config }) => {
-  let session_id = `${config.plot_x}:${config.plot_y}`;
+  let external_events = new EventEmitter();
+
+  let session_id = `${config.plot_x}:${config.plot_z}`;
   // let session_id = "only-one-for-now";
 
   let timer = start_timer(`${ChatColor.DARK_PURPLE}WORKER:${ChatColor.RESET}`);
   console.log("Starting worker...");
 
-  timer.log('Load libraries')
+  timer.log("Load libraries");
 
   let active_session = new Session();
+
+  plugin.events = mapValues(plugin.events, addEventListener => {
+    if (typeof addEventListener === "function") {
+      return (...args) => {
+        let disposable = addEventListener(...args);
+        active_session.add_active_process(disposable);
+        return disposable;
+      };
+    } else {
+      return addEventListener;
+    }
+  });
 
   plugin.on("onDisable", () => {
     active_session.teardown();
   });
 
+  let CHUNK = 16;
   let location_boundaries = {
-    x: { min: -31, max: 34 },
-    z: { min: -170, max: -105 }
+    x: {
+      min: config.plot_x * CHUNK * 5 + CHUNK,
+      max: (config.plot_x + 1) * CHUNK * 5
+    },
+    z: {
+      min: config.plot_z * CHUNK * 5 + CHUNK,
+      max: (config.plot_z + 1) * CHUNK * 5
+    }
   };
 
   let location_filter = location => {
@@ -125,17 +157,28 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
     );
   };
 
+  let playing_player = new Set();
   let filters = {
     location: location_filter,
     player: player => {
-      return players_in_session.includes(player);
+      return playing_player.has(player.getName());
     }
   };
 
-  timer.log('Filters');
+  let adapt = make_adapters(filters);
+
+  timer.log("Adapters");
+
+  let plugin_commands = create_isolated_commands({
+    plugin,
+    active_session,
+    adapt,
+  });
+
+  timer.log("Filters");
 
   let leave_plugin_plot = player => {
-    players_in_session = players_in_session.filter(x => x !== player);
+    // playing_player.delete(player.getName())
 
     player.sendActionBar(`${ChatColor.BLACK}Left plugin area`);
     player.setGameMode(GameMode.CREATIVE);
@@ -198,105 +241,126 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
   );
 
   let PlayerJoinEvent = Java.type("org.bukkit.event.player.PlayerJoinEvent");
-  active_session.add_active_process(
-    plugin.events.PlayerJoin(event => {
-      console.log("Hey!");
-      let player = event.getPlayer();
-
-      if (!location_filter(player.getLocation())) return;
-      if (players_in_session.includes(player)) return;
-
-      // event.setCancelled();
-
-      let incomplete_fields = isolated_buildconfig
-        .get_build_keys()
-        .filter(x => !x.complete);
-      if (incomplete_fields.length !== 0) {
-        player.sendMessage(`${ChatColor.RED}Some required fields are not set:`);
-        for (let field of incomplete_fields) {
-          player.sendMessage(
-            `${ChatColor.DARK_RED}- ${ChatColor.RED}${field.name} (${field.type})`
-          );
-        }
-      } else {
-        setImmediate(() => {
-          players_in_session = [...players_in_session, player];
-          server
-            .getPluginManager()
-            .callEvent(new PlayerJoinEvent(player, "Player joined!"));
-          // event.set_can_join(true);
-          player.sendMessage(`Welcome!`);
-        });
-      }
-    })
-  );
 
   active_session.add_active_process(
     plugin.events.PlayerQuit(event => {
-      console.log(`event.getPlayer():`, event.getPlayer());
-      if (players_in_session.includes(event.getPlayer())) {
+      if (playing_player.has(event.getPlayer().getName())) {
         leave_plugin_plot(event.getPlayer());
       }
     })
   );
 
-  timer.log('Events');
+  timer.log("Events");
 
-  let adapt = make_adapters(filters);
-
-  timer.log('Adapters');
-
-  let isolated_events = create_isolated_events({
+  let _isolated_events = create_isolated_events({
     plugin,
     active_session,
     adapt
   });
+  let isolated_events = {
+    ..._isolated_events,
+    onPlayerJoin: handler => {
+      external_events.on("PlayerJoin", event => {
+        handler(event);
+      });
+    }
+  };
 
-  timer.log('Isolated events');
+  timer.log("Isolated events");
 
+  // TODO Move this into build_plugin ?
   let isolated_buildconfig = create_isolated_buildconfig({
     plugin,
     plot_id: session_id,
     adapt
   });
 
-  timer.log('Isolated buildconfig');
+  timer.log("Isolated buildconfig");
 
-  // disposable_on("set-build-config", event => {
-  //   if (event.plot_id !== plot_id) return;
-  //   let { key, player } = event;
-  //   try {
-  //     let value = isolated_buildconfig.set_from_player(key, player);
-  //     // prettier-ignore
-  //     player.sendMessage(`${ChatColor.GREEN}Set '${key}' to value`);
-  //     // prettier-ignore
-  //     player.sendMessage(`${ChatColor.DARK_GREEN}${JSON.stringify(value)}`);
-  //   } catch (error) {
-  //     // prettier-ignore
-  //     player.sendMessage(`${ChatColor.RED}Couldn't set '${key}', because:`);
-  //     // prettier-ignore
-  //     console.log(`error:`, error)
-  //     player.sendMessage(`${ChatColor.DARK_RED}${error.message}`);
-  //   }
-  // });
-  // disposable_on("get-build-keys", event => {
-  //   if (event.plot_id !== plot_id) return;
-  //   event.set_result(isolated_buildconfig.get_build_keys());
-  // });
+  let building_players = new Set();
+  let build_plugin = create_build_plugin({
+    plot_config: config,
+    plugin,
+    buildconfig: isolated_buildconfig,
+    active_session,
+    filters: {
+      location: location_filter,
+      player: player => {
+        return building_players.has(player.getName());
+      },
+    }
+  });
+  external_events.on("plot-player-build", event => {
+    let player = event.data.get("player");
+    building_players.add(player.getName());
+    playing_player.delete(player.getName());
+
+    build_plugin.apply_to(player);
+  });
+
+  timer.log('Build plugin');
+
+  let do_join = player => {
+    if (!location_filter(player.getLocation())) return;
+    if (playing_player.has(player.getName())) return;
+
+    let incomplete_fields = isolated_buildconfig
+      .get_build_keys()
+      .filter(x => !x.complete);
+
+    if (incomplete_fields.length !== 0) {
+      player.sendMessage(`${ChatColor.RED}Some required fields are not set:`);
+      for (let field of incomplete_fields) {
+        player.sendMessage(
+          `${ChatColor.DARK_RED}- ${ChatColor.RED}${field.name} (${field.type})`
+        );
+      }
+    } else {
+      setImmediate(() => {
+        building_players.delete(player.getName());
+        playing_player.add(player.getName());
+
+        let java_event = adapt.from_java(
+          new PlayerJoinEvent(player, "Player joined!")
+        );
+        external_events.emit("PlayerJoin", java_event);
+      });
+    }
+  };
 
   let java_world = server.getWorlds()[0];
   let main_world = adapt.from_java(java_world);
+  let isolated_server = {
+    createInventory: () => {},
+    createMap: () => {},
+    createMerchant: () => {},
+    getEntity: () => {},
+    getMaxPlayers: () => {},
+    getOfflinePlayer: () => {},
+    getOfflinePlayers: () => {},
+    getOperators: () => {},
+    getPlayer: () => {},
+    getPlayerExact: () => {},
+    	getScheduler: () => {},
+      getTag: () => {},
+      getTags: () => {},
+      getVersion: () => {},
+      getBukkitVersion: () => {},
+      getWorld: () => {},
+      getWorlds: () => {},
+      matchPlayer: () => {},
+      	selectEntities: () => {},
+  }
 
   let dev_plugin = {
     buildconfig: isolated_buildconfig,
     world: main_world,
-    getPlayers: () => {
-      return main_world.getPlayers();
-    },
-    createNamespacedKey: name => {
-      let NamespacedKey = Java.type("org.bukkit.NamespacedKey");
-      return new NamespacedKey(plugin.java, `${session_id}.${name}`);
-    },
+    getServer: () => isolated_server,
+    getPlayers: () => Array.from(playing_player.values()),
+    // createNamespacedKey: name => {
+    //   let NamespacedKey = Java.type("org.bukkit.NamespacedKey");
+    //   return new NamespacedKey(plugin.java, `${session_id}.${name}`);
+    // },
     addCommand: ({
       name,
       description,
@@ -316,17 +380,14 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
       });
       active_session.add_active_process(disposable);
     },
-    classes: adapt.classes,
-    adapt: adapt.from_java,
+    get_class: adapt.get_class,
     events: isolated_events,
     timers: create_isolated_timers({ plugin, active_session })
   };
 
-  timer.log('Isolated plugin');
+  timer.log("Isolated plugin");
 
   let new_module = { exports: {} };
-
-  let players_in_session = [];
 
   let injects = [
     { name: "plugin", value: dev_plugin },
@@ -344,10 +405,34 @@ export let create_isolated_plugin = ({ plugin, source, config }) => {
     `((${injects.map(x => x.name).join(", ")}) => { ${source} })`
   )(...injects.map(x => x.value));
 
-  timer.log('Eval');
+  timer.log("Eval");
 
-  return () => {
-    console.log("Diposing");
-    active_session.teardown();
+  return event => {
+    if (event.name === "close") {
+      active_session.teardown();
+      return;
+    }
+
+    if (event.name === "plot-player-enter") {
+      do_join(event.data.get("player"));
+      return;
+    }
+
+    if (event.name === "plot-player-leave") {
+      let player = event.data.get("player");
+      playing_player.delete(player.getName())
+      building_players.delete(player.getName());
+      leave_plugin_plot(player);
+
+      external_events.emit(event.name, event);
+      return;
+    }
+
+    if (event.name === "plot-player-build") {
+      console.log(`event.name:`, event.name)
+      external_events.emit(event.name, event);
+      return;
+    }
+    console.log(`event:`, event);
   };
 };

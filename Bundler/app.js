@@ -8,7 +8,7 @@ let app = express();
 
 app.use(cors());
 app.post('*', express.json(), async (request, response) => {
-  let { files } = request.body;
+  let { files, key } = request.body;
 
   try {
     // Incremental compilation?
@@ -20,6 +20,7 @@ app.post('*', express.json(), async (request, response) => {
     let executed_response = await fetch('http://localhost:8001', {
       method: 'post',
       body: JSON.stringify({
+        key: key,
         script: compiled_code,
       }),
     });

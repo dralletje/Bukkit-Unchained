@@ -1,6 +1,8 @@
 let PlayerEntity = Java.type("org.bukkit.entity.Player");
 let ChatColor = Java.type('org.bukkit.ChatColor')
 
+let WeakHashMap = Java.type('java.util.WeakHashMap');
+
 let start_timer = (label) => {
   let initial_time = Date.now();
   let last_time = Date.now();
@@ -155,6 +157,9 @@ let AllowedClasses = [
   // { java_class: Java.type("org.bukkit.Tag") },
   { java_class: Java.type("org.bukkit.block.banner.Pattern") },
   { java_class: Java.type('org.bukkit.WeatherType') },
+  { java_class: Java.type('org.bukkit.ChatColor') },
+  { java_class: Java.type('org.bukkit.inventory.EquipmentSlot') },
+  { java_class: Java.type('org.bukkit.event.block.Action') },
 
   { java_class: Java.type('org.bukkit.NamespacedKey') },
 ];
@@ -200,11 +205,33 @@ for (let event_class of event_classes) {
 export let make_adapters = filters => {
   // let adapt_timer = start_timer(` ${ChatColor.DARK_BLUE}ADAPT:${ChatColor.WHITE}`);
 
+  let java_to_js_identity = new WeakHashMap();
+
   let adapted_classes = {};
   let adapt = {
     classes: adapted_classes,
+    get_class: (class_name) => {
+      let adapted = adapted_classes[class_name];
+      if (adapted) {
+        return adapted;
+      }
+
+      let allowed_class = AllowedClasses.find(allowed_class => {
+        return get_class(allowed_class.java_class).getName() === class_name;
+      });
+
+      if (allowed_class == null) {
+        throw new Error(`Class '${class_name}' not available`);
+      }
+
+      return adapt_class(allowed_class);
+    },
     // adapt_class: adapt_class,
     from_java: value => {
+      if (java_to_js_identity.get(value)) {
+        return java_to_js_identity.get(value);
+      }
+
       if (value instanceof Java.type("java.util.List")) {
         return Array.from(value)
           .map(x => {
@@ -218,13 +245,12 @@ export let make_adapters = filters => {
       }
       if (Java.isJavaObject(value)) {
         if (value.getClass().isEnum()) {
-          let EnumClass = adapted_classes[value.getClass().getName()];
+          let EnumClass = adapt.get_class(value.getClass().getName());
           let enum_value = EnumClass[value.toString()] || new EnumClass(value);
           return enum_value;
         }
 
         let java_class = value.getClass();
-
         let java_class_names = [
           ...(java_class.getInterfaces().length === 1
             ? Array.from(
@@ -235,7 +261,13 @@ export let make_adapters = filters => {
         ].map(x => x.getName());
 
         let JavaAdapter = java_class_names
-          .map(x => adapted_classes[x])
+          .map(x => {
+            try {
+              return adapt.get_class(x);
+            } catch (err) {
+              return null;
+            }
+          })
           .find(Boolean);
 
         if (JavaAdapter == null) {
@@ -243,7 +275,9 @@ export let make_adapters = filters => {
           throw new Error(`No adapter found for java class "${java_class_names.join('", "')}"`);
         }
 
-        return new JavaAdapter(value);
+        let js_value = new JavaAdapter(value);
+        java_to_js_identity.put(value, js_value);
+        return js_value;
       } else {
         return value;
       }
@@ -423,17 +457,6 @@ export let make_adapters = filters => {
   };
 
   // adapt_timer.log('Init');
-
-  for (let allowed_class of AllowedClasses) {
-    let name = get_class(allowed_class.java_class).getName();
-    try {
-      adapt_class(allowed_class);
-      // adapt_timer.log(name);
-    } catch (err) {
-      console.log(`Error while adapting '${name}':`);
-      console.log(err);
-    }
-  }
 
   return adapt;
 };

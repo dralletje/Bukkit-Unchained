@@ -40,6 +40,7 @@ module.exports = function(global) {
   global.setInterval = bukkit_set_interval;
   global.clearInterval = bukkit_clear_interval;
 
+  global.clearImmediate = bukkit_clear_interval;
   global.setImmediate = (callback) => {
     server
       .getScheduler()
