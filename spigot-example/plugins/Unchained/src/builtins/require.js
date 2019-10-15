@@ -4,20 +4,11 @@ let fs = require('./fs.js');
 let require_cache = {};
 
 let basic_require = (module_path) => {
-  let builtin_match = module_path.match(/builtin\/(.*)/);
-  if (builtin_match != null) {
-    return builtin_module_map[builtin_match[1]];
-  }
-
   if (require_cache[module_path]) {
     return require_cache[module_path].exports;
   }
   let module_object = new Module(module_path);
   require_cache[module_path] = module_object;
-
-  let commonJsWrap = (code) => {
-    return `(function(exports, module, require, unchained_require, __filename ,__dirname) {\n${code}\n})`;
-  }
 
   let code = fs.readFileSync(module_object.filename).toString();
 
@@ -28,6 +19,9 @@ let basic_require = (module_path) => {
   let dirname = path.dirname(module_object.filename);
   let filename = path.basename(module_object.filename);
 
+  let commonJsWrap = (code) => {
+    return `(function(exports, module, require, unchained_require, __filename ,__dirname) {\n${code}\n})`;
+  }
   let wrapped_code = commonJsWrap(code);
   // let plugin = Polyglot.import('plugin');
   // let export_function = plugin.runScript(module_object.filename, wrapped_code);
@@ -123,9 +117,13 @@ class Module {
     this.exports = {};
 
     this.require = (module_path) => {
-      let full_path = require_resolve(this.filename, module_path);
       // console.log(`FROM ${this.filename}`,)
       // console.log(`REQUIRE [${module_path}]:`, full_path);
+      if (builtin_module_map[module_path]) {
+        return builtin_module_map[module_path];
+      }
+
+      let full_path = require_resolve(this.filename, module_path);
       return basic_require(full_path)
     }
     this.require.resolve = (module_path) => {

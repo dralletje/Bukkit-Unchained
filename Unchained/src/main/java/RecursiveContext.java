@@ -8,6 +8,7 @@ import org.graalvm.polyglot.Engine;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.Callable;
 
 import org.bukkit.plugin.Plugin;
 
@@ -42,6 +43,36 @@ public class RecursiveContext {
     private Context context;
     private Value entry;
     private Value emit_event;
+    private Plugin plugin;
+
+    static public void async(Plugin plugin, Value callback, Callable<Object> task)  {
+      System.out.println("async #1");
+      plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        try {
+          System.out.println("async #2" + (plugin.getServer().isPrimaryThread() ? "Sync" : "Async"));
+          Object thing = task.call();
+          System.out.println("async #3" + (plugin.getServer().isPrimaryThread() ? "Sync" : "Async"));
+          plugin.getServer().getScheduler().runTask(plugin, () -> {
+            System.out.println("async #4");
+            callback.execute(thing);
+          });
+        } catch (Exception error){
+          error.printStackTrace();
+        }
+      });
+    }
+
+    static public void createAsync(Plugin plugin, Value callback)  {
+      System.out.println("create #1");
+      RecursiveContext.async(
+        plugin,
+        callback,
+        () -> {
+          System.out.println("create #1");
+          return new RecursiveContext(plugin);
+        }
+      );
+    }
 
     public static Value loadEntry(Context polyglot, Source entry_js) {
       Value entry_fn = polyglot.eval(entry_js);
@@ -87,6 +118,7 @@ public class RecursiveContext {
     }
 
     public RecursiveContext(Plugin plugin) {
+      this.plugin = plugin;
       try {
         Context context = RecursiveContext.createContext(plugin);
 
@@ -111,10 +143,21 @@ public class RecursiveContext {
     public Value invokeJavascriptBridge(String method, Object args) {
       return this.entry.execute(method, args);
     }
-    public void loadPlugin(String source, String JsonObject) {
-      this.emit(new InterContextEvent("close"));
 
-      this.emit_event = this.invokeJavascriptBridge("load_plugin", new String[]{source, JsonObject});
+    public void loadPlugin(String source, String jsonObject) {
+      this.emit(new InterContextEvent("close"));
+      this.emit_event = this.invokeJavascriptBridge("load_plugin", new String[]{source, jsonObject});
+    }
+
+    public void loadPluginAsync(String source, String jsonObject, Value callback) {
+      RecursiveContext.async(
+        this.plugin,
+        callback,
+        () -> {
+          this.loadPlugin(source, jsonObject);
+          return true;
+        }
+      );
     }
 
     public InterContextEvent emit(InterContextEvent event) {

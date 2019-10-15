@@ -5,19 +5,6 @@ let plugin_utils = require('./plugin_utils.js');
 
 let server = process.binding("server");
 
-
-let promenade = async (fn) => {
-  return await new Promise((resolve, reject) => {
-    fn((err, result) => {
-      if (err != null) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
-    })
-  })
-}
-
 let get_hidden_field = (instance, field_name) => {
   let field = instance.getClass().getDeclaredField(field_name);
   field.setAccessible(true);
@@ -65,15 +52,20 @@ let register_js_pluginloader = () => {
   }
 }
 
-let find_folders_with_package_json = async () => {
-  let glob = require('glob');
-  let package_jsons = await promenade((callback) => {
-    glob("plugins/*/package.json", {}, callback);
-  });
+let glob = require('glob');
 
-  let package_json_paths = package_jsons.map(relative_path => path.join(process.cwd(), relative_path));
+let find_folders_with_package_json = () => {
+  try {
 
-  return package_json_paths;
+    let package_jsons = glob.sync("plugins/*/package.json", {});
+
+    let package_json_paths = package_jsons.map(relative_path => path.join(process.cwd(), relative_path));
+
+    return package_json_paths;
+  } catch (err) {
+    console.error(`err:`, err);
+    throw err;
+  }
 }
 
 let get_private_property = (object, field_name) => {
@@ -82,8 +74,8 @@ let get_private_property = (object, field_name) => {
     field.setAccessible(true);
     return field.get(object);
   } catch (error) {
-    console.log(`Error while taking ${field_name} from `, object);
-    console.log(error)
+    console.error(`Error while taking ${field_name} from `, object);
+    console.error(error)
   }
 };
 
@@ -93,14 +85,14 @@ let get_private_method = (object, field_name) => {
     method.setAccessible(true);
     return () => method.invoke(object);
   } catch (error) {
-    console.log(`Error while called method ${field_name} on `, object);
-    console.log(error)
+    console.error(`Error while called method ${field_name} on `, object);
+    console.error(error)
   }
 };
 
 module.exports = {
   load_all: async (with_name = null) => {
-    let package_json_paths = await find_folders_with_package_json();
+    let package_json_paths = find_folders_with_package_json();
 
     if (package_json_paths.length === 0) {
       // prettier-ignore
@@ -130,11 +122,11 @@ module.exports = {
         module.exports.load_plugin(package_json_path);
       } catch (error) {
         // prettier-ignore
-        console.log(chalk.red(`Plugin "${path.relative(process.cwd(), package_json_path)}" failed to load due to an error:`));
-        console.log(chalk.red(`${chalk.dim("Message:")} ${error.message}`));
-        console.log(chalk.red.dim(error.stack));
+        console.error(chalk.red(`Plugin "${path.relative(process.cwd(), package_json_path)}" failed to load due to an error:`));
+        console.error(chalk.red(`${chalk.dim("Message:")} ${error.message}`));
+        console.error(chalk.red.dim(error.stack));
         error.printStackTrace();
-        console.log('');
+        console.error('');
       }
     }
 

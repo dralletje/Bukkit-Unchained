@@ -44,7 +44,7 @@ module.exports = (plugin) => {
   let plots = database.collection('plots');
 
   let active_plots = new Map();
-  let refresh_plot = (db_plot) => {
+  let refresh_plot = async (db_plot) => {
     if (typeof db_plot === 'string') {
       db_plot = plots.findOne({ plot_id: db_plot });
     }
@@ -56,8 +56,25 @@ module.exports = (plugin) => {
       } catch {}
     }
 
-    let context = new RecursiveContext(plugin.java);
+
+    console.time('Loop')
+    let interval = setInterval(() => {
+      console.timeLog('Loop');
+    }, 10)
+
+    console.log('Promise #1')
+    let context = await new Promise(resolve => {
+      console.log('Promise #2')
+      return RecursiveContext.static.createAsync(plugin.java, (context) => {
+        console.log('Promise #3')
+        resolve(context)
+      })
+    });
     let main_path = plugin.java.getDescription().getMain();
+    console.timeEnd('Loop')
+    console.log('Promise #4');
+
+    clearInterval(interval);
 
     context.loadPlugin(db_plot.script, JSON.stringify({
       plot_x: db_plot.plot_x,
@@ -73,7 +90,9 @@ module.exports = (plugin) => {
 
   for (let db_plot of plots.find({}).toArray()) {
     // console.log(`db_plot:`, db_plot);
-    refresh_plot(db_plot);
+    refresh_plot(db_plot).catch(err => {
+      console.log(`err:`, err)
+    })
   }
 
   // client.db('database').runCommand({
@@ -269,7 +288,9 @@ module.exports = (plugin) => {
           script: body.script,
         },
       });
-      refresh_plot(plot.plot_id);
+      refresh_plot(plot.plot_id).catch(error => {
+        console.log(`error:`, error)
+      });
 
       // TODO Make this use the local `require` so it can import bukkit
       // Polyglot.eval('js', `((${injects.map(x => x.name).join(', ')}) => { ${body.script} })`)(...injects.map(x => x.value));
@@ -278,6 +299,7 @@ module.exports = (plugin) => {
       send_response(exchange, { result: {} })
     } catch (err) {
       console.log(`err.message:`, err)
+      console.log(`err.stack:`, err.stack)
       send_response(exchange, { error: { message: err.message, stack: err.stack } });
     }
   });

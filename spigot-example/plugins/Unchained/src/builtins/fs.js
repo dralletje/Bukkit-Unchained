@@ -153,46 +153,35 @@ let fs = (module.exports = {
     return file.exists();
   },
 
-  readdir: (directory_path, options, callback) => {
-    try {
-      if (callback == null) {
-        callback = options;
-        options = {};
-      }
-
-      if (options.withFileTypes) {
-        throw new Error(`No .withFileTypes just yet`);
-      }
-
-      let folder = new File(path_module.resolve(directory_path));
-
-      if (!folder.exists()) {
-        // prettier-ignore
-        throw new IOException(`Path '${directory_path}' does not exist`, 'ENOENT');
-      }
-
-      if (!folder.isDirectory()) {
-        // prettier-ignore
-        throw new IOException(`Path '${directory_path}' is not a directory`, 'ENOTDIR');
-      }
-
-      let files = Java.from(folder.listFiles());
-      let simple_filename = files.map(file => file.getName());
-
-      callback(null, simple_filename);
-    } catch (err) {
-      callback(err, null);
+  readdirSync: (directory_path, options = {}) => {
+    if (options.withFileTypes) {
+      throw new Error(`No .withFileTypes just yet`);
     }
-  },
-  lstat: (path, callback) => {
-    try {
-      let file = new File(path_module.resolve(path));
-      let result = new Stats(file);
-      callback(null, result);
-    } catch (err) {
-      callback(err, null);
+
+    let folder = new File(path_module.resolve(directory_path));
+
+    if (!folder.exists()) {
+      // prettier-ignore
+      throw new IOException(`Path '${directory_path}' does not exist`, 'ENOENT');
     }
+
+    if (!folder.isDirectory()) {
+      // prettier-ignore
+      throw new IOException(`Path '${directory_path}' is not a directory`, 'ENOTDIR');
+    }
+
+    let files = Java.from(folder.listFiles());
+    let simple_filename = files.map(file => file.getName());
+
+    return simple_filename;
   },
+  readdir: callbackify((...args) => fs.readdirSync(...args)),
+
+  lstatSync: (path) => {
+    let file = new File(path_module.resolve(path));
+    return new Stats(file);
+  },
+  lstat: callbackify((...args) => fs.lstatSync(...args)),
 
   readFileSync: path => {
     let bytes = NioFiles.readAllBytes(
@@ -208,7 +197,8 @@ let fs = (module.exports = {
 
   statSync: path => {
     let file = new File(path_module.resolve(path));
-    return new Stats(file);
+    let stat = new Stats(file);
+    return stat;
   },
   stat: callbackify((...args) => fs.statSync(...args)),
 

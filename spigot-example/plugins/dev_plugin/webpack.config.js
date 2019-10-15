@@ -3,6 +3,7 @@ const path = require("path");
 module.exports = {
   entry: "./src/index.js",
   mode: "development",
+  devtool: 'eval-source-map',
   output: {
     filename: "dev_plugin.js",
     path: path.resolve(__dirname, "dist"),
@@ -10,11 +11,10 @@ module.exports = {
     libraryTarget: "umd"
   },
   externals: {
-    bukkit: "bukkit",
-    fs: "fs",
-    child_process: "child_process",
-    module: "module",
-    "aws-sdk": "./stub.js"
+    bukkit: "commonjs bukkit",
+    fs: "commonjs fs",
+    child_process: "commonjs child_process",
+    "aws-sdk": ".empty"
   },
   module: {
     rules: [

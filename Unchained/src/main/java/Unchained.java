@@ -2,16 +2,8 @@ package eu.dral.unchained;
 
 import org.graalvm.polyglot.Value;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.*;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Event;
@@ -27,9 +19,7 @@ public class Unchained extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
       Unchained.self = this;
-      if (!getDataFolder().exists()) {
-        getDataFolder().mkdir();
-      }
+      this.javascript_bridge = new RecursiveContext();
 
       this.pluginBridge("onEnable");
     }
@@ -47,17 +37,10 @@ public class Unchained extends JavaPlugin implements Listener {
 
     private Value pluginBridge(String method, Object ... args) {
       try {
-        return this.getJavascriptBridge().invokeJavascriptBridge(method, args);
+        return this.javascript_bridge.invokeJavascriptBridge(method, args);
       } catch (Exception e) {
         e.printStackTrace();
         return null;
       }
-    }
-
-    private RecursiveContext getJavascriptBridge() {
-      if (this.javascript_bridge == null) {
-        this.javascript_bridge = new RecursiveContext();
-      }
-      return this.javascript_bridge;
     }
 }

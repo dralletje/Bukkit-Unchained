@@ -1,15 +1,16 @@
 let EventEmitter = require('events');
 let path_module = require('path');
-let { ChatColor } = require('bukkit');
+let { ChatColor } = require('./bukkit');
 
 let plugin_utils = require('./plugin_utils.js');
 let { Module } = require('./builtins/require.js');
+let plugin = require('./plugin.js');
 
 let methods = {
   // onTabComplete: (...args) => require('./dev_plugin/onTabComplete.js')(...args),
   onEnable: () => {
     console.log('onEnable from javascript!');
-    require('./plugin.js').load_all(null)
+    plugin.load_all(null)
   },
   onCommand: (sender, command, alias, args) => {
     // if (alias === 'js') {
@@ -22,7 +23,7 @@ let methods = {
       try {
         console.log('Starting plugin reload...');
         let plugin_name = [...args].join(' ') || null;
-        require('./plugin.js').load_all(plugin_name)
+        plugin.load_all(plugin_name)
         .catch(err => {
           console.log(`err:`, err)
         });

@@ -1,14 +1,14 @@
-let { format_value } = require('./format_value.js');
+let { format_value } = require('../bootstrap/format_value.js');
 
-module.exports = () => {
-  let old_log = console.original_log || console.log;
-  console.original_log = old_log;
+let create_pretty_console = (key) => {
+  let native_log = console[`original_${key}`] || console[key];
+  console[`original_${key}`] = native_log;
 
   let is_now_executing_console_log = false;
 
   return (...args) => {
     if (is_now_executing_console_log === true) {
-      return old_log(...args);
+      return native_log(...args);
     }
     is_now_executing_console_log = true;
 
@@ -28,18 +28,31 @@ module.exports = () => {
 
       current_line_items.push(formatted_lines[0]);
       if (formatted_lines.length > 1) {
-        old_log(current_line_items.join(" "));
+        native_log(current_line_items.join(" "));
 
         let bulk = formatted_lines.slice(1, -1);
         for (let log_now of bulk) {
-          old_log(log_now);
+          native_log(log_now);
         }
         let last = formatted_lines[formatted_lines.length - 1];
         current_line_items = [last];
       }
     }
 
-    old_log(current_line_items.join(" "));
+    native_log(current_line_items.join(" "));
     is_now_executing_console_log = false;
   };
+}
+
+module.exports = {
+  trace: (message) => {
+    console.log(message);
+    console.log((new Error()).stack);
+  },
+  time: console.time,
+  timeLog: console.timeLog,
+  timeEnd: console.timeEnd,
+  log: create_pretty_console('log'),
+  error: create_pretty_console('error'),
+  warn: create_pretty_console('warn'),
 }

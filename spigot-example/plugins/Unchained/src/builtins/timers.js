@@ -34,16 +34,17 @@ let bukkit_clear_interval = (task_id) => {
   server.getScheduler().cancelTask(task_id);
 }
 
-module.exports = function(global) {
-  global.setTimeout = bukkit_set_timeout;
-  global.clearTimeout = bukkit_clear_timeout;
-  global.setInterval = bukkit_set_interval;
-  global.clearInterval = bukkit_clear_interval;
+let setImmediate = (callback) => {
+  server
+    .getScheduler()
+    .runTask(plugin, callback_to_runnable(callback));
+};
 
-  global.clearImmediate = bukkit_clear_interval;
-  global.setImmediate = (callback) => {
-    server
-      .getScheduler()
-      .runTask(plugin, callback_to_runnable(callback));
-  };
+module.exports = {
+  setTimeout: bukkit_set_timeout,
+  clearTimeout: bukkit_clear_timeout,
+  setInterval: bukkit_set_interval,
+  clearInterval: bukkit_clear_interval,
+  clearImmediate: bukkit_clear_interval,
+  setImmediate: setImmediate,
 };

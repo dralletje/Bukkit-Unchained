@@ -8,9 +8,9 @@ module.exports = {
     path: path.resolve(__dirname),
   },
   externals: {
-    bukkit: 'bukkit',
-    fs: 'fs',
-    child_process: 'child_process',
+    bukkit: "commonjs bukkit",
+    fs: "commonjs fs",
+    child_process: "commonjs child_process",
   },
   node: {
     process: false,

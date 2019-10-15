@@ -1,16 +1,9 @@
 package eu.dral.unchained;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.Reader;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -252,7 +245,14 @@ public class JsPlugin extends PluginBase {
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
         try {
-          return this.getExecutor().execute("defaultWorldGenerator", worldName, id).as(ChunkGenerator.class);
+          RecursiveContext context = new RecursiveContext(this);
+          Value executor = this.context.invokeJavascriptBridge("load_plugin_from_javaplugin", Arrays.asList(this));
+
+          ChunkGenerator result = executor.execute("defaultWorldGenerator", worldName, id).as(ChunkGenerator.class);
+          if (result == null) {
+            context.close();
+          }
+          return result;
         } catch (Exception error) {
           return null;
         }

@@ -1,13 +1,11 @@
 // let Tag = Java.type('org.bukkit.Tag');
 // let Tags = Object.keys(Tag).map(key => [key, Tag[key]]).filter(([key, value]) => value instanceof Tag)
 
-let  ChatColor = Java.type("org.bukkit.ChatColor");
+let ChatColor = Java.type("org.bukkit.ChatColor");
 
 let plugin = Polyglot.import('plugin');
 
 let TAG = `${ChatColor.DARK_RED}[${plugin.getName()}]`;
-
-let Packet = require('./BukkitModules/Packet.js');
 
 let Unchained = {
   handle_error: ({
@@ -53,7 +51,6 @@ module.exports = {
   Particle: Java.type("org.bukkit.Particle"),
 
   Unchained: Unchained,
-  Packet: Packet,
 
   get Entity() {},
 

@@ -48,10 +48,6 @@ export let create_isolated_commands = ({ plugin, active_session, adapt }) => {
     onCommand(player, args, command);
   });
 
-  plugin.events.TabComplete(() => {
-    console.log('Tab complete');
-  });
-
   let refresh_command_map = debounce(() => {
     // Send commands with packet
   });
