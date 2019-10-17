@@ -317,9 +317,9 @@ module.exports = (plugin) => {
     },
   });
 
-  Packet.addOutgoingPacketListener(Packet.fromServer.TAB_COMPLETE, event => {
-    console.log(`event.getData():`, event.getData())
-  })
+  // Packet.addOutgoingPacketListener(Packet.fromServer.TAB_COMPLETE, event => {
+  //   console.log(`event.getData():`, event.getData())
+  // })
 
   console.log('Http server');
   let http_server = create_http_server(8001, (exchange) => {

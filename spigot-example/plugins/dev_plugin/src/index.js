@@ -1,13 +1,11 @@
 let ChatColor = Java.type("org.bukkit.ChatColor");
 let { JavaPlugin } = require("bukkit/JavaPlugin");
 
-console.log("Okay");
 
 let plugin = new JavaPlugin();
 
 plugin.onEnable(() => {
   try {
-    console.log("Dev http");
     let dev_http = require("./dev_http.js");
     if (plugin.java.getServer().getWorlds().length === 0) {
       plugin.events.WorldLoad(() => {

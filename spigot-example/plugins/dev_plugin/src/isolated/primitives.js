@@ -32,7 +32,7 @@ let java_get_prototype_chain = function*(java_class) {
     //   yield* java_get_prototype_chain(implementing_class);
     // }
     if (current_class.getGenericSuperclass == null) {
-      console.log(`current_class:`, current_class.getClass().getName())
+      console.warn(`current_class:`, current_class.getClass().getName())
     }
     current_class = current_class.getGenericSuperclass();
   }
@@ -44,6 +44,14 @@ let get_all_interfaces = function*(java_class) {
     yield* get_all_interfaces(java_interface);
   }
 };
+
+let get_all_constructors = function*(object) {
+  let constructor = object.constructor;
+  while (constructor !== Function.prototype) {
+    yield constructor;
+    constructor = Object.getPrototypeOf(constructor)
+  }
+}
 
 let get_class = c => c.class || c;
 
@@ -172,8 +180,6 @@ let get_allowed_class = java_class => {
   return AllowedClasses.find(x => x.java_class === java_class);
 };
 
-let get_java_object = Symbol("Get class");
-
 // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
 let reflections = Polyglot.import("reflections");
 let event_classes = reflections.getSubTypesOf(
@@ -206,13 +212,44 @@ export let make_adapters = filters => {
   // let adapt_timer = start_timer(` ${ChatColor.DARK_BLUE}ADAPT:${ChatColor.WHITE}`);
 
   let java_to_js_identity = new WeakHashMap();
+  let js_to_java_object = new WeakMap();
+  let js_to_java_class = new WeakMap();
+
+  class JavaObject {
+    static java_name = "java.lang.Object";
+    constructor(java_object) {
+      js_to_java_object.set(this, java_object);
+    }
+  }
+  js_to_java_class.set(JavaObject, { get_locations: () => [], get_players: () => [], java_class: null });
+
 
   let adapted_classes = {};
   let adapt = {
     classes: adapted_classes,
     validate: value => {
-      // TODO
-      value.validate();
+      let java_value = js_to_java_object.get(value);
+      for (let constructor of get_all_constructors(value)) {
+        let class_description = js_to_java_class.get(constructor);
+        if (class_description == null) {
+          console.log(`constructor:`, constructor.name);
+          throw new Error('No class description found');
+        }
+        let { get_locations, get_players, java_class } = class_description;
+
+        for (let location of get_locations(java_value)) {
+          if (!filters.location(location)) {
+            // prettier-ignore
+            throw new Error(`Object not in range of your plot`);
+          }
+        }
+        for (let player of get_players(java_value)) {
+          if (!filters.player(player)) {
+            // prettier-ignore
+            throw new Error(`Object contains a player not currently on your plot`);
+          }
+        }
+      }
     },
     get_class: (class_name) => {
       let adapted = adapted_classes[class_name];
@@ -291,9 +328,9 @@ export let make_adapters = filters => {
         if (value.type === "$enum") {
           return Java.type(value.class).valueOf(value.value);
         } else {
-          if (value[get_java_object]) {
-            value.validate();
-            return value[get_java_object]
+          if (js_to_java_object.get(value)) {
+            adapt.validate(value);
+            return js_to_java_object.get(value)
           } else {
             return value;
           }
@@ -304,19 +341,10 @@ export let make_adapters = filters => {
     }
   };
 
-  class JavaObject {
-    static java_name = "java.lang.Object";
-    constructor(java_object) {
-      this[get_java_object] = java_object;
-    }
-
-    validate() {}
-  }
-
   let adapt_class = ({
     java_class,
     get_locations = () => [],
-    get_players = () => []
+    get_players = () => [],
   }) => {
     let java_class_name = java_class.class.getName();
     if (adapted_classes[java_class_name]) {
@@ -337,7 +365,6 @@ export let make_adapters = filters => {
 
     class JavaAdapter extends SuperClass {
       static java_name = java_class_name;
-      static [get_java_object] = java_class;
 
       constructor(...args) {
         if (Java.isJavaObject(args[0])) {
@@ -348,40 +375,25 @@ export let make_adapters = filters => {
           super(new java_class(...java_args));
         }
 
-        this.validate();
-      }
-
-      validate() {
-        super.validate();
-
-        for (let location of get_locations(this[get_java_object])) {
-          if (!filters.location(location)) {
-            // prettier-ignore
-            throw new Error(`Object not in range of your plot`);
-          }
-        }
-        for (let player of get_players(this[get_java_object])) {
-          if (!filters.player(player)) {
-            // prettier-ignore
-            throw new Error(`Object contains a player not currently on your plot`);
-          }
-        }
+        adapt.validate(this);
       }
     }
 
+    Object.defineProperty (JavaAdapter, 'name', { value: java_class_name });
+    js_to_java_class.set(JavaAdapter, { get_locations, get_players, java_class });
     adapted_classes[java_class_name] = JavaAdapter;
 
     let create_java_method = (name) => {
       return function(...args) {
         let java_args = args.map(arg => adapt.to_java(arg));
-        let java_return = this[get_java_object][name](...java_args);
+        let java_return = js_to_java_object.get(this)[name](...java_args);
         return adapt.from_java(java_return);
       };
     };
 
     let create_java_getter = (name) => {
       return function() {
-        let java_return = this[get_java_object][name];
+        let java_return = js_to_java_object.get(this)[name];
         return adapt.from_java(java_return);
       };
     };
@@ -440,7 +452,7 @@ export let make_adapters = filters => {
 
         let name = field.getName();
         if (is_static && is_final) {
-          let enum_value = adapt.from_java(JavaAdapter[get_java_object][name]);
+          let enum_value = adapt.from_java(java_class[name]);
           field_holder[name] = {
             value: enum_value,
             writable: false,

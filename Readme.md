@@ -114,16 +114,16 @@ Because of the lacking `require()` implementation, and just the fact people have
 
 ### Roadmap-ish
 
-- **Something with threads**
+[x] **Something with threads**
   I need to, idk, at least load in the javascript in the background.
   Right now, everything freezes when I re-load a plugin. Also because I need it for the portals plugin, I want some way do processing in a background thread without freezing the server.
 
-- **Make everything more solid**
+[ ] **Make everything more solid**
   This will come over time, I just need to experiment with it more.
 
-- **Give every plugin a separate context**
+[x] **Give every plugin a separate context**
   I think this is better for plugin to have a lot of separation,
   just to prevent all these stupid bugs that will come from sharing.
 
-- **Build process worked out**
+[x] **Build process worked out**
   I think I should just make webpack mandatory, but I need to make sure I keep this stuff as basic and simple as possible. Also I think it would be cool to have a react-native style hybrid plugin, where you can still make some classes in java when you need it.
