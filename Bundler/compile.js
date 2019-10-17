@@ -76,16 +76,24 @@ let compile = async ({ files, entry_file }) => {
     devtool: 'eval-source-map',
     output: {
       filename: "output.js",
-      libraryTarget: 'umd',
+      libraryTarget: 'commonjs2',
     },
     mode: 'development',
-    externals: {
-      bukkit: 'bukkit',
-      fs: 'fs',
-      child_process: 'child_process',
-      module: 'module',
-      'aws-sdk': './stub.js',
-    },
+    externals: [
+      function(context, request, callback) {
+        if (/^@unchained\/(.*)$/.test(request)){
+          return callback(null, 'commonjs ' + request);
+        }
+        callback();
+      },
+      {
+        bukkit: 'bukkit',
+        fs: 'fs',
+        child_process: 'child_process',
+        module: 'module',
+        'aws-sdk': './stub.js',
+      }
+    ],
     node: {
       process: false,
       module: false,

@@ -159,11 +159,14 @@ public class WorkerContext implements AutoCloseable {
         .allowHostAccess(true)
         .engine(engine)
         .option("js.ecmascript-version", "2020")
-        .option("js.experimental-foreign-object-prototype", "true")
+        // .option("js.experimental-foreign-object-prototype", "true")
         // .option("inspect", "8228")
         // .option("inspect.Path", "session")
         // .option("engine.inspect.Remote", "true")
         .option("js.polyglot-builtin", "true")
+        .option("js.nashorn-compat", "false")
+        .option("js.print", "false")
+        .option("js.graal-builtin", "false")
         .build();
 
       Reflections reflections = WorkerContext.reflections;

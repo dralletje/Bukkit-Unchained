@@ -6,7 +6,7 @@ module.exports = {
     PluginWorker: './src/PluginWorker',
   },
   mode: "development",
-  devtool: 'source-map',
+  devtool: 'inline-source-map',
   output: {
     filename: "[name].js",
     path: path.resolve(__dirname, "dist"),
@@ -15,6 +15,7 @@ module.exports = {
   externals: {
     bukkit: "commonjs bukkit",
     fs: "commonjs fs",
+    vm: "commonjs vm",
     child_process: "commonjs child_process",
     worker_threads: "commonjs worker_threads",
     "bukkit/JavaPlugin": "commonjs bukkit/JavaPlugin",

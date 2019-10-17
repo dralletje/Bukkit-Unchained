@@ -45,7 +45,13 @@ chat.show_text = (text, components) => {
 }
 
 for (let color of ChatColor.values()) {
-  chat[color.getName().toLowerCase()] = (components) => {
+  let color_name = color.getName().toLowerCase();
+  chat[color_name] = (components, ...possible_actual_components) => {
+    if (Array.isArray(components) && components.every(x => typeof x === 'string')) {
+      // This should trigger when we use this color as a template function
+      return chat[color_name](chat(components, ...possible_actual_components));
+    }
+
     let builder = get_builder(components);
     builder.color(color)
     return builder.create();

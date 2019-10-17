@@ -232,7 +232,7 @@ export let make_adapters = filters => {
       for (let constructor of get_all_constructors(value)) {
         let class_description = js_to_java_class.get(constructor);
         if (class_description == null) {
-          console.log(`constructor:`, constructor.name);
+          console.error(`constructor:`, constructor.name);
           throw new Error('No class description found');
         }
         let { get_locations, get_players, java_class } = class_description;
@@ -287,7 +287,7 @@ export let make_adapters = filters => {
       if (Java.isJavaObject(value)) {
         if (value.getClass().isEnum()) {
           let EnumClass = adapt.get_class(value.getClass().getName());
-          let enum_value = EnumClass[value.toString()] || new EnumClass(value);
+          let enum_value = EnumClass[value.name()] || new EnumClass(value);
           return enum_value;
         }
 
@@ -413,7 +413,7 @@ export let make_adapters = filters => {
         let method_holder = is_static ? JavaAdapter : JavaAdapter.prototype;
 
         let name = method.getName();
-        if (method_holder[name] == null) {
+        if (!method_holder.hasOwnProperty(name)) {
           method_holder[name] = create_java_method(name);
         }
       }
@@ -430,7 +430,7 @@ export let make_adapters = filters => {
         let name = nested_class.getName();
 
         // TODO Check out non-static nested classes
-        if (is_static && method_holder[simple_name] == null) {
+        if (is_static && !method_holder.hasOwnProperty(simple_name)) {
           // TODO Pass on filters? Idk? Just allow all static classes always?
           let adapted_class = adapt_class({ java_class: Java.type(name) });
           method_holder[simple_name] = adapted_class;
@@ -458,7 +458,7 @@ export let make_adapters = filters => {
             writable: false,
             configurable: false
           };
-        } else if (field_holder[name] == null) {
+        } else if (!field_holder.hasOwnProperty(name)) {
           field_holder[name] = {
             get: create_java_getter(name),
             configurable: false

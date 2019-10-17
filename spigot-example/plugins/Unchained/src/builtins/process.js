@@ -6,6 +6,9 @@ let std_stream = () => {
 }
 
 module.exports = {
+  versions: {
+    node: '12.3.0',
+  },
   umask: () => 0x777,
   browser: true,
   version: 'v10.8.0',

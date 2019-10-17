@@ -173,9 +173,7 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
   let isolated_events = {
     ..._isolated_events,
     onPlayerJoin: handler => {
-      console.log('Putting on onPlayerJoin handler')
       external_events.on("PlayerJoin", event => {
-        console.log('Passing on playerjoin');
         handler(event);
       });
     }
@@ -282,14 +280,43 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
 
   timer.log("Isolated plugin");
 
-  let new_module = { exports: {} };
-
+  let injected_module = { exports: {} };
   let injects = [
     { name: "plugin", value: dev_plugin },
-    { name: "Bukkit", value: Bukkit },
-    { name: "module", value: new_module },
-    { name: "exports", value: new_module.exports },
+    { name: "module", value: injected_module },
+    { name: 'exports', value: injected_module.exports },
+
+    ...['Polyglot', 'loadWithNewGlobal', 'load', 'print', 'printErr', 'org', 'com', 'edu', 'Java', 'Graal', 'Packages', 'javafx', 'java', 'javax', 'Java_type'].map((key) => {
+      return { name: key, value: null };
+    })
   ];
+
+  // let sandbox = {};
+  // for (let entry of injects) {
+  //   sandbox[entry.name] = entry.value;
+  // }
+  // try {
+  //   let vm = new VM({ sandbox });
+  //   vm.run(source);
+  // } catch (err) {
+  //   console.log(`sandbox err:`, err)
+  // }
+
+  // let init_global = loadWithNewGlobal({
+  //   name: '/plot-plugin.js',
+  //   script: `
+  //     ((${injects.map(x => x.name).join(", ")}) => {
+  //       return (source) => {
+  //         let module = { exports: {} };
+  //         let exports = module.exports;
+  //         let require = () => null;
+  //         return eval(source);
+  //       }
+  //     })
+  //   `,
+  // });
+  // let run = init_global(...injects.map(x => x.value));
+  // run(source);
 
   Polyglot.eval(
     "js",

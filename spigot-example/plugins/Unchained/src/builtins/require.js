@@ -34,6 +34,17 @@ let basic_require = (module_path) => {
 
   export_function(module_object.exports, module_object, module_object.require, filename, dirname);
 
+  // let commonJsWrap = `(function(exports, module, require, __filename ,__dirname) {\nreturn (source) => eval(source)\n})`;
+  //
+  // // TODO Use eval? Or context.eval?
+  // let sandbox_fn = global.load({
+  //   name: 'test.js',
+  //   script: commonJsWrap,
+  // });
+  //
+  // let sandboxed_fn = sandbox_fn(module_object.exports, module_object, module_object.require, filename, dirname);
+  // sandboxed_fn(code)
+
   return module_object.exports;
 }
 
@@ -95,7 +106,7 @@ class Module {
       // console.log(`FROM ${this.filename}`,)
       // console.log(`REQUIRE [${module_path}]:`, full_path);
       if (builtin_module_map[module_path]) {
-        return builtin_module_map[module_path];
+        return builtin_module_map[module_path]();
       }
 
       if (module_path.startsWith('/')) {
@@ -116,13 +127,14 @@ class Module {
 }
 
 let builtin_module_map = {
-  fs: require('./fs.js'),
-  path: require('path'),
-  util: require('./util.js'),
-  bukkit: require('../bukkit.js'),
-  child_process: require('./child_process.js'),
-  worker_threads: require('./worker_threads.js'),
-  'bukkit/JavaPlugin': require('../bukkit/JavaPlugin.js')
+  fs: () => require('./fs.js'),
+  vm: () => require('./vm.js'),
+  path: () => require('path'),
+  util: () => require('./util.js'),
+  bukkit: () => require('../bukkit.js'),
+  child_process: () => require('./child_process.js'),
+  worker_threads: () => require('./worker_threads.js'),
+  'bukkit/JavaPlugin': () => require('../bukkit/JavaPlugin.js')
 };
 
 module.exports = {
