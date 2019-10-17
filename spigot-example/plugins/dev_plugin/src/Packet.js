@@ -1,3 +1,4 @@
+let { ref } = require('worker_threads');
 let { once } = require('lodash');
 
 // prettier-ignore
@@ -96,11 +97,13 @@ let Packet = {
     );
     protocolManager.addPacketListener(packet_adapter);
 
-    return {
-      dispose: () => {
+    let dispose = ref({
+      close: () => {
         protocolManager.removePacketListener(packet_adapter);
-      },
-    };
+      }
+    });
+
+    return { dispose: dispose };
   },
 
   // Mainly useful for debugging packets sent by bukkit
@@ -129,11 +132,12 @@ let Packet = {
     );
     protocolManager.addPacketListener(packet_adapter);
 
-    return {
-      dispose: () => {
+    let dispose = ref({
+      close: () => {
         protocolManager.removePacketListener(packet_adapter);
-      },
-    };
+      }
+    });
+    return { dispose: dispose };
   },
 
   combined_id: (blockdata) => {

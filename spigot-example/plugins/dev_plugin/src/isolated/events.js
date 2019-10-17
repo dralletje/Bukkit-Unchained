@@ -74,7 +74,7 @@ let java_is_subclass = (subclass, superclass) => {
   }
 };
 
-export let create_isolated_events = ({ plugin, active_session, adapt }) => {
+export let create_isolated_events = ({ plugin, adapt }) => {
   let isolated_events = {};
   for (let { name: event_name, addListener, JavaClass } of plugin.events
     .as_list) {
@@ -86,7 +86,7 @@ export let create_isolated_events = ({ plugin, active_session, adapt }) => {
     }
 
     isolated_events[`on${event_name}`] = handler => {
-      let result = addListener(
+      addListener(
         event => {
           // if (event.isCancelled && event.isCancelled()) {
           //   return;
@@ -101,7 +101,7 @@ export let create_isolated_events = ({ plugin, active_session, adapt }) => {
           handler(js_event);
 
           try {
-            js_event.validate();
+            adapt.validate(js_event);
           } catch (err) {
             console.log(`err:`, err);
             event.setCancelled(true);
@@ -111,7 +111,6 @@ export let create_isolated_events = ({ plugin, active_session, adapt }) => {
         },
         { priority: "HIGHEST" }
       );
-      active_session.add_active_process(result);
     };
   }
 

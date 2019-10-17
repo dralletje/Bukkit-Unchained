@@ -210,6 +210,10 @@ export let make_adapters = filters => {
   let adapted_classes = {};
   let adapt = {
     classes: adapted_classes,
+    validate: value => {
+      // TODO
+      value.validate();
+    },
     get_class: (class_name) => {
       let adapted = adapted_classes[class_name];
       if (adapted) {

@@ -13,17 +13,8 @@ module.exports = {
   env: {
     true: false,
   },
-  cwd: () => {
-    return Polyglot.import("cwd");
-  },
-  //
-  nextTick: (callback) => {
-    if (global.plugin.isEnabled()) {
-      setImmediate(callback);
-    } else {
-      callback();
-    }
-  },
+  cwd: () => Polyglot.import("cwd"),
+  nextTick: setImmediate,
   // TODO Remove this? See where it being used?
   binding: (name) => {
     return Polyglot.import(name);

@@ -1,7 +1,13 @@
-let ChatColor = Java.type('org.bukkit.ChatColor');
+let ChatColor = Java.type("org.bukkit.ChatColor");
+let { JavaPlugin } = require("bukkit/JavaPlugin");
 
-module.exports = plugin => {
+console.log("Okay");
+
+let plugin = new JavaPlugin();
+
+plugin.onEnable(() => {
   try {
+    console.log("Dev http");
     let dev_http = require("./dev_http.js");
     if (plugin.java.getServer().getWorlds().length === 0) {
       plugin.events.WorldLoad(() => {
@@ -21,24 +27,14 @@ module.exports = plugin => {
     console.log("Could't load jsrepl plugin");
     console.log(err);
   }
+});
 
-  try {
-    let chunk_generator = require("./PlotGenerator.js")(plugin);
-    plugin.setDefaultChunkGenerator(chunk_generator);
-  } catch (err) {
-    console.log("Could't load plot generator plugin");
-    console.log(err);
-  }
+try {
+  let chunk_generator = require("./PlotGenerator.js")(plugin);
+  plugin.setDefaultChunkGenerator(chunk_generator);
+} catch (err) {
+  console.log("Could't load plot generator plugin");
+  console.log(err);
+}
 
-  // try {
-  //   require('./conversation.js').create_conversation(plugin);
-  // } catch (err) {
-  //   console.log('Could\'t load conversation plugin');
-  //   console.log(err);
-  // }
-};
-
-module.exports.worker = (plugin, source, config) => {
-  let { create_isolated_plugin } = require("./isolated_plugin.js");
-  return create_isolated_plugin({ plugin, source, config });
-};
+module.exports = plugin.getBridge();

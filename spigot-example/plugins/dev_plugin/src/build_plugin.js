@@ -12,14 +12,13 @@ let worldedit_session_for_player = player => {
 
 export let create_build_plugin = ({
   plugin,
-  active_session,
   filters,
   buildconfig,
   plot_config,
 }) => {
   let adapt = make_adapters(filters);
-  let commands = create_isolated_commands({ plugin, active_session, adapt });
-  let events = create_isolated_events({ plugin, active_session, adapt });
+  let commands = create_isolated_commands({ plugin, adapt });
+  let events = create_isolated_events({ plugin, adapt });
 
   let Material = adapt.get_class("org.bukkit.Material");
   let BlockAction = adapt.get_class("org.bukkit.event.block.Action");

@@ -1,4 +1,6 @@
-let { ChatColor, Unchained } = require('bukkit');
+let { ChatColor, Unchained } = require('../bukkit.js');
+let { ref } = require('worker_threads');
+
 let bukkit_EventPriority = Java.type('org.bukkit.event.EventPriority');
 
 let BukkitHandlerList = Java.type('org.bukkit.event.HandlerList');
@@ -43,6 +45,12 @@ let make_addEventListener_for_plugin = (plugin) => {
       eventExecutor,
       plugin
     );
+
+    ref({
+      close: () => {
+        BukkitHandlerList.unregisterAll(listener);
+      },
+    })
 
     return {
       dispose: () => {

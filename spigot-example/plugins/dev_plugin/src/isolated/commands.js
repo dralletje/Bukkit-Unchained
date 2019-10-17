@@ -1,9 +1,10 @@
 import { debounce } from 'lodash';
 
-let ChatColor = Java.type('org.bukkit.ChatColor');
-let Packet = require('../Packet.js');
+import Packet from '../Packet.js';
 
-export let create_isolated_commands = ({ plugin, active_session, adapt }) => {
+let ChatColor = Java.type('org.bukkit.ChatColor');
+
+export let create_isolated_commands = ({ plugin, adapt }) => {
   let commands_map = new Map();
 
   let default_command_handler = null;
@@ -26,13 +27,16 @@ export let create_isolated_commands = ({ plugin, active_session, adapt }) => {
 
     event.setCancelled(true);
 
-    player.sendMessage(`${ChatColor.GRAY}/${message}`);
     let [command, ...args] = message.split(' ');
 
     if (command === '' || command === 'help') {
       // Show help?
       player.sendMessage(`${ChatColor.LIGHT_BLUE}Soon this will show help`);
       return;
+    }
+
+    if (command === 'leave') {
+
     }
 
     if (!commands_map.has(command)) {
@@ -48,54 +52,48 @@ export let create_isolated_commands = ({ plugin, active_session, adapt }) => {
     onCommand(player, args, command);
   });
 
-  let refresh_command_map = debounce(() => {
-    // Send commands with packet
-  });
+  Packet.addIncomingPacketListener(Packet.fromClient.TAB_COMPLETE, (event) => {
+    let player = event.getPlayer();
+    let { params: { transactionId, text } } = event.getData();
+    let [command, ..._args] = text.slice(1).split(' ');
 
-  active_session.add_active_process(
-    Packet.addIncomingPacketListener(Packet.fromClient.TAB_COMPLETE, (event) => {
-      let player = event.getPlayer();
-      let { params: { transactionId, text } } = event.getData();
-      let [command, ..._args] = text.slice(1).split(' ');
+    if (!commands_map.has(command)) {
+      return;
+    }
 
-      if (!commands_map.has(command)) {
-        return;
-      }
+    let command_description = commands_map.get(command);
+    let last_arg = _args.slice(-1)[0];
+    let args = _args.slice(0, -1);
 
-      let command_description = commands_map.get(command);
-      let last_arg = _args.slice(-1)[0];
-      let args = _args.slice(0, -1);
+    let start = `/${command} ${args.join(' ')}${args.length === 0 ? '' : ' '}`.length;
 
-      let start = `/${command} ${args.join(' ')}${args.length === 0 ? '' : ' '}`.length;
+    let matches = command_description.onTabComplete(player, command, _args);
 
-      let matches = command_description.onTabComplete(player, command, _args);
+    console.log(`${ChatColor.BLUE}Sending packet...`);
+    let label = `${ChatColor.GREEN}Sent packet`;
+    console.time(label);
 
-      console.log(`${ChatColor.BLUE}Sending packet...`);
-      let label = `${ChatColor.GREEN}Sent packet`;
-      console.time(label);
-
-      event.setCancelled(true);
-      Packet.send_packet(player, {
-        name: 'tab_complete',
-        params: {
-          transactionId: transactionId,
-          start: start,
-          length: last_arg.length,
-          matches: matches.map(match => {
-            if (typeof match === 'string') {
-              return {
-                match: match,
-                // tooltip: '{"text": "foo"}',
-              }
-            } else {
-              return { match: 'ERROR' };
+    event.setCancelled(true);
+    Packet.send_packet(player, {
+      name: 'tab_complete',
+      params: {
+        transactionId: transactionId,
+        start: start,
+        length: last_arg.length,
+        matches: matches.map(match => {
+          if (typeof match === 'string') {
+            return {
+              match: match,
+              // tooltip: '{"text": "foo"}',
             }
-          }),
-        },
-      });
-      console.timeEnd(label);
-    })
-  )
+          } else {
+            return { match: 'ERROR' };
+          }
+        }),
+      },
+    });
+    console.timeEnd(label);
+  });
 
   return {
     handleDefault: (handler) => {

@@ -1,4 +1,4 @@
-let { format_value } = require('../bootstrap/format_value.js');
+let { inspect } = require('./util.js');
 
 let create_pretty_console = (key) => {
   let native_log = console[`original_${key}`] || console[key];
@@ -20,7 +20,7 @@ let create_pretty_console = (key) => {
         continue;
       }
 
-      let formatted_lines = format_value(value);
+      let formatted_lines = inspect(value).split('\n');
 
       if (formatted_lines.length === 0) {
         throw new Error(`Value didn't return anything: '${value}'`);

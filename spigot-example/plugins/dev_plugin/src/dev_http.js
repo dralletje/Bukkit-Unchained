@@ -1,6 +1,7 @@
 let { MongoClient } = require('./mongo.js');
 let { ChatColor } = require('bukkit');
 let server = Polyglot.import('server');
+let { ref, Worker } = require('worker_threads');
 
 let uuid = require('uuid/v4');
 
@@ -34,8 +35,48 @@ let send_response = (exchange, response) => {
 
 let { chat } = require('./chat.js');
 
-let RecursiveContext = Java_type('eu.dral.unchained.RecursiveContext');
-let InterContextEvent = RecursiveContext.static.InterContextEvent;
+let start_timer = label => {
+  let initial_time = Date.now();
+  let last_time = Date.now();
+
+  return {
+    log: message => {
+      let seconds_spent = (Date.now() - last_time) / 1000;
+      let color = seconds_spent < 0.8 ? ChatColor.GREEN : ChatColor.RED;
+      last_time = Date.now();
+      console.log(label, message, `took ${color}${seconds_spent.toFixed(3)}s`);
+    },
+    end: () => {
+      let seconds_spent = (Date.now() - initial_time) / 1000;
+      let color = seconds_spent < 1 ? ChatColor.GREEN : ChatColor.RED;
+      // prettier-ignore
+      console.log(label, `Completed!, spent ${color}${seconds_spent.toFixed(3)}s ${ChatColor.RESET}in total`);
+    }
+  };
+};
+
+let create_http_server = (port, handler_fn) => {
+  let HttpServer = Java.type('com.sun.net.httpserver.HttpServer');
+  let InetSocketAddress = Java.type('java.net.InetSocketAddress');
+  let HttpHandler = Java.type('com.sun.net.httpserver.HttpHandler')
+
+  let JavascriptHttpHandler = Java.extend(HttpHandler, {
+    handle: (exchange) => {
+      handler_fn(exchange);
+    },
+  });
+
+  let server = HttpServer.create(new InetSocketAddress(port), 0);
+  server.createContext("/", new JavascriptHttpHandler());
+  server.setExecutor(null); // creates a default executor
+  server.start();
+
+  ref({
+    close: () => server.stop(0),
+  });
+
+  return server;
+}
 
 module.exports = (plugin) => {
   let mongo_client = new MongoClient("mongodb://-1_4:password123@localhost:32768/database");
@@ -56,42 +97,37 @@ module.exports = (plugin) => {
       } catch {}
     }
 
-
-    console.time('Loop')
-    let interval = setInterval(() => {
-      console.timeLog('Loop');
-    }, 10)
-
-    console.log('Promise #1')
-    let context = await new Promise(resolve => {
-      console.log('Promise #2')
-      return RecursiveContext.static.createAsync(plugin.java, (context) => {
-        console.log('Promise #3')
-        resolve(context)
-      })
-    });
     let main_path = plugin.java.getDescription().getMain();
-    console.timeEnd('Loop')
-    console.log('Promise #4');
-
-    clearInterval(interval);
-
-    context.loadPlugin(db_plot.script, JSON.stringify({
-      plot_x: db_plot.plot_x,
-      plot_z: db_plot.plot_z,
-      mongo_url: 'https://google.com/search',
-      entry_path: main_path,
-    }));
+    let worker = new Worker(`${plugin.java.getDataFolder()}/dist/PluginWorker.js`, {
+      workerData: {
+        source: db_plot.script,
+        plot_x: db_plot.plot_x,
+        plot_z: db_plot.plot_z,
+        mongo_url: 'https://google.com/search',
+        entry_path: main_path,
+      },
+    });
 
     active_plots.set(db_plot.plot_id, {
-      context: context,
+      worker: worker,
+      online: false,
+    });
+
+    await new Promise((resolve, reject) => {
+      worker.once('online', resolve);
+      // worker.once('error', reject);
+    });
+
+    active_plots.set(db_plot.plot_id, {
+      worker: worker,
+      online: true,
     });
   }
 
   for (let db_plot of plots.find({}).toArray()) {
     // console.log(`db_plot:`, db_plot);
     refresh_plot(db_plot).catch(err => {
-      console.log(`err:`, err)
+      console.log(`Refresh plot '${db_plot.plot_id}' err:`, err)
     })
   }
 
@@ -169,21 +205,29 @@ module.exports = (plugin) => {
       let url = chat.show_text('This will open an editor in your browser', chat.open_url(editor_url, 'https://dral.eu/editor'));
 
       if (active_plots.get(plot_id)) {
-        let event = new InterContextEvent("plot-player-build", { player });
-        active_plots.get(plot_id).context.emit(event)
+        active_plots.get(plot_id).worker.postMessage({
+          type: 'plot-player-build',
+          player: player,
+        });
+        player.sendMessage(`${ChatColor.GREEN}Entered builder mode`);
+        player.sendMessage(chat`${chat.green('Edit at')} ${chat.dark_purple(url)}`)
+      } else {
+        player.sendMessage(chat.red`${ChatColor.RED}`)
       }
-      player.sendMessage(`${ChatColor.GREEN}Entered builder mode`);
-      player.sendMessage(chat`${chat.green('Edit at')} ${chat.dark_purple(url)}`)
     },
   });
 
-  let PlayerQuitEvent = Java.type('org.bukkit.event.player.PlayerQuitEvent');
   plugin.command('enter', {
     onCommand: (player, command, alias, args) => {
       let { id: plot_id } = location_to_plot(player.getLocation())
       if (active_plots.get(plot_id)) {
-        let event = new InterContextEvent("plot-player-enter", { player });
-        active_plots.get(plot_id).context.emit(event)
+        player.sendMessage(`${ChatColor.GREEN}Joining plot!`)
+        active_plots.get(plot_id).worker.postMessage({
+          type: 'plot-player-enter',
+          player: player,
+        });
+      } else {
+        player.sendMessage(`${ChatColor.RED}No active plot here!`);
       }
     },
     onTabComplete: () => {
@@ -196,8 +240,11 @@ module.exports = (plugin) => {
     onCommand: (player, command, alias, args) => {
       let { id: plot_id } = location_to_plot(player.getLocation())
       if (active_plots.get(plot_id)) {
-        let event = new InterContextEvent("plot-player-leave", { player });
-        active_plots.get(plot_id).context.emit(event)
+        active_plots.get(plot_id).worker.postMessage({
+          type: 'plot-player-leave',
+          player: player,
+        });
+        player.sendMessage(`${ChatColor.GREEN}You just left the plot!`);
       }
     },
   });
@@ -210,7 +257,9 @@ module.exports = (plugin) => {
   plugin.events.PlayerCommandPreprocess(event => {
     let player = event.getPlayer();
     let message = event.getMessage();
-    player.sendMessage(`${ChatColor.GRAY}${message}`)
+
+    player.sendMessage(`${ChatColor.GRAY}${message}`);
+
     if (valid_commands.some(x => message.startsWith(x))) {
       return;
     }
@@ -273,7 +322,7 @@ module.exports = (plugin) => {
   })
 
   console.log('Http server');
-  let http_server = plugin.create_http_server(8001, (exchange) => {
+  let http_server = create_http_server(8001, (exchange) => {
     try {
       let body = parse_input_json(exchange);
 

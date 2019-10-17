@@ -1,3 +1,5 @@
+let { ref } = require('worker_threads');
+
 let MongoClients = Java_type('com.mongodb.client.MongoClients')
 let Document = Java_type('org.bson.Document')
 
@@ -11,6 +13,7 @@ export class MongoClient {
   constructor(uri) {
     let client = MongoClients.static.create(uri);
     java_objects.set(this, client);
+    ref(client);
   }
 
   db(name) {

@@ -1,16 +1,21 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/entry.js',
+  entry: {
+    entry: './src/entry.js',
+    UnchainedMain: './src/UnchainedMain.js',
+  },
   mode: 'development',
   output: {
-    filename: 'entry.js',
-    path: path.resolve(__dirname),
+    filename: '[name].js',
+    path: path.resolve(__dirname) + '/dist',
+    libraryTarget: "commonjs2",
   },
   externals: {
     bukkit: "commonjs bukkit",
     fs: "commonjs fs",
     child_process: "commonjs child_process",
+    worker_threads: "commonjs worker_threads",
   },
   node: {
     process: false,

@@ -39,15 +39,18 @@
   global.Runtime.getHeapUsage = () => {
     console.log('get heap usage');
   }
-
   global.bukkit = require('./bukkit.js');
 
   let path = require("path");
   let { Module } = require("./builtins/require.js");
-  let FILE_LOCATION = path.join(process.cwd(), "./plugins/Unchained/src/entry.js");
-  let sub_module = new Module(FILE_LOCATION);
+  module.exports = (file_path) => {
+    let sub_module = new Module(path.resolve(file_path));
+    let file = path.basename(file_path);
 
+    global.require = sub_module.require;
+    let result = sub_module.require('./' + file);
 
-  global.require = sub_module.require;
-  module.exports = require('./PluginBridge.js');
+    // console.log(`result:`, result);
+    return result;
+  };
 }

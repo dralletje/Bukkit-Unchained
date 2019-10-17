@@ -9,7 +9,7 @@
   },
   "author": "",
   "license": "ISC",
-  "bukkit": {
+  "DISABLE-bukkit": {
     "api-version": "1.13",
     "dev": true,
     "commands": {

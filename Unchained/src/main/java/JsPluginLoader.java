@@ -82,8 +82,8 @@ public final class JsPluginLoader implements PluginLoader {
     }
 
     public PluginDescriptionFile getPluginDescription(File file) throws InvalidDescriptionException {
-      RecursiveContext repl_fn = Unchained.javascript_bridge;
-      String from_js = repl_fn.invokeJavascriptBridge("get_plugin_description", Arrays.asList(file)).asString();
+      WorkerContext repl_fn = Unchained.javascript_context;
+      String from_js = repl_fn.getExports().execute("get_plugin_description", file).asString();
       return new PluginDescriptionFile(new StringReader(from_js));
     }
 

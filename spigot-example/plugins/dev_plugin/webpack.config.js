@@ -1,20 +1,24 @@
 const path = require("path");
 
 module.exports = {
-  entry: "./src/index.js",
+  entry: {
+    dev_plugin: "./src/index.js",
+    PluginWorker: './src/PluginWorker',
+  },
   mode: "development",
-  devtool: 'eval-source-map',
+  devtool: 'source-map',
   output: {
-    filename: "dev_plugin.js",
+    filename: "[name].js",
     path: path.resolve(__dirname, "dist"),
-    library: "dev_plugin",
-    libraryTarget: "umd"
+    libraryTarget: "commonjs2"
   },
   externals: {
     bukkit: "commonjs bukkit",
     fs: "commonjs fs",
     child_process: "commonjs child_process",
-    "aws-sdk": ".empty"
+    worker_threads: "commonjs worker_threads",
+    "bukkit/JavaPlugin": "commonjs bukkit/JavaPlugin",
+    "aws-sdk": "empty"
   },
   module: {
     rules: [

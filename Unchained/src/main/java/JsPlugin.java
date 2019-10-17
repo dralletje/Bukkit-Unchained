@@ -37,8 +37,7 @@ public class JsPlugin extends PluginBase {
     private FileConfiguration newConfig = null;
     private PluginLogger logger = null;
 
-    private RecursiveContext context = null;
-    private Value executor = null;
+    private WorkerContext context = null;
 
     public JsPlugin() {}
 
@@ -128,22 +127,7 @@ public class JsPlugin extends PluginBase {
         // this.classLoader = classLoader;
         this.logger = new PluginLogger(this);
 
-        this.getExecutor();
-    }
-
-    RecursiveContext getContext() {
-      if (this.context == null) {
-        this.context = new RecursiveContext(this);
-      }
-      return this.context;
-    }
-
-    Value getExecutor() {
-      if (this.executor == null) {
-        this.context = this.getContext();
-        this.executor = this.context.invokeJavascriptBridge("load_plugin_from_javaplugin", Arrays.asList(this));
-      }
-      return this.executor;
+        this.context = new WorkerContext(description.getMain(), this);
     }
 
     /**
@@ -163,10 +147,7 @@ public class JsPlugin extends PluginBase {
      */
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-      if (this.getExecutor() != null) {
-        return this.getExecutor().execute("onCommand", sender, command, label, args).as(Boolean.class);
-      }
-      return false;
+      return this.context.getExports().getMember("onCommand").execute(sender, command, label, args).as(Boolean.class);
     }
 
     /**
@@ -174,11 +155,7 @@ public class JsPlugin extends PluginBase {
      */
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-      if (this.getExecutor() != null) {
-        return this.getExecutor().execute("onTabComplete", sender, command, alias, args).as(List.class);
-      } else {
-        return null;
-      }
+      return this.context.getExports().getMember("onTabComplete").execute(sender, command, alias, args).as(List.class);
     }
 
     /**
@@ -226,9 +203,7 @@ public class JsPlugin extends PluginBase {
     @Override
     public void onDisable() {
       try {
-        if (this.getExecutor() != null) {
-          this.getExecutor().execute("onDisable");
-        }
+        this.context.getExports().getMember("onDisable").execute();
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -237,23 +212,20 @@ public class JsPlugin extends PluginBase {
 
     @Override
     public void onEnable() {
-      if (this.getExecutor() != null) {
-        this.getExecutor().execute("onEnable");
-      }
+      this.context.getExports().getMember("onEnable").execute();
     }
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
         try {
-          RecursiveContext context = new RecursiveContext(this);
-          Value executor = this.context.invokeJavascriptBridge("load_plugin_from_javaplugin", Arrays.asList(this));
-
-          ChunkGenerator result = executor.execute("defaultWorldGenerator", worldName, id).as(ChunkGenerator.class);
+          WorkerContext context = new WorkerContext(description.getMain(), this);
+          ChunkGenerator result = context.getExports().getMember("getDefaultWorldGenerator").execute(worldName, id).as(ChunkGenerator.class);
           if (result == null) {
             context.close();
           }
           return result;
         } catch (Exception error) {
+          error.printStackTrace();
           return null;
         }
     }

@@ -20,17 +20,19 @@ let basic_require = (module_path) => {
   let filename = path.basename(module_object.filename);
 
   let commonJsWrap = (code) => {
-    return `(function(exports, module, require, unchained_require, __filename ,__dirname) {\n${code}\n})`;
+    return `(function(exports, module, require, __filename ,__dirname) {\n${code}\n})`;
   }
   let wrapped_code = commonJsWrap(code);
   // let plugin = Polyglot.import('plugin');
   // let export_function = plugin.runScript(module_object.filename, wrapped_code);
-  let export_function = load({
+
+  // TODO Use eval? Or context.eval?
+  let export_function = global.load({
     name: module_object.filename,
     script: wrapped_code,
   });
 
-  export_function(module_object.exports, module_object, module_object.require, module_object.require, filename, dirname);
+  export_function(module_object.exports, module_object, module_object.require, filename, dirname);
 
   return module_object.exports;
 }
@@ -78,35 +80,8 @@ let require_resolve = (base_file, module_id) => {
     return locate_module(module_path);
   } else if (module_id.startsWith('/')) {
     throw new Error('Sorry babe, no absolute path');
-  } else {
-    let [module_name, module_file] = module_id.split('/', 2);
-
-    // if (module_file != null && module_file !== '') {
-    //   console.log(`module_file:`, module_file)
-    //   throw new Error(`No sub-module files for now`);
-    // }
-
-    // Module not yet found, try the module map
-    if (builtin_module_map[module_name]) {
-      let new_base_file = __dirname + __filename;
-      if (new_base_file !== base_file || builtin_module_map[module_name] !== module_name) {
-        // console.log(`builtin_module_map[module_name]:`, builtin_module_map[module_name])
-        return `builtin/${module_name}`;
-      }
-    }
-
-    let current_directory = directory;
-    while (current_directory !== '/') {
-      let current_module_dir = path.join(current_directory, 'node_modules', module_name);
-      if (fs.existsSync(current_module_dir)) {
-        let module_location = locate_module(path.join(current_module_dir, module_file || ''));
-        return module_location;
-      }
-      current_directory = path.join(current_directory, '../');
-    }
-
-    throw new Error(`Module '${module_name}' not found`);
   }
+
   throw new Error(`Unknown module format '${module_id}'`);
 }
 
@@ -123,6 +98,13 @@ class Module {
         return builtin_module_map[module_path];
       }
 
+      if (module_path.startsWith('/')) {
+        throw new Error("No absolute paths yet");
+      }
+      if (!module_path.startsWith('.')) {
+        throw new Error(`Needs an relative path, couldn't find '${module_path}'`);
+      }
+
       let full_path = require_resolve(this.filename, module_path);
       return basic_require(full_path)
     }
@@ -131,7 +113,6 @@ class Module {
     }
     this.unchained_require = this.require;
   }
-
 }
 
 let builtin_module_map = {
@@ -140,7 +121,8 @@ let builtin_module_map = {
   util: require('./util.js'),
   bukkit: require('../bukkit.js'),
   child_process: require('./child_process.js'),
-  module: Module,
+  worker_threads: require('./worker_threads.js'),
+  'bukkit/JavaPlugin': require('../bukkit/JavaPlugin.js')
 };
 
 module.exports = {
