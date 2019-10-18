@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import { mapValues } from "lodash";
+import { parentPort } from "worker_threads";
 
 import { JavaPlugin } from "bukkit/JavaPlugin";
 
