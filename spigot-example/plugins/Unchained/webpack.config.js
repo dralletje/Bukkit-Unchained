@@ -17,6 +17,7 @@ module.exports = {
     child_process: "commonjs child_process",
     worker_threads: "commonjs worker_threads",
   },
+  // target: 'node',
   node: {
     process: false,
     module: false,

@@ -1,8 +1,7 @@
 import { EventEmitter } from "events";
 import { mapValues } from "lodash";
-import { parentPort } from 'worker_threads';
 
-import { JavaPlugin } from 'bukkit/JavaPlugin';
+import { JavaPlugin } from "bukkit/JavaPlugin";
 
 import { create_isolated_events } from "./isolated/events.js";
 import { create_isolated_buildconfig } from "./isolated/buildconfig.js";
@@ -11,13 +10,14 @@ import { create_isolated_commands } from "./isolated/commands.js";
 import { create_build_plugin } from "./build_plugin.js";
 
 import { make_adapters } from "./isolated/primitives.js";
-import Packet from './Packet.js';
+import Packet from "./Packet.js";
+
+import { VM } from "vm2";
 
 let { ChatColor } = require("bukkit");
 let float = n => Java.type("java.lang.Float").parseFloat(String(n));
 
 let server = Polyglot.import("server");
-let Bukkit = require("bukkit");
 let Location = Java.type("org.bukkit.Location");
 
 let start_timer = label => {
@@ -40,7 +40,11 @@ let start_timer = label => {
   };
 };
 
-export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config }) => {
+export let create_isolated_plugin = ({
+  plugin: java_plugin,
+  source,
+  ...config
+}) => {
   let plugin = new JavaPlugin(java_plugin);
   let external_events = new EventEmitter();
 
@@ -87,11 +91,11 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
 
   let plugin_commands = create_isolated_commands({
     plugin,
-    adapt,
+    adapt
   });
   plugin_commands.handleDefault((event, player) => {
     let message = event.getMessage();
-    if (message.startsWith('/leave')) {
+    if (message.startsWith("/leave")) {
       return event.setCancelled(false);
     }
   });
@@ -199,7 +203,7 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
       location: location_filter,
       player: player => {
         return building_players.has(player.getName());
-      },
+      }
     }
   });
   external_events.on("plot-player-build", ({ player }) => {
@@ -209,7 +213,7 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
     build_plugin.apply_to(player);
   });
 
-  timer.log('Build plugin');
+  timer.log("Build plugin");
 
   let do_join = player => {
     if (!location_filter(player.getLocation())) return;
@@ -248,9 +252,12 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
     getOfflinePlayer: () => {},
     getOfflinePlayers: () => {},
     getOperators: () => {},
-    getPlayer: () => {},
+    getOnlinePlayers: () => Array.from(playing_player.values()).map(x =>
+      adapt.from_java(isolated_server.getPlayer(x))
+    ),
+    getPlayer: (name) => adapt.from_java(server.getPlayer(name)),
     getPlayerExact: () => {},
-  	getScheduler: () => {},
+    getScheduler: () => {},
     getTag: () => {},
     getTags: () => {},
     getVersion: () => {},
@@ -258,8 +265,8 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
     getWorld: () => {},
     getWorlds: () => {},
     matchPlayer: () => {},
-  	selectEntities: () => {},
-  }
+    selectEntities: () => {}
+  };
 
   let dev_plugin = {
     // Packet: Packet,
@@ -269,63 +276,79 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
     buildconfig: isolated_buildconfig,
     world: main_world,
     getServer: () => isolated_server,
-    getPlayers: () => Array.from(playing_player.values()).map(x => server.getPlayer(x)),
     // createNamespacedKey: name => {
     //   let NamespacedKey = Java.type("org.bukkit.NamespacedKey");
     //   return new NamespacedKey(plugin.java, `${session_id}.${name}`);
     // },
     get_class: adapt.get_class,
-    events: isolated_events,
+    events: isolated_events
   };
 
   timer.log("Isolated plugin");
 
   let injected_module = { exports: {} };
-  let injects = [
-    { name: "plugin", value: dev_plugin },
-    { name: "module", value: injected_module },
-    { name: 'exports', value: injected_module.exports },
+  let sandbox = {
+    setInterval,
+    clearInterval,
+    setTimeout,
+    clearTimeout,
+    setImmediate,
+    clearImmediate,
+    plugin: dev_plugin,
+    module: injected_module,
+    exports: injected_module.exports,
+    loadWithNewGlobal: null,
+    load: null,
+    print: null,
+    printErr: null,
+    org: null,
+    com: null,
+    edu: null,
+    // Java: null,
+    Graal: null,
+    Packages: null,
+    javafx: null,
+    java: null,
+    javax: null,
+    Java_type: null,
+  }
 
-    ...['Polyglot', 'loadWithNewGlobal', 'load', 'print', 'printErr', 'org', 'com', 'edu', 'Java', 'Graal', 'Packages', 'javafx', 'java', 'javax', 'Java_type'].map((key) => {
-      return { name: key, value: null };
-    })
-  ];
+  try {
+    let vm = new VM({ sandbox });
+    let eval_fn = vm.run(`(source) => eval(source)`);
+    eval_fn(source);
+  } catch (err) {
+    console.log(`sandbox err:`, err);
+  }
 
-  // let sandbox = {};
-  // for (let entry of injects) {
-  //   sandbox[entry.name] = entry.value;
-  // }
-  // try {
-  //   let vm = new VM({ sandbox });
-  //   vm.run(source);
-  // } catch (err) {
-  //   console.log(`sandbox err:`, err)
-  // }
+  /* My vm-creation graveyard */
+  { // eslint-disable-line
+    // let init_global = loadWithNewGlobal({
+    //   name: '/plot-plugin.js',
+    //   script: `
+    //     ((${injects.map(x => x.name).join(", ")}) => {
+    //       return (source) => {
+    //         let module = { exports: {} };
+    //         let exports = module.exports;
+    //         let require = () => null;
+    //         return eval(source);
+    //       }
+    //     })
+    //   `,
+    // });
+    // let run = init_global(...injects.map(x => x.value));
+    // run(source);
 
-  // let init_global = loadWithNewGlobal({
-  //   name: '/plot-plugin.js',
-  //   script: `
-  //     ((${injects.map(x => x.name).join(", ")}) => {
-  //       return (source) => {
-  //         let module = { exports: {} };
-  //         let exports = module.exports;
-  //         let require = () => null;
-  //         return eval(source);
-  //       }
-  //     })
-  //   `,
-  // });
-  // let run = init_global(...injects.map(x => x.value));
-  // run(source);
-
-  Polyglot.eval(
-    "js",
-    `((${injects.map(x => x.name).join(", ")}) => { ${source} })`
-  )(...injects.map(x => x.value));
+    // let evaler = Polyglot.eval(
+    //   "js",
+    //   `((${injects.map(x => x.name).join(", ")}) => { return (source) => { try {eval(source)}catch(err){console.log(err)} } })`
+    // )(...injects.map(x => x.value));
+    // evaler(source);
+  }
 
   timer.log("Eval");
 
-  parentPort.on('message', message => {
+  parentPort.on("message", message => {
     try {
       if (message === "close") {
         // active_session.teardown();
@@ -339,7 +362,7 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
 
       if (message.type === "plot-player-leave") {
         let player = message.player;
-        playing_player.delete(player.getName())
+        playing_player.delete(player.getName());
         building_players.delete(player.getName());
         leave_plugin_plot(player);
 
@@ -353,7 +376,7 @@ export let create_isolated_plugin = ({ plugin: java_plugin, source, ...config })
       }
       console.log(`Catch all message:`, message);
     } catch (error) {
-      console.log(`Isolated plugin message error:`, error)
+      console.log(`Isolated plugin message error:`, error);
     }
   });
 };

@@ -249,13 +249,17 @@ public class WorkerContext implements AutoCloseable {
       }
 
       // System.out.println("Before closeAll");
-      this.exposed_context.closeAll();
+      try {
+        this.exposed_context.closeAll();
+      } catch (Exception error) {
+        error.printStackTrace();
+      }
       // System.out.println("After closeAll");
 
       try {
         this.context.close(true);
       } catch (Exception error) {
-
+        error.printStackTrace();
       }
     }
 }

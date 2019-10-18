@@ -19,31 +19,28 @@ let basic_require = (module_path) => {
   let dirname = path.dirname(module_object.filename);
   let filename = path.basename(module_object.filename);
 
-  let commonJsWrap = (code) => {
-    return `(function(exports, module, require, __filename ,__dirname) {\n${code}\n})`;
-  }
-  let wrapped_code = commonJsWrap(code);
-  // let plugin = Polyglot.import('plugin');
-  // let export_function = plugin.runScript(module_object.filename, wrapped_code);
-
-  // TODO Use eval? Or context.eval?
-  let export_function = global.load({
-    name: module_object.filename,
-    script: wrapped_code,
-  });
-
-  export_function(module_object.exports, module_object, module_object.require, filename, dirname);
-
-  // let commonJsWrap = `(function(exports, module, require, __filename ,__dirname) {\nreturn (source) => eval(source)\n})`;
-  //
+  // let commonJsWrap = (code) => {
+  //   return `(function(exports, module, require, __filename ,__dirname) {\n${code}\n})`;
+  // }
+  // let wrapped_code = commonJsWrap(code);
   // // TODO Use eval? Or context.eval?
-  // let sandbox_fn = global.load({
-  //   name: 'test.js',
-  //   script: commonJsWrap,
+  // let export_function = global.load({
+  //   name: module_object.filename,
+  //   script: wrapped_code,
   // });
   //
-  // let sandboxed_fn = sandbox_fn(module_object.exports, module_object, module_object.require, filename, dirname);
-  // sandboxed_fn(code)
+  // export_function(module_object.exports, module_object, module_object.require, filename, dirname);
+
+  let commonJsWrap = `(function(exports, module, require, __filename ,__dirname) {\nreturn (source) => eval(source)\n})`;
+
+  // TODO Use eval? Or context.eval?
+  let sandbox_fn = global.load({
+    name: 'test.js',
+    script: commonJsWrap,
+  });
+
+  let sandboxed_fn = sandbox_fn(module_object.exports, module_object, module_object.require, filename, dirname);
+  sandboxed_fn(code)
 
   return module_object.exports;
 }
@@ -129,12 +126,13 @@ class Module {
 let builtin_module_map = {
   fs: () => require('./fs.js'),
   vm: () => require('./vm.js'),
+  vm2: () => require('../vm2/vm2.js'),
   path: () => require('path'),
   util: () => require('./util.js'),
   bukkit: () => require('../bukkit.js'),
   child_process: () => require('./child_process.js'),
   worker_threads: () => require('./worker_threads.js'),
-  'bukkit/JavaPlugin': () => require('../bukkit/JavaPlugin.js')
+  'bukkit/JavaPlugin': () => require('../bukkit/JavaPlugin.js'),
 };
 
 module.exports = {

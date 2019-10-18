@@ -54,6 +54,7 @@ let apply_files_to_memory_fs = (memory_fs, files, path = "/") => {
     if (typeof value === "string") {
       memory_fs.writeFileSync(sub_path, value);
     } else {
+      memory_fs.mkdirSync(sub_path);
       apply_files_to_memory_fs(memory_fs, value, sub_path);
     }
   }
@@ -62,9 +63,13 @@ let apply_files_to_memory_fs = (memory_fs, files, path = "/") => {
 let compile = async ({ files, entry_file }) => {
   let memFs = create_memory_fs();
 
-  const entry = `/${entry_file}`;
+  const entry = `/plot-dev-plugin/${entry_file}`;
 
-  apply_files_to_memory_fs(memFs, files);
+  apply_files_to_memory_fs(memFs, { 'plot-dev-plugin': files } );
+
+  console.log(`entry:`, entry)
+  let entry_string = memFs.readFileSync(entry).toString();
+  console.log(`entry_string:`, entry_string)
 
   // TODO Automatically install packages when requested ?
 
@@ -72,8 +77,6 @@ let compile = async ({ files, entry_file }) => {
   const compiler = webpack({
     context: '/',
     entry: entry,
-    // devtool: 'cheap-module-eval-source-map',
-    devtool: 'eval-source-map',
     output: {
       filename: "output.js",
       libraryTarget: 'commonjs2',
@@ -99,25 +102,25 @@ let compile = async ({ files, entry_file }) => {
       module: false,
       setImmediate: false,
     },
-    module: {
-      rules: [
-        {
-          test: /\.m?js$/,
-          exclude: /(node_modules|bower_components)/,
-          use: {
-            loader: require.resolve("babel-loader"),
-            options: {
-              plugins: [
-                require.resolve("@babel/plugin-syntax-dynamic-import"),
-                require.resolve("@babel/plugin-syntax-import-meta"),
-                [require.resolve("@babel/plugin-proposal-class-properties"), { loose: true }],
-                require.resolve("@babel/plugin-proposal-json-strings")
-              ]
-            }
-          }
-        }
-      ]
-    },
+    // module: {
+    //   rules: [
+    //     {
+    //       test: /\.m?js$/,
+    //       exclude: /(node_modules|bower_components)/,
+    //       use: {
+    //         loader: require.resolve("babel-loader"),
+    //         options: {
+    //           plugins: [
+    //             require.resolve("@babel/plugin-syntax-dynamic-import"),
+    //             require.resolve("@babel/plugin-syntax-import-meta"),
+    //             [require.resolve("@babel/plugin-proposal-class-properties"), { loose: true }],
+    //             require.resolve("@babel/plugin-proposal-json-strings")
+    //           ]
+    //         }
+    //       }
+    //     }
+    //   ]
+    // },
   });
 
   compiler.inputFileSystem = memFs;

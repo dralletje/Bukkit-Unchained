@@ -1,23 +1,12 @@
+// require('source-map-support').install();
+
 {
-  global.plugin = Polyglot.import('plugin');
+  // TODO Make entry bukkit-agnostic (and import bukkit and plugin locally in files)
+  global.plugin = global.plugin || Polyglot.import('plugin');
   global.server = global.plugin.getServer();
 
-  Object.assign(global, require("./builtins/timers.js"));
-  global.Buffer = require('buffer').Buffer;
-  global.navigator = {};
-  global.window = { navigator: global.navigator };
-  global.process = require('./builtins/process.js');
-  global.console = require("./builtins/console.js");
-
-  let Array_from = Array.from;
-  global.Array.from = (array, ...props) => {
-    if (Java.isJavaObject(array)) {
-      array = array.toArray ? array.toArray() : array;
-      return Java.from(array);
-    } else {
-      return Array_from(array, ...props);
-    }
-  }
+  // TODO Make this not depend on plugin
+  // https://stackoverflow.com/a/1026905/2681964
   let class_loader = global.plugin.getClass().getClassLoader();
   let findClass_method = class_loader.getClass().getDeclaredMethod("findClass", Java.type('java.lang.String'));
   findClass_method.setAccessible(true);
@@ -33,13 +22,22 @@
     }
   };
 
-
-  // TODO Make sure this is used
-  global.Runtime = global.Runtime || {};
-  global.Runtime.getHeapUsage = () => {
-    console.log('get heap usage');
+  let Array_from = Array.from;
+  global.Array.from = (array, ...props) => {
+    if (Java.isJavaObject(array)) {
+      array = array.toArray ? array.toArray() : array;
+      return Java.from(array);
+    } else {
+      return Array_from(array, ...props);
+    }
   }
-  global.bukkit = require('./bukkit.js');
+
+  global.Buffer = require('buffer').Buffer;
+  global.navigator = {};
+  global.window = { navigator: global.navigator };
+  global.process = require('./builtins/process.js');
+  global.console = require("./builtins/console.js");
+  Object.assign(global, require("./builtins/timers.js"));
 
   let path = require("path");
   let { Module } = require("./builtins/require.js");

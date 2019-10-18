@@ -6,7 +6,7 @@ module.exports = {
     PluginWorker: './src/PluginWorker',
   },
   mode: "development",
-  devtool: 'inline-source-map',
+  // devtool: 'eval-source-map',
   output: {
     filename: "[name].js",
     path: path.resolve(__dirname, "dist"),
@@ -16,30 +16,31 @@ module.exports = {
     bukkit: "commonjs bukkit",
     fs: "commonjs fs",
     vm: "commonjs vm",
+    vm2: "commonjs vm2",
     child_process: "commonjs child_process",
     worker_threads: "commonjs worker_threads",
     "bukkit/JavaPlugin": "commonjs bukkit/JavaPlugin",
     "aws-sdk": "empty"
   },
-  module: {
-    rules: [
-      {
-        test: /\.m?js$/,
-        exclude: /(node_modules|bower_components)/,
-        use: {
-          loader: "babel-loader",
-          options: {
-            plugins: [
-              "@babel/plugin-syntax-dynamic-import",
-              "@babel/plugin-syntax-import-meta",
-              ["@babel/plugin-proposal-class-properties", { loose: true }],
-              "@babel/plugin-proposal-json-strings"
-            ]
-          }
-        }
-      }
-    ]
-  },
+  // module: {
+  //   rules: [
+  //     {
+  //       test: /\.m?js$/,
+  //       exclude: /(node_modules|bower_components)/,
+  //       use: {
+  //         loader: "babel-loader",
+  //         options: {
+  //           plugins: [
+  //             "@babel/plugin-syntax-dynamic-import",
+  //             "@babel/plugin-syntax-import-meta",
+  //             ["@babel/plugin-proposal-class-properties", { loose: true }],
+  //             "@babel/plugin-proposal-json-strings"
+  //           ]
+  //         }
+  //       }
+  //     }
+  //   ]
+  // },
   node: {
     process: false,
     module: false,

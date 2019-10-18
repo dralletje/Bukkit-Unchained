@@ -216,7 +216,6 @@ export let make_adapters = filters => {
   let js_to_java_class = new WeakMap();
 
   class JavaObject {
-    static java_name = "java.lang.Object";
     constructor(java_object) {
       js_to_java_object.set(this, java_object);
     }
@@ -364,7 +363,7 @@ export let make_adapters = filters => {
     }
 
     class JavaAdapter extends SuperClass {
-      static java_name = java_class_name;
+      // static java_name = java_class_name;
 
       constructor(...args) {
         if (Java.isJavaObject(args[0])) {
@@ -455,13 +454,13 @@ export let make_adapters = filters => {
           let enum_value = adapt.from_java(java_class[name]);
           field_holder[name] = {
             value: enum_value,
-            writable: false,
-            configurable: false
+            // writable: false,
+            configurable: true
           };
         } else if (!field_holder.hasOwnProperty(name)) {
           field_holder[name] = {
             get: create_java_getter(name),
-            configurable: false
+            configurable: true
           };
         }
       }

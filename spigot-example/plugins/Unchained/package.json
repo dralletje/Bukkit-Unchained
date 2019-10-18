@@ -19,7 +19,8 @@
     "minecraft-data": "^2.39.1",
     "prismarine-nbt": "^1.2.1",
     "stream": "0.0.2",
-    "uuid-1345": "^0.99.7"
+    "uuid-1345": "^0.99.7",
+    "vm2": "^3.8.4"
   },
   "devDependencies": {
     "webpack": "^4.41.0",

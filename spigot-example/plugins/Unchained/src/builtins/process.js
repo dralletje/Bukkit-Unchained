@@ -17,7 +17,7 @@ module.exports = {
     true: false,
   },
   cwd: () => Polyglot.import("cwd"),
-  nextTick: setImmediate,
+  nextTick: (...args) => setImmediate(...args),
   // TODO Remove this? See where it being used?
   binding: (name) => {
     return Polyglot.import(name);

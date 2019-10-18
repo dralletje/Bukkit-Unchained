@@ -1,3 +1,5 @@
+let { ref } = require('./worker_threads');
+
 let plugin = Polyglot.import("plugin");
 let server = plugin.getServer();
 
@@ -16,11 +18,10 @@ let callback_to_runnable = callback => {
 let bukkit_set_timeout = (callback, delay_in_milliseconds) => {
   var delay = Math.ceil(delay_in_milliseconds / 50);
   var task = server.getScheduler().runTaskLater(plugin, callback_to_runnable(callback), delay);
-  return task.getTaskId();
-}
 
-let bukkit_clear_timeout = (task_id) => {
-  server.getScheduler().cancelTask(task_id);
+  let task_id = task.getTaskId();
+  ref({ close: () => bukkit_clear_task(task_id) });
+  return task_id;
 }
 
 let bukkit_set_interval = (callback, interval_in_milliseconds) => {
@@ -28,23 +29,31 @@ let bukkit_set_interval = (callback, interval_in_milliseconds) => {
   var task = server
     .getScheduler()
     .runTaskTimer(plugin, callback_to_runnable(callback), delay, delay);
-  return task.getTaskId();
-}
-let bukkit_clear_interval = (task_id) => {
-  server.getScheduler().cancelTask(task_id);
+
+    let task_id = task.getTaskId();
+    ref({ close: () => bukkit_clear_task(task_id) });
+    return task_id;
 }
 
 let setImmediate = (callback) => {
-  server
+  let task = server
     .getScheduler()
     .runTask(plugin, callback_to_runnable(callback));
+
+  let task_id = task.getTaskId();
+  ref({ close: () => bukkit_clear_task(task_id) });
+  return task_id;
 };
+
+let bukkit_clear_task = (task_id) => {
+  server.getScheduler().cancelTask(task_id);
+}
 
 module.exports = {
   setTimeout: bukkit_set_timeout,
-  clearTimeout: bukkit_clear_timeout,
   setInterval: bukkit_set_interval,
-  clearInterval: bukkit_clear_interval,
-  clearImmediate: bukkit_clear_interval,
   setImmediate: setImmediate,
+  clearTimeout: bukkit_clear_task,
+  clearInterval: bukkit_clear_task,
+  clearImmediate: bukkit_clear_task,
 };

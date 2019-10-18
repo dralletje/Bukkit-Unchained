@@ -25,6 +25,9 @@ let context = process.binding('context');
 let plugin = process.binding('plugin');
 export let workerData = Java_to_js(process.binding('workerData'));
 
+// TODO Add listener of some sort to keep updated
+export let isMainThread = plugin.getServer().isPrimaryThread();
+
 export let ref = (closable) => {
   if (Java.isJavaObject(closable)) {
     context.addClosable(closable);
@@ -48,9 +51,10 @@ export class Worker extends EventEmitter {
     // console.log(`java_worker_data:`, java_worker_data)
     WorkerContext.static.createAsync(plugin, java_worker_data, url_or_script, (error, result) => {
       if (error != null) {
-        console.log(`error:`, error)
+        console.log(`createAsync error:`, error)
         this.emit('error', error);
       } else {
+        console.log('ONLINE!');
         this.emit('online');
         this.context = result;
       }
@@ -62,6 +66,14 @@ export class Worker extends EventEmitter {
       throw new Error('Worker not yet online');
     }
     this.context.postMessage(htmlLikeClone(message));
+  }
+
+  terminate() {
+    if (this.context == null) {
+      throw new Error('Context already terminated');
+    }
+    this.context.close();
+    this.context = null;
   }
 }
 

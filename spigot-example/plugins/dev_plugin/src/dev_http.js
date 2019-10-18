@@ -5,10 +5,6 @@ let { ref, Worker } = require('worker_threads');
 
 let uuid = require('uuid/v4');
 
-// let webpack = require('./webpack.js');
-// webpack.default('1 + 1').then((we) => {
-//   console.log(`webpack:`, we)
-// })
 let Packet = require('./Packet.js');
 
 let parse_input_json = (exchange) => {
@@ -93,8 +89,13 @@ module.exports = (plugin) => {
     let active_plot = active_plots.get(db_plot.plot_id);
     if (active_plot != null) {
       try {
-        active_plot.context.close()
-      } catch {}
+        active_plot.worker.terminate()
+        console.log(`${ChatColor.GREEN}Worker terminated succesfully`)
+      } catch(err) {
+        console.log(`Closing err:`, err)
+      }
+    } else {
+      console.log('First time booting this worker');
     }
 
     let main_path = plugin.java.getDescription().getMain();
@@ -305,17 +306,17 @@ module.exports = (plugin) => {
     }
   }
 
-  plugin.command('set', {
-    onCommand: (player, _1, _2, args) => {
-      return true;
-    },
-    onTabComplete: (player, _1, _2, args) => {
-      let result = ['hey', 'wow', 'cool'];
-      let text = args[0];
-
-      return result.filter(x => x.startsWith(text));
-    },
-  });
+  // plugin.command('set', {
+  //   onCommand: (player, _1, _2, args) => {
+  //     return true;
+  //   },
+  //   onTabComplete: (player, _1, _2, args) => {
+  //     let result = ['hey', 'wow', 'cool'];
+  //     let text = args[0];
+  //
+  //     return result.filter(x => x.startsWith(text));
+  //   },
+  // });
 
   // Packet.addOutgoingPacketListener(Packet.fromServer.TAB_COMPLETE, event => {
   //   console.log(`event.getData():`, event.getData())
@@ -352,8 +353,4 @@ module.exports = (plugin) => {
       send_response(exchange, { error: { message: err.message, stack: err.stack } });
     }
   });
-
-  // let sync_commands = get_private_method(server, 'syncCommands');
-  // console.log(`get_private_property(server, 'syncCommands':`, );
-  // sync_commands();
 }
