@@ -1,5 +1,8 @@
 import { EventEmitter } from 'events';
-import { PassThrough } from 'stream';
+import { PassThrough , Readable } from 'readable-stream';
+
+// console.log(`Readable.prototype[Symbol.asyncIterator]:`, Readable.prototype[Symbol.asyncIterator])
+// PassThrough.prototype[Symbol.asyncIterator] = Readable.prototype[Symbol.asyncIterator];
 
 let WorkerContext = Java_type('eu.dral.unchained.WorkerContext');
 // let InterContextValue = WorkerContext.static.InterContextValue;
@@ -64,7 +67,7 @@ let create_outputstream = () => {
     }
   });
   return {
-    java: new StdOut(),
+    java: new WorkerContext.static.AsyncOutputStream(plugin, new StdOut()),
     javascript: js_stream,
   }
 }

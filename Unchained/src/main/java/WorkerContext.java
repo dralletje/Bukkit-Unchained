@@ -8,12 +8,15 @@ import org.graalvm.polyglot.Engine;
 
 import java.io.File;
 import java.io.OutputStream;
+import java.io.BufferedOutputStream;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.lang.AutoCloseable;
 
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import org.reflections.Reflections;
 
@@ -154,8 +157,6 @@ public class WorkerContext implements AutoCloseable {
         (error, value) -> callback.executeVoid(error, value),
         () -> {
           // System.out.println("create callback");
-          System.out.println("out #1: " + String.valueOf(out));
-          System.out.println("err #1: " + String.valueOf(err));
           return new WorkerContext(file_to_load, plugin, workerData, out, err);
         }
       );
@@ -168,9 +169,6 @@ public class WorkerContext implements AutoCloseable {
       return createContext(exposed_context, out, System.err);
     }
     static public Context createContext(ExposedContext exposed_context, OutputStream out, OutputStream err) {
-      System.out.println("out #3: " + String.valueOf(out));
-      System.out.println("err #3: " + String.valueOf(err));
-
       Engine engine = Engine.newBuilder().build();
 
       Context context = Context.newBuilder("js")
@@ -199,15 +197,55 @@ public class WorkerContext implements AutoCloseable {
       return context;
     }
 
+    public static class AsyncOutputStream extends OutputStream {
+      private Plugin plugin = null;
+      private BufferedOutputStream buffer = null;
+      private BukkitTask task = null;
+
+      public AsyncOutputStream(Plugin plugin, OutputStream destination) {
+        this.plugin = plugin;
+        this.buffer = new BufferedOutputStream(destination);
+      }
+
+      private void schedule() {
+        if (this.task == null) {
+          this.task = this.plugin.getServer().getScheduler().runTask(plugin, () -> {
+            this.task = null;
+            try {
+              this.buffer.flush();
+            } catch (Exception error) {
+              error.printStackTrace()
+            }
+          });
+        }
+      }
+
+      public void write(byte[] b, int off, int len) throws java.io.IOException {
+        this.buffer.write(b, off, len);
+        this.schedule();
+      }
+
+      public void write(byte[] b) throws java.io.IOException {
+        this.buffer.write(b);
+        this.schedule();
+      }
+
+      public void write(int b) throws java.io.IOException {
+        this.buffer.write(b);
+        this.schedule();
+      }
+    }
+
     public WorkerContext(String file_to_load, Plugin plugin) throws Exception {
       this(file_to_load, plugin, null, System.out, System.err);
     }
     public WorkerContext(String file_to_load, Plugin plugin, Object workerData, OutputStream out, OutputStream err) throws Exception {
-      System.out.println("out #2: " + String.valueOf(out));
-      System.out.println("err #2: " + String.valueOf(err));
+      // System.out.println("out #2: " + String.valueOf(out));
+      // System.out.println("err #2: " + String.valueOf(err));
+
 
       this.exposed_context = new WorkerContext.ExposedContext();
-
+      this.plugin = plugin;
       try {
         Context context = WorkerContext.createContext(this.exposed_context, out, err);
         context.getPolyglotBindings().putMember("workerData", workerData);
