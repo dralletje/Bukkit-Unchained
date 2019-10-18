@@ -1,5 +1,4 @@
 let { range, sortBy, throttle, random } = require("lodash");
-let { ChatColor, Material, BlockFace } = require("bukkit");
 
 let { delay, precondition, queue_function } = require("./util.js");
 let Packet = require("./Packet.js");
@@ -13,9 +12,11 @@ let {
 } = require("./Geometry.js");
 let { Drone } = require("./Drone.js");
 
+let ChatColor = Java.type('org.bukkit.ChatColor');
+let Material = Java.type('org.bukkit.Material');
+let BlockFace = Java.type("org.bukkit.block.BlockFace");
 let Vector = Java.type("org.bukkit.util.Vector");
 let Location = Java.type("org.bukkit.Location");
-
 let Directional = Java.type("org.bukkit.block.data.Directional");
 let Rotatable = Java.type("org.bukkit.block.data.Rotatable");
 let Bisected = Java.type("org.bukkit.block.data.Bisected");

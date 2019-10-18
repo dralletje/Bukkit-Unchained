@@ -7,6 +7,7 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.Engine;
 
 import java.io.File;
+import java.io.OutputStream;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.concurrent.Callable;
@@ -139,19 +140,37 @@ public class WorkerContext implements AutoCloseable {
       return null;
     }
 
-    static public void createAsync(Plugin plugin, Object workerData, String file_to_load, Value callback)  {
+    static public void createAsync(
+      Plugin plugin,
+      Object workerData,
+      String file_to_load,
+      OutputStream out,
+      OutputStream err,
+      Value callback
+    )  {
       // System.out.println("create start");
       WorkerContext.async(
         plugin,
         (error, value) -> callback.executeVoid(error, value),
         () -> {
           // System.out.println("create callback");
-          return new WorkerContext(file_to_load, plugin, workerData);
+          System.out.println("out #1: " + String.valueOf(out));
+          System.out.println("err #1: " + String.valueOf(err));
+          return new WorkerContext(file_to_load, plugin, workerData, out, err);
         }
       );
     }
 
     static public Context createContext(ExposedContext exposed_context) {
+      return createContext(exposed_context, System.out);
+    }
+    static public Context createContext(ExposedContext exposed_context, OutputStream out) {
+      return createContext(exposed_context, out, System.err);
+    }
+    static public Context createContext(ExposedContext exposed_context, OutputStream out, OutputStream err) {
+      System.out.println("out #3: " + String.valueOf(out));
+      System.out.println("err #3: " + String.valueOf(err));
+
       Engine engine = Engine.newBuilder().build();
 
       Context context = Context.newBuilder("js")
@@ -166,12 +185,14 @@ public class WorkerContext implements AutoCloseable {
         .option("js.polyglot-builtin", "true")
         .option("js.nashorn-compat", "false")
         .option("js.print", "false")
+        .option("js.java-package-globals", "false")
         .option("js.graal-builtin", "false")
+        .out(out)
+        .err(err)
         .build();
 
       Reflections reflections = WorkerContext.reflections;
       context.getPolyglotBindings().putMember("reflections", reflections);
-      context.getPolyglotBindings().putMember("context", exposed_context);
       context.getPolyglotBindings().putMember("cwd", System.getProperty("user.dir"));
       // context.getPolyglotBindings().putMember("cwd", this.getDataFolder().getAbsolutePath());
 
@@ -179,17 +200,19 @@ public class WorkerContext implements AutoCloseable {
     }
 
     public WorkerContext(String file_to_load, Plugin plugin) throws Exception {
-      this(file_to_load, plugin, null);
+      this(file_to_load, plugin, null, System.out, System.err);
     }
-    public WorkerContext(String file_to_load, Plugin plugin, Object workerData) throws Exception {
-      this.plugin = plugin;
+    public WorkerContext(String file_to_load, Plugin plugin, Object workerData, OutputStream out, OutputStream err) throws Exception {
+      System.out.println("out #2: " + String.valueOf(out));
+      System.out.println("err #2: " + String.valueOf(err));
+
       this.exposed_context = new WorkerContext.ExposedContext();
 
       try {
-        Context context = WorkerContext.createContext(this.exposed_context);
+        Context context = WorkerContext.createContext(this.exposed_context, out, err);
         context.getPolyglotBindings().putMember("workerData", workerData);
+        context.getPolyglotBindings().putMember("context", exposed_context);
         context.getPolyglotBindings().putMember("plugin", plugin);
-        context.getPolyglotBindings().putMember("server", plugin.getServer());
         this.context = context;
 
         Value module_value_for_webpack = this.context.eval("js", "({ exports: {} })");
@@ -240,21 +263,31 @@ public class WorkerContext implements AutoCloseable {
       return this.context.eval("js", source);
     }
 
-    public void close() {
+    public void reset() {
       try {
-        // this.postMessage(new InterContextValue("close"));
         this.postMessage("close");
       } catch  (Exception error) {
         error.printStackTrace();
       }
-
-      // System.out.println("Before closeAll");
       try {
         this.exposed_context.closeAll();
       } catch (Exception error) {
         error.printStackTrace();
       }
-      // System.out.println("After closeAll");
+    }
+
+    public void close() {
+      try {
+        this.postMessage("close");
+      } catch  (Exception error) {
+        error.printStackTrace();
+      }
+
+      try {
+        this.exposed_context.closeAll();
+      } catch (Exception error) {
+        error.printStackTrace();
+      }
 
       try {
         this.context.close(true);

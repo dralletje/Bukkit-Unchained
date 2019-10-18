@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import path from 'path';
+import { PassThrough } from 'stream';
 
 let WorkerContext = Java_type('eu.dral.unchained.WorkerContext');
 // let InterContextValue = WorkerContext.static.InterContextValue;
@@ -38,18 +38,61 @@ export let ref = (closable) => {
   return closable.close;
 }
 
+let StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
+let JavaString = Java.type("java.lang.String");
+class JavaBuffer {
+  constructor(java_bytes) {
+    this.java_bytes = java_bytes;
+  }
+
+  toString() {
+    return new JavaString(this.java_bytes, StandardCharsets.UTF_8);
+  }
+}
+
+let OutputStream = Java.type('java.io.OutputStream');
+let create_outputstream = () => {
+  let js_stream = new PassThrough();
+
+  let StdOut = Java.extend(OutputStream, {
+    write: (bytes) => {
+      if (bytes.getClass().equals(Java.type('byte[]').class)) {
+        js_stream.write((new JavaBuffer(bytes)).toString(), 'utf8')
+      } else {
+        js_stream.write(new Buffer([bytes]))
+      }
+    }
+  });
+  return {
+    java: new StdOut(),
+    javascript: js_stream,
+  }
+}
+
 export class Worker extends EventEmitter {
-  constructor(url_or_script, options = {}) {
+  constructor(url_or_script, { stdout = false, stderr = false, workerData } = {}) {
     super();
     this.context = null;
 
-    if (options.eval === true) {
-      throw new Error("I don't support eval just yet");
+
+
+    let stdout_stream = Java.type('java.lang.System').out;
+    if (stdout === true) {
+      let outputstream = create_outputstream();
+      stdout_stream = outputstream.java;
+      this.stdout = outputstream.javascript;
     }
 
-    let java_worker_data = htmlLikeClone(options.workerData);
+    let stderr_stream = Java.type('java.lang.System').err;
+    if (stderr === true) {
+      let outputstream = create_outputstream();
+      stderr_stream = outputstream.java;
+      this.stderr = outputstream.javascript;
+    }
+
+    let java_worker_data = htmlLikeClone(workerData);
     // console.log(`java_worker_data:`, java_worker_data)
-    WorkerContext.static.createAsync(plugin, java_worker_data, url_or_script, (error, result) => {
+    WorkerContext.static.createAsync(plugin, java_worker_data, url_or_script, stdout_stream, stderr_stream, (error, result) => {
       if (error != null) {
         console.log(`createAsync error:`, error)
         this.emit('error', error);

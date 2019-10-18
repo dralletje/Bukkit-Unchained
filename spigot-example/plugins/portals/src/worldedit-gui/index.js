@@ -1,19 +1,14 @@
-let {
-  ChatColor,
-  Material,
-  DyeColor,
-  PatternType,
-  // Tag,
-  Pattern
-} = require("bukkit");
 let { chunk, flatten } = require("lodash");
-
-let Tag = Java_type("com.sk89q.worldedit.world.block.BlockCategories").static;
-
-let Bukkit = Java.type("org.bukkit.Bukkit");
-let ItemStack = Java.type("org.bukkit.inventory.ItemStack");
-
 let Mask = require("./Mask.js");
+
+let DyeColor = Java.type("org.bukkit.DyeColor");
+let ChatColor = Java.type("org.bukkit.ChatColor");
+let Material = Java.type("org.bukkit.Material");
+let PatternType = Java.type("org.bukkit.block.banner.PatternType");
+let Pattern = Java.type("org.bukkit.block.banner.Pattern");
+let ItemStack = Java.type("org.bukkit.inventory.ItemStack");
+let Tag = Java_type("com.sk89q.worldedit.world.block.BlockCategories").static;
+let Bukkit = Java.type("org.bukkit.Bukkit");
 
 let InventoryHolder = Java.type("org.bukkit.inventory.InventoryHolder");
 let WorldEdit_Mask_Holder = new (Java.extend(InventoryHolder, {}))();

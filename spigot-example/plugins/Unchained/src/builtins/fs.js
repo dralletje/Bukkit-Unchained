@@ -1,7 +1,6 @@
 let path_module = require("path");
 
 let File = Java.type("java.io.File");
-let JavaString = Java.type("java.lang.String");
 
 let StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
 let NioFiles = Java.type("java.nio.file.Files");
@@ -10,6 +9,7 @@ let { get: path_from_string } = Java.type("java.nio.file.Paths");
 // TODO I want to convert as much as possible to the newer `java.nio.file.Files` api
 // https://docs.oracle.com/javase/7/docs/api/index.html?java/nio/file/Files.html
 
+let JavaString = Java.type("java.lang.String");
 class JavaBuffer {
   constructor(java_bytes) {
     this.java_bytes = java_bytes;

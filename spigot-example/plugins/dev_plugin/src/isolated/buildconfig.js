@@ -3,7 +3,7 @@ import { range } from 'lodash';
 
 let Location = Java.type("org.bukkit.Location");
 let Material = Java.type('org.bukkit.Material');
-let server = Polyglot.import('server');
+let server = Polyglot.import('plugin').getServer();
 
 let world = server.getWorlds()[0];
 

@@ -33,6 +33,27 @@ let AceTheme = styled.div`
     height: 100%;
   }
 
+  .ace_gutter-cell {
+    padding-left: 0;
+  }
+
+  .ace_print-margin {
+    display: none;
+  }
+
+  .ace_fold {
+    margin-left: 10px;
+    margin-right: 10px;
+    background: none;
+    color: white;
+
+    margin-top: auto;
+    height: auto;
+    vertical-align: auto;
+    border: none;
+    border-radius: none;
+  }
+
   .ace_editor .ace_marker-layer {
     .ace_bracket,
     .ace_selected-word {
@@ -47,11 +68,24 @@ let AceTheme = styled.div`
     }
   }
 
-  .ace_print-margin {
-    display: none;
-  }
-
   .ace-solarized-dark {
+    .ace_fold {
+      background: none;
+      color: white;
+      border: none;
+    }
+    .ace_gutter {
+      background: #1c2025;
+      color: #657a81;
+    }
+    .ace_gutter-active-line {
+      background-color: #2e2e2e;
+    }
+    .ace_info,
+    .ace_warning {
+      background: none !important;
+    }
+
     .ace_cursor {
       color: #d0d0d0;
     }
@@ -156,7 +190,7 @@ let AceCodeblock = ({
         value={value}
         onChange={onChange}
         readOnly={readOnly}
-        showGutter={false}
+        // showGutter={false}
         wrapEnabled={true}
         setOptions={{
           highlightActiveLine: false,
@@ -170,6 +204,15 @@ let AceCodeblock = ({
             editor.container.style.lineHeight = "24px";
             editor.renderer.updateFontSize();
             editor.$blockScrolling = Infinity;
+            editor.session.gutterRenderer =  {
+              getWidth: function(session, lastLineNumber, config) {
+                  return lastLineNumber.toString().length * config.characterWidth;
+              },
+              getText: function(session, row) {
+                return row;
+                  // return String.fromCharCode(row + 65);
+              }
+            };
             innerRef(editor);
           } else {
             innerRef(null);

@@ -1,11 +1,5 @@
-let { ChatColor } = require('bukkit');
+let ChatColor = Java.type('org.bukkit.ChatColor');
 let { inspect } = require('util');
-
-// var COLOR_CHAR = "\u00a7";
-var color = function(number) {
-  return ChatColor.getByChar(number);
-  // return COLOR_CHAR + number;
-};
 
 var _getProperties = function(object) {
   try {
@@ -138,12 +132,9 @@ var onTabComplete = (plugin, player, args) => {
       try {
         current_result = current_result();
       } catch (err) {
-        player.sendMessage(
-          `${color("c")}Failed to call ${color(
-            4
-          )}'${loosy_as_property}()'${color("c")}, got error:`
-        );
-        player.sendMessage(`${color(4)}${err.message}`);
+        // prettier-ignore
+        player.sendMessage(`${ChatColor.DARK_RED}Failed to call ${ChatColor.RED}'${loosy_as_property}()'${ChatColor.DARK_RED}, got error:`);
+        player.sendMessage(`${ChatColor.RED}${err.message}`);
         return [`ERROR: See chat`];
       }
     }

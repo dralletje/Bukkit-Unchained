@@ -1,5 +1,4 @@
 import { EventEmitter } from "events";
-import { mapValues } from "lodash";
 import { parentPort } from "worker_threads";
 
 import { JavaPlugin } from "bukkit/JavaPlugin";
@@ -15,10 +14,11 @@ import Packet from "./Packet.js";
 
 import { VM } from "vm2";
 
-let { ChatColor } = require("bukkit");
+let server = process.binding('plugin').getServer();
+
+let ChatColor = Java.type('org.bukkit.ChatColor');
 let float = n => Java.type("java.lang.Float").parseFloat(String(n));
 
-let server = Polyglot.import("server");
 let Location = Java.type("org.bukkit.Location");
 
 let start_timer = label => {
@@ -256,8 +256,8 @@ export let create_isolated_plugin = ({
     getOnlinePlayers: () => Array.from(playing_player.values()).map(x =>
       adapt.from_java(isolated_server.getPlayer(x))
     ),
-    getPlayer: (name) => adapt.from_java(server.getPlayer(name)),
-    getPlayerExact: () => {},
+    getPlayer: (...args) => isolated_server.getPlayer(...args),
+    getPlayerExact: (...args) => isolated_server.getPlayerExact(...args),
     getScheduler: () => {},
     getTag: () => {},
     getTags: () => {},

@@ -1,11 +1,11 @@
 let { MongoClient } = require('./mongo.js');
-let { ChatColor } = require('bukkit');
-let server = Polyglot.import('server');
 let { ref, Worker } = require('worker_threads');
 
 let uuid = require('uuid/v4');
 
-let Packet = require('./Packet.js');
+let ChatColor = Java.type('org.bukkit.ChatColor');
+
+// let Packet = require('./Packet.js');
 
 let parse_input_json = (exchange) => {
   let Collectors = Java.type('java.util.stream.Collectors');
@@ -88,6 +88,16 @@ module.exports = (plugin) => {
 
     let active_plot = active_plots.get(db_plot.plot_id);
     if (active_plot != null) {
+      // Wait for the plot to come online first, if it is still booting...
+      if (active_plot.active === false) {
+        console.log(`${ChatColor.ORANGE}Worker was not yet done initializing`);
+        await new Promise((resolve, reject) => {
+          worker.once('online', resolve);
+          worker.once('error', resolve);
+        });
+      }
+
+      // ...before I slaughter er
       try {
         active_plot.worker.terminate()
         console.log(`${ChatColor.GREEN}Worker terminated succesfully`)
@@ -107,7 +117,20 @@ module.exports = (plugin) => {
         mongo_url: 'https://google.com/search',
         entry_path: main_path,
       },
+      // stdout: true,
+      // stderr: true,
     });
+
+    (async () => {
+      for await (let message of worker.stdout) {
+        console.log(message.trimEnd());
+      }
+    })();
+    (async () => {
+      for await (let message of worker.stderr) {
+        console.log(message.trimEnd());
+      }
+    })();
 
     active_plots.set(db_plot.plot_id, {
       worker: worker,
@@ -116,7 +139,7 @@ module.exports = (plugin) => {
 
     await new Promise((resolve, reject) => {
       worker.once('online', resolve);
-      // worker.once('error', reject);
+      worker.once('error', reject);
     });
 
     active_plots.set(db_plot.plot_id, {
@@ -128,7 +151,7 @@ module.exports = (plugin) => {
   for (let db_plot of plots.find({}).toArray()) {
     // console.log(`db_plot:`, db_plot);
     refresh_plot(db_plot).catch(err => {
-      console.log(`Refresh plot '${db_plot.plot_id}' err:`, err)
+      console.error(`Refresh plot '${db_plot.plot_id}' err:`, err)
     })
   }
 
@@ -232,7 +255,7 @@ module.exports = (plugin) => {
       }
     },
     onTabComplete: () => {
-      return ['hey'];
+      return [];
     }
   });
 
@@ -306,28 +329,20 @@ module.exports = (plugin) => {
     }
   }
 
-  // plugin.command('set', {
-  //   onCommand: (player, _1, _2, args) => {
-  //     return true;
-  //   },
-  //   onTabComplete: (player, _1, _2, args) => {
-  //     let result = ['hey', 'wow', 'cool'];
-  //     let text = args[0];
-  //
-  //     return result.filter(x => x.startsWith(text));
-  //   },
-  // });
-
   // Packet.addOutgoingPacketListener(Packet.fromServer.TAB_COMPLETE, event => {
   //   console.log(`event.getData():`, event.getData())
   // })
 
   console.log('Http server');
-  let http_server = create_http_server(8001, (exchange) => {
+  let http_server = create_http_server(8001, async (exchange) => {
     try {
       let body = parse_input_json(exchange);
 
       let plot = plots.findOne({ password: body.key });
+
+      if (plot == null) {
+        throw new Error(`Plot for key not found`);
+      }
 
       exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
       exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -338,12 +353,8 @@ module.exports = (plugin) => {
           script: body.script,
         },
       });
-      refresh_plot(plot.plot_id).catch(error => {
-        console.log(`error:`, error)
-      });
 
-      // TODO Make this use the local `require` so it can import bukkit
-      // Polyglot.eval('js', `((${injects.map(x => x.name).join(', ')}) => { ${body.script} })`)(...injects.map(x => x.value));
+      await refresh_plot(plot.plot_id)
 
       // send_response(exchange, { result: make_value_plain(new_module.exports) })
       send_response(exchange, { result: {} })

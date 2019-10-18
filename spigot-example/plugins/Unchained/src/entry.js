@@ -1,13 +1,10 @@
 // require('source-map-support').install();
 
 {
-  // TODO Make entry bukkit-agnostic (and import bukkit and plugin locally in files)
-  global.plugin = global.plugin || Polyglot.import('plugin');
-  global.server = global.plugin.getServer();
-
   // TODO Make this not depend on plugin
   // https://stackoverflow.com/a/1026905/2681964
-  let class_loader = global.plugin.getClass().getClassLoader();
+  let plugin = Polyglot.import('plugin');
+  let class_loader = plugin.getClass().getClassLoader();
   let findClass_method = class_loader.getClass().getDeclaredMethod("findClass", Java.type('java.lang.String'));
   findClass_method.setAccessible(true);
   global.Java_type = (name) => {

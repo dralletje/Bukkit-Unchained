@@ -1,7 +1,8 @@
 let { sortBy } = require('lodash');
 let math = require("mathjs");
-let { BlockFace } = require('bukkit');
 
+let ChatColor = Java.type('org.bukkit.ChatColor');
+let BlockFace = Java.type('org.bukkit.block.BlockFace');
 let { precondition } = require('./util.js');
 
 let Vector = Java.type("org.bukkit.util.Vector");

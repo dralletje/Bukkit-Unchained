@@ -129,9 +129,9 @@ let builtin_module_map = {
   vm2: () => require('../vm2/vm2.js'),
   path: () => require('path'),
   util: () => require('./util.js'),
-  bukkit: () => require('../bukkit.js'),
   child_process: () => require('./child_process.js'),
   worker_threads: () => require('./worker_threads.js'),
+  bukkit: () => require('../bukkit/bukkit.js'),
   'bukkit/JavaPlugin': () => require('../bukkit/JavaPlugin.js'),
 };
 

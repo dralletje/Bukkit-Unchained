@@ -1,4 +1,4 @@
-let { ChatColor, Unchained } = require('../bukkit.js');
+let { Unchained } = require('./bukkit.js');
 let { ref } = require('worker_threads');
 
 let bukkit_EventPriority = Java.type('org.bukkit.event.EventPriority');

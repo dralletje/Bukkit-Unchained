@@ -15,30 +15,33 @@ let callback_to_runnable = callback => {
   return _runnable;
 };
 
-let bukkit_set_timeout = (callback, delay_in_milliseconds) => {
+let bukkit_set_timeout = (callback, delay_in_milliseconds, ...args) => {
   var delay = Math.ceil(delay_in_milliseconds / 50);
-  var task = server.getScheduler().runTaskLater(plugin, callback_to_runnable(callback), delay);
+  let runnable = callback_to_runnable(callback.bind(null, ...args));
+  var task = server.getScheduler().runTaskLater(plugin, runnable, delay);
 
   let task_id = task.getTaskId();
   ref({ close: () => bukkit_clear_task(task_id) });
   return task_id;
 }
 
-let bukkit_set_interval = (callback, interval_in_milliseconds) => {
+let bukkit_set_interval = (callback, interval_in_milliseconds, ...args) => {
   var delay = Math.ceil(interval_in_milliseconds / 50);
+  let runnable = callback_to_runnable(callback.bind(null, ...args));
   var task = server
     .getScheduler()
-    .runTaskTimer(plugin, callback_to_runnable(callback), delay, delay);
+    .runTaskTimer(plugin, runnable, delay, delay);
 
     let task_id = task.getTaskId();
     ref({ close: () => bukkit_clear_task(task_id) });
     return task_id;
 }
 
-let setImmediate = (callback) => {
+let setImmediate = (callback, ...args) => {
+  let runnable = callback_to_runnable(callback.bind(null, ...args));
   let task = server
     .getScheduler()
-    .runTask(plugin, callback_to_runnable(callback));
+    .runTask(plugin, runnable);
 
   let task_id = task.getTaskId();
   ref({ close: () => bukkit_clear_task(task_id) });

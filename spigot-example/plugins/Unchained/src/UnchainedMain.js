@@ -3,7 +3,7 @@ let { Reflection } = require("./Java.js");
 let path = require("path");
 let fs = require("fs");
 
-let server = process.binding("server");
+let server = process.binding("plugin").getServer();
 
 let get_commandmap = () => {
   return Reflection.get_private_field(server, "commandMap");

@@ -1,6 +1,6 @@
-let { ChatColor } = require('bukkit');
-
 let { JavaPlugin } = require('bukkit/JavaPlugin');
+
+let ChatColor = Java.type('org.bukkit.ChatColor');
 
 console.log('---')
 let plugin = new JavaPlugin();
