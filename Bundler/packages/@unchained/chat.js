@@ -5,7 +5,7 @@ let HoverEvent = Java.type('net.md_5.bungee.api.chat.HoverEvent');
 
 // NOTE: SHOW_ENTITY is completely useless
 
-export let chat = (strings, ...components) => {
+let chat = (strings, ...components) => {
   let builder = new ComponentBuilder("");
 
   for (let string of strings) {
@@ -58,14 +58,4 @@ for (let color of ChatColor.values()) {
   }
 }
 
-export let adapted = (adapt) => {
-  let adapted_chat = (...args) => adapt.from_java(chat(...args));
-
-  for (let [key, fn] of chat) {
-    if (typeof fn === 'function') {
-      adapted_chat[key] = (...args) => adapt.from_java(chat[key](...args));
-    }
-  }
-
-  return adapted_chat;
-}
+export default chat;

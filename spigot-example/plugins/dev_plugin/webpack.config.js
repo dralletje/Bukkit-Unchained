@@ -4,6 +4,7 @@ module.exports = {
   entry: {
     dev_plugin: "./src/index.js",
     PluginWorker: './src/PluginWorker',
+    WebsocketWorker: './src/WebsocketWorker',
   },
   mode: "development",
   // devtool: 'eval-source-map',

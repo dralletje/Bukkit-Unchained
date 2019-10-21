@@ -1,5 +1,5 @@
 let { Unchained } = require('./bukkit.js');
-let { ref } = require('worker_threads');
+let { ref, java_fn } = require('worker_threads');
 
 let bukkit_EventPriority = Java.type('org.bukkit.event.EventPriority');
 
@@ -42,7 +42,7 @@ let make_addEventListener_for_plugin = (plugin) => {
       eventType.class || eventType,
       listener,
       priority_symbol,
-      eventExecutor,
+      java_fn(eventExecutor),
       plugin
     );
 

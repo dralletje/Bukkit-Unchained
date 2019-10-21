@@ -44,8 +44,6 @@
 
     global.require = sub_module.require;
     let result = sub_module.require('./' + file);
-
-    // console.log(`result:`, result);
     return result;
   };
 }

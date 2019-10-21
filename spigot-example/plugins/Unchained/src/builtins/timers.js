@@ -1,19 +1,9 @@
-let { ref } = require('./worker_threads');
+let { ref, java_fn } = require('./worker_threads');
 
 let plugin = Polyglot.import("plugin");
 let server = plugin.getServer();
 
-let Runnable = Java.type("java.lang.Runnable");
-
-let callback_to_runnable = callback => {
-  let MyRunnable = Java.extend(Runnable, {
-    run: function() {
-      callback();
-    }
-  });
-  let _runnable = new MyRunnable();
-  return _runnable;
-};
+let callback_to_runnable = callback => java_fn(callback).asRunnable();
 
 let bukkit_set_timeout = (callback, delay_in_milliseconds, ...args) => {
   var delay = Math.ceil(delay_in_milliseconds / 50);

@@ -253,11 +253,9 @@ export let create_isolated_plugin = ({
     getOfflinePlayer: () => {},
     getOfflinePlayers: () => {},
     getOperators: () => {},
-    getOnlinePlayers: () => Array.from(playing_player.values()).map(x =>
-      adapt.from_java(isolated_server.getPlayer(x))
-    ),
-    getPlayer: (...args) => isolated_server.getPlayer(...args),
-    getPlayerExact: (...args) => isolated_server.getPlayerExact(...args),
+    getOnlinePlayers: () => Array.from(playing_player.values()).map(x => (isolated_server.getPlayer(x))),
+    getPlayer: (...args) => adapt.from_java(server.getPlayer(...args)),
+    getPlayerExact: (...args) => adapt.from_java(server.getPlayerExact(...args)),
     getScheduler: () => {},
     getTag: () => {},
     getTags: () => {},
@@ -277,11 +275,6 @@ export let create_isolated_plugin = ({
     buildconfig: isolated_buildconfig,
     world: main_world,
     getServer: () => isolated_server,
-    // createNamespacedKey: name => {
-    //   let NamespacedKey = Java.type("org.bukkit.NamespacedKey");
-    //   return new NamespacedKey(plugin.java, `${session_id}.${name}`);
-    // },
-    get_class: adapt.get_class,
     events: isolated_events
   };
 
@@ -300,26 +293,35 @@ export let create_isolated_plugin = ({
     exports: injected_module.exports,
     loadWithNewGlobal: null,
     load: null,
-    print: null,
-    printErr: null,
-    org: null,
-    com: null,
-    edu: null,
-    // Java: null,
-    Graal: null,
-    Packages: null,
-    javafx: null,
-    java: null,
-    javax: null,
+    Java: { type: adapt.get_class },
     Java_type: null,
+    // Graal: null,
+    // Packages: null,
+    // javafx: null,
+    // java: null,
+    // javax: null,
+    // print: null,
+    // printErr: null,
+    // org: null,
+    // com: null,
+    // edu: null,
   }
 
   try {
     let vm = new VM({ sandbox });
+    // vm.run(source);
     let eval_fn = vm.run(`(source) => eval(source)`);
     eval_fn(source);
-  } catch (err) {
-    console.log(`sandbox err:`, err);
+    parentPort.postMessage({
+      type: 'booted',
+    });
+  } catch (error) {
+    parentPort.postMessage({
+      type: 'error',
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
   }
 
   /* My vm-creation graveyard */

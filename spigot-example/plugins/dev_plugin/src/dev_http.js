@@ -1,41 +1,16 @@
-let { MongoClient } = require("./mongo.js");
 let { ref, Worker } = require("worker_threads");
-
 let uuid = require("uuid/v4");
+
+let { MongoClient } = require("./mongo.js");
+let { chat } = require("./chat.js");
 
 let ChatColor = Java.type("org.bukkit.ChatColor");
 
+let WebSocket = require('./websocket/websocket.js');
+
 // let Packet = require('./Packet.js');
 
-let parse_input_json = exchange => {
-  let Collectors = Java.type("java.util.stream.Collectors");
-  let BufferedReader = Java.type("java.io.BufferedReader");
-  let InputStreamReader = Java.type("java.io.InputStreamReader");
-  let result = new BufferedReader(
-    new InputStreamReader(exchange.getRequestBody())
-  )
-    .lines()
-    .collect(Collectors.joining("\n"));
-  return JSON.parse(result);
-};
-
 let modulo = (x, n) => (x % n < 0 ? n + (x % n) : x % n);
-
-let send_response = (exchange, response) => {
-  let outputstream = exchange.getResponseBody();
-  var json = JSON.stringify(response);
-
-  let getBytesMethod = Java.type("java.lang.String").class.getDeclaredMethod(
-    "getBytes"
-  );
-  let bytes = getBytesMethod.invoke(json);
-
-  exchange.sendResponseHeaders(200, bytes.length);
-  outputstream.write(bytes);
-  outputstream.close();
-};
-
-let { chat } = require("./chat.js");
 
 let start_timer = label => {
   let initial_time = Date.now();
@@ -57,33 +32,25 @@ let start_timer = label => {
   };
 };
 
-let create_http_server = (port, handler_fn) => {
-  let HttpServer = Java.type("com.sun.net.httpserver.HttpServer");
-  let InetSocketAddress = Java.type("java.net.InetSocketAddress");
-  let HttpHandler = Java.type("com.sun.net.httpserver.HttpHandler");
+let get_mongo_url = ({ user, password, host, database }) => `mongodb://${user}:${password}@${host}/${database}`
 
-  let JavascriptHttpHandler = Java.extend(HttpHandler, {
-    handle: exchange => {
-      handler_fn(exchange);
-    }
-  });
-
-  let server = HttpServer.create(new InetSocketAddress(port), 0);
-  server.createContext("/", new JavascriptHttpHandler());
-  server.setExecutor(null); // creates a default executor
-  server.start();
-
-  ref({
-    close: () => server.stop(0)
-  });
-
-  return server;
-};
+let do_async = async (name, fn) => {
+  try {
+    await fn();
+  } catch (error) {
+    console.error(`Error in '${name}':`);
+    console.error(error.stack);
+  }
+}
 
 module.exports = plugin => {
-  let mongo_client = new MongoClient(
-    "mongodb://-1_4:password123@localhost:32768/database"
-  );
+  let mongo_url = get_mongo_url({
+    user: '-1_4',
+    password: 'password123',
+    host: 'localhost:32768',
+    database: 'database',
+  });
+  let mongo_client = new MongoClient(mongo_url);
   let database = mongo_client.db("Unchained");
 
   let plots = database.collection("plots");
@@ -93,6 +60,8 @@ module.exports = plugin => {
     if (typeof db_plot === "string") {
       db_plot = plots.findOne({ plot_id: db_plot });
     }
+
+    console.log(`plot.plot_id:`, db_plot.plot_id)
 
     let active_plot = active_plots.get(db_plot.plot_id);
     if (active_plot != null) {
@@ -124,7 +93,7 @@ module.exports = plugin => {
           source: db_plot.script,
           plot_x: db_plot.plot_x,
           plot_z: db_plot.plot_z,
-          mongo_url: "https://google.com/search",
+          mongo_url: `${db_plot.plot_x},${db_plot.plot_z}`,
           entry_path: main_path
         },
         stdout: true,
@@ -132,41 +101,20 @@ module.exports = plugin => {
       }
     );
 
-    (async () => {
-      try {
-        let last_string_end = "";
-        for await (let buffer of worker.stdout) {
-          let message = last_string_end + buffer.toString();
-          // console.log(`message:`, message)
-          let lines = message.split("\n");
-          last_string_end = lines.slice(-1)[0];
-          console.log(`lines:`, lines)
-          for (let line of lines.slice(0, -1)) {
-            console.log(line);
-          }
-        }
-      } catch (error) {
-        console.log(`error:`, error);
+    let error_message = null;
+    worker.on('message', message => {
+      if (message.type === 'error') {
+        console.log(message.stack);
+        error_message = message;
       }
-    })();
-    (async () => {
-      try {
-        let last_string_end = "";
-        for await (let buffer of worker.stderr) {
-          let message = last_string_end + buffer.toString();
-          let lines = message.split("\n");
-          last_string_end = lines.slice(-1)[0];
-          for (let line of lines.slice(0 - 1)) {
-            console.log(line);
-          }
-        }
-      } catch (error) {
-        console.log(`error:`, error);
-      }
-    })();
+    })
+
+    let plot_prefix = `${ChatColor.BLUE}[${db_plot.plot_x},${db_plot.plot_z}]${ChatColor.WHITE}`
 
     active_plots.set(db_plot.plot_id, {
       worker: worker,
+      plot_x: db_plot.plot_x,
+      plot_z: db_plot.plot_z,
       online: false
     });
 
@@ -175,10 +123,16 @@ module.exports = plugin => {
       worker.once("error", reject);
     });
 
+    console.log(plot_prefix, 'online event triggered!');
+
     active_plots.set(db_plot.plot_id, {
       worker: worker,
+      plot_x: db_plot.plot_x,
+      plot_z: db_plot.plot_z,
       online: true
     });
+
+    return error_message;
   };
 
   for (let db_plot of plots.find({}).toArray()) {
@@ -328,18 +282,16 @@ module.exports = plugin => {
       }
       if (event.message.startsWith("//")) {
         event.setCancelled(true);
-        player.sendMessage(
-          `${ChatColor.RED}You can only use worldedit while in builder mode!`
-        );
+        // prettier-ignore
+        player.sendMessage(`${ChatColor.RED}You can only use worldedit while in builder mode!`);
       }
       event.setCancelled(true);
     },
     { priority: "LOWEST" }
   );
 
-  let CreatureSpawnEvent = Java.type(
-    "org.bukkit.event.entity.CreatureSpawnEvent"
-  );
+  // prettier-ignore
+  let CreatureSpawnEvent = Java.type("org.bukkit.event.entity.CreatureSpawnEvent");
   plugin.events.CreatureSpawn(event => {
     if (
       !event.getCause ||
@@ -371,7 +323,7 @@ module.exports = plugin => {
         { priority: "LOWEST" }
       );
     } else {
-      console.log(`event_name:`, event_name);
+      console.error(`Event not found on plugin:`, event_name);
     }
   }
 
@@ -380,43 +332,93 @@ module.exports = plugin => {
   // })
 
   console.log("Http server");
-  let http_server = create_http_server(8001, async exchange => {
-    try {
-      let body = parse_input_json(exchange);
+  let server = new WebSocket.Server({ port: 8000 });
 
-      let plot = plots.findOne({ password: body.key });
+  let connect_websocket_to_worker = (websocket, active_plot) => {
+    let plot_prefix = `${ChatColor.BLUE}[${active_plot.plot_x},${active_plot.plot_z}]${ChatColor.WHITE}`
 
-      if (plot == null) {
-        throw new Error(`Plot for key not found`);
-      }
+    console.log(plot_prefix, 'Connecting with websocket...');
 
-      exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
-      exchange
-        .getResponseHeaders()
-        .add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-      exchange
-        .getResponseHeaders()
-        .add("Access-Control-Allow-Headers", "Content-Type,Authorization");
-
-      plots.updateOne(
-        { plot_id: plot.plot_id },
-        {
-          $set: {
-            script: body.script
+    do_async('Stdout', async () => {
+      try {
+        for await (let buffer of active_plot.worker.stdout) {
+          let lines = buffer.toString().split("\n");
+          websocket.send({
+            type: 'log',
+            body: lines.slice(0, -1).join('\n'),
+          });
+          for (let line of lines.slice(0, -1)) {
+            console.log(plot_prefix, line);
           }
         }
-      );
+      } catch (error) {
+        console.log(`error:`, error);
+      }
+    });
+    do_async('Stderr', async () => {
+      try {
+        for await (let buffer of active_plot.worker.stderr) {
+          let lines = buffer.toString().split("\n");
+          websocket.send({
+            type: 'log',
+            body: lines.slice(0, -1).join('\n'),
+          });
+          for (let line of lines.slice(0, -1)) {
+            console.log(plot_prefix, line);
+          }
+        }
+      } catch (error) {
+        console.log(`error:`, error);
+      }
+    });
+  }
 
-      await refresh_plot(plot.plot_id);
+  server.on('connection', (websocket) => {
+    let session_id = null;
 
-      // send_response(exchange, { result: make_value_plain(new_module.exports) })
-      send_response(exchange, { result: {} });
-    } catch (err) {
-      console.log(`err.message:`, err);
-      console.log(`err.stack:`, err.stack);
-      send_response(exchange, {
-        error: { message: err.message, stack: err.stack }
-      });
-    }
+    websocket.on('message', async message => {
+      if (session_id == null) {
+        if (message.type === 'open') {
+          let plot = plots.findOne({ password: message.session_id });
+          if (plot == null) {
+            // throw new Error(`Plot for key not found`);
+            websocket.send({ type: 'error', message: 'No plot found for key' });
+            return;
+          }
+
+          session_id = message.session_id
+
+          websocket.send({ type: 'open' });
+
+          if (active_plots.get(plot.plot_id)) {
+            connect_websocket_to_worker(websocket, active_plots.get(plot.plot_id));
+          }
+        } else {
+          console.log(`Unknown type '${message.type}'`);
+        }
+      }
+
+      if (message.type === 'script') {
+        // console.log(`message:`, message);
+        let plot = plots.findOne({ password: session_id });
+        if (plot == null) {
+          throw new Error(`Plot for key not found`);
+        }
+
+        plots.updateOne(
+          { plot_id: plot.plot_id },
+          { $set: { script: message.script } }
+        );
+
+        await refresh_plot(plot.plot_id)
+
+        // console.log(`active_plots.get(plot.plot_id):`, active_plots.get(plot.plot_id))
+        if (active_plots.get(plot.plot_id)) {
+          connect_websocket_to_worker(websocket, active_plots.get(plot.plot_id));
+        }
+
+        // console.log(`result:`, result)
+      }
+    });
   });
 };

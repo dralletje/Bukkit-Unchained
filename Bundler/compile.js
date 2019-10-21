@@ -19,6 +19,10 @@ let create_module_path = path => {
   if (path.startsWith(process.cwd())) {
     return path;
   } else {
+    if (path.includes('@unchained')) {
+      // console.log(`path:`, path)
+      return `${MODULES_DIR}${path.replace(/node_modules\//g, '')}`;
+    }
     return `${MODULES_DIR}${path}`;
   }
 };
@@ -67,10 +71,6 @@ let compile = async ({ files, entry_file }) => {
 
   apply_files_to_memory_fs(memFs, { 'plot-dev-plugin': files } );
 
-  console.log(`entry:`, entry)
-  let entry_string = memFs.readFileSync(entry).toString();
-  console.log(`entry_string:`, entry_string)
-
   // TODO Automatically install packages when requested ?
 
   // Point webpack to memoryfs for the entry file
@@ -81,14 +81,15 @@ let compile = async ({ files, entry_file }) => {
       filename: "output.js",
       libraryTarget: 'commonjs2',
     },
+    // devtool: 'cheap-eval-source-map',
     mode: 'development',
     externals: [
-      function(context, request, callback) {
-        if (/^@unchained\/(.*)$/.test(request)){
-          return callback(null, 'commonjs ' + request);
-        }
-        callback();
-      },
+      // function(context, request, callback) {
+      //   if (/^@unchained\/(.*)$/.test(request)){
+      //     return callback(null, 'commonjs ' + request);
+      //   }
+      //   callback();
+      // },
       {
         bukkit: 'bukkit',
         fs: 'fs',
@@ -150,6 +151,7 @@ let compile = async ({ files, entry_file }) => {
   } else {
     // Retrieve the output of the compilation
     const res = stats.compilation.assets["output.js"].source();
+    // console.log(`res:`, res)
     return res;
   }
 };

@@ -189,7 +189,7 @@ let FilesEditor = ({ value: files, onChange }) => {
   );
 };
 
-function Editor({ session_id, files, set_files }) {
+function Editor({ session_id, files, set_files, log }) {
   let [do_action, { loading, result, error }] = useAction();
 
   let execute_code = async () => {
@@ -291,6 +291,12 @@ function Editor({ session_id, files, set_files }) {
                 <pre style={{ color: 'white', width: '100%', overflow: 'scroll' }}>{result.error.stack}</pre>
               </div>
             )}
+
+            {log.map(message =>
+                <pre style={{ color: 'white', fontSize: 16, fontFamily: '"Operator Mono"' }}>
+                  {message.body}
+                </pre>
+            )}
           </div>
         </div>
       </Flex>
@@ -298,17 +304,95 @@ function Editor({ session_id, files, set_files }) {
   );
 }
 
+let colors = {
+  '0': '#000000',
+  '1': '#0000AA',
+  '2': '#00AA00',
+  '3': '#00AAAA',
+  '4': '#AA0000',
+  '5': '#AA00AA',
+  '6': '#FFAA00',
+  '7': '#AAAAAA',
+  '8': '#555555',
+  '9': '#5555FF',
+  'a': '#55FF55',
+  'b': '#55FFFF',
+  'c': '#FF5555',
+  'd': '#FF55FF',
+  'e': '#FFFF55',
+  'f': '#FFFFFF',
+}
+let colorize = (x) => {
+  let match = x.match(/([^§]*)§([0-9a-fA-F])((?:.|\n)*)/);
+  if (match == null) {
+    return x;
+  }
+
+  let [_, before, color, after] = match;
+  return [<span key="before">{before}</span>, <span style={{ color: colors[color] }} key="after">{colorize(after)}</span>]
+}
+
 let files_storage = scoped_storage("files");
 let LoadEditor = ({ session_id, ...props }) => {
-  // let [files, set_files] = React.useState(null);
+  let [is_connecting, set_is_connecting] = React.useState(true);
+  let websocket_ref = React.useRef();
+
   let [files, set_files] = React.useState(
     files_storage.get() || { "index.js": `` }
   );
+
+  let [log, set_log] = React.useState([]);
+
+  React.useEffect(() => {
+    set_is_connecting(true);
+    let websocket = new WebSocket('ws://localhost:8080');
+    websocket_ref.current = websocket;
+    websocket.addEventListener('error', error => {
+      console.log(`error:`, error);
+    });
+    websocket.addEventListener('open', () => {
+      console.log('Open');
+      websocket.send(JSON.stringify({ type: 'open', session_id: session_id }));
+      console.log('Send');
+    })
+    websocket.addEventListener('message', _message => {
+      let message = JSON.parse(_message.data);
+      if (message.type === 'open') {
+        set_is_connecting(false);
+      }
+      if (message.type === 'log') {
+        set_log((existing_log) => [
+          ...existing_log,
+          {
+            level: message.level,
+            body: colorize(message.body),
+          },
+        ])
+      }
+      // websocket.send(JSON.stringify({ type: 'open',   }));
+    })
+  }, []);
+
+  console.log(`log:`, log)
+
+  React.useEffect(() => {
+    if (is_connecting === false) {
+      websocket_ref.current.send(JSON.stringify({
+        files: files,
+        type: 'files',
+      }));
+    }
+  }, [is_connecting, files]);
+
   React.useEffect(() => {
     files_storage.set(files);
   }, [files]);
 
-  return <Editor session_id={session_id} files={files} set_files={set_files} />
+  if (is_connecting) {
+    return <div>Loading</div>;
+  }
+
+  return <Editor log={log} websocket={websocket_ref.current} session_id={session_id} files={files} set_files={set_files} />
 }
 
 let App = () => {

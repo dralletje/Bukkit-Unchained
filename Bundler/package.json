@@ -19,8 +19,10 @@
     "babel-loader": "^8.0.6",
     "cors": "^2.8.5",
     "express": "^4.17.1",
+    "express-ws": "^4.0.0",
     "node-fetch": "^2.6.0",
-    "webpack": "^4.41.0"
+    "webpack": "^4.41.0",
+    "ws": "^7.2.0"
   },
   "devDependencies": {
     "npm-install-webpack-plugin": "^4.0.5"

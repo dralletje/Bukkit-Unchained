@@ -60,11 +60,12 @@ let return_if_player = possible_player => {
 };
 
 let AllowedClasses = [
-  // REMOVE
-  {
-    java_class: Java.type("org.bukkit.Server")
-  },
-
+  { java_class: Java.type('java.util.regex.Pattern') },
+  { java_class: Java.type('net.md_5.bungee.api.ChatColor') },
+  { java_class: Java.type('net.md_5.bungee.api.chat.ClickEvent') },
+  { java_class: Java.type('net.md_5.bungee.api.chat.ComponentBuilder') },
+  { java_class: Java.type('net.md_5.bungee.api.chat.HoverEvent') },
+  { java_class: Java.type('net.md_5.bungee.api.chat.TextComponent') },
   { java_class: Java.type("org.bukkit.inventory.Merchant") },
   {
     java_class: Java.type("org.bukkit.inventory.Inventory"),
@@ -272,57 +273,67 @@ export let make_adapters = filters => {
         return java_to_js_identity.get(value);
       }
 
-      if (value instanceof Java.type("java.util.List")) {
-        return Array.from(value)
+      if (!Java.isJavaObject(value)) {
+        return value;
+      }
+
+      let java_class = value.getClass();
+      if (value instanceof Java.type("java.util.List") || java_class.isArray()) {
+        return Java.from(value)
           .map(x => {
             try {
               return adapt.from_java(x);
             } catch {
+              console.log(`x:`, x)
               return null;
             }
           })
           .filter(Boolean);
       }
-      if (Java.isJavaObject(value)) {
-        if (value.getClass().isEnum()) {
-          let EnumClass = adapt.get_class(value.getClass().getName());
-          let enum_value = EnumClass[value.name()] || new EnumClass(value);
-          return enum_value;
-        }
 
-        let java_class = value.getClass();
-        let java_class_names = [
-          ...(java_class.getInterfaces().length === 1
-            ? Array.from(
-                java_get_prototype_chain(java_class.getInterfaces()[0])
-              )
-            : []),
-          ...Array.from(java_get_prototype_chain(java_class))
-        ].map(x => x.getName());
-
-        let JavaAdapter = java_class_names
-          .map(x => {
-            try {
-              return adapt.get_class(x);
-            } catch (err) {
-              return null;
-            }
-          })
-          .find(Boolean);
-
-        if (JavaAdapter == null) {
-          // prettier-ignore
-          throw new Error(`No adapter found for java class "${java_class_names.join('", "')}"`);
-        }
-
-        let js_value = new JavaAdapter(value);
-        java_to_js_identity.put(value, js_value);
-        return js_value;
-      } else {
-        return value;
+      if (java_class.isEnum()) {
+        let EnumClass = adapt.get_class(value.getClass().getName());
+        let enum_value = EnumClass[value.name()] || new EnumClass(value);
+        return enum_value;
       }
+
+      let java_class_names = [
+        ...(java_class.getInterfaces().length === 1
+          ? Array.from(
+              java_get_prototype_chain(java_class.getInterfaces()[0])
+            )
+          : []),
+        ...Array.from(java_get_prototype_chain(java_class))
+      ].map(x => x.getName());
+
+      // console.log(`java_class_names:`, java_class_names)
+
+      let JavaAdapter = java_class_names
+        .map(x => {
+          try {
+            return adapt.get_class(x);
+          } catch (err) {
+            // console.log(`err:`, err)
+            return null;
+          }
+        })
+        .find(Boolean);
+
+      if (JavaAdapter == null) {
+        console.log(`value:`, value)
+        console.log(`java_class:`, java_class)
+        // prettier-ignore
+        throw new Error(`No adapter found for java class "${java_class_names.join('", "')}"`);
+      }
+
+      let js_value = new JavaAdapter(value);
+      java_to_js_identity.put(value, js_value);
+      return js_value;
     },
     to_java: value => {
+      if (Array.isArray(value)) {
+        return Java.to(value.map(x => adapt.to_java(x)));
+      }
       if (typeof value === "object" && value != null) {
         if (value.type === "$enum") {
           return Java.type(value.class).valueOf(value.value);
@@ -380,12 +391,15 @@ export let make_adapters = filters => {
 
     Object.defineProperty (JavaAdapter, 'name', { value: java_class_name });
     js_to_java_class.set(JavaAdapter, { get_locations, get_players, java_class });
+    js_to_java_object.set(JavaAdapter, java_class);
     adapted_classes[java_class_name] = JavaAdapter;
 
     let create_java_method = (name) => {
       return function(...args) {
         let java_args = args.map(arg => adapt.to_java(arg));
-        let java_return = js_to_java_object.get(this)[name](...java_args);
+        let java_this = js_to_java_object.get(this);
+        let java_method = java_this[name] || java_this.static[name];
+        let java_return = java_method(...java_args);
         return adapt.from_java(java_return);
       };
     };

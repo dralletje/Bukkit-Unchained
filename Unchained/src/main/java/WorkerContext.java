@@ -42,6 +42,39 @@ public class WorkerContext implements AutoCloseable {
 
       public void ExposedContext() {}
 
+      public CompletelyGenericFunction wrap_function(Plugin plugin, Value fn, String stack) {
+          return new CompletelyGenericFunction() {
+            public Object apply(Object... args) {
+              if (plugin.getServer().isPrimaryThread()) {
+                // System.out.println("Running on primary thread!");
+                try {
+                  fn.executeVoid(args);
+                } catch (IllegalStateException error) {
+                  System.err.println("Calling javascript function with context already closed:");
+                  error.printStackTrace();
+                  System.err.println("JS stack:");
+                  System.err.println(stack);
+                }
+              } else {
+                System.out.println("Running from other thread!");
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                  System.out.println("Jumped into bukkit thread!");
+                  try {
+                    fn.executeVoid(args);
+                  } catch (IllegalStateException error) {
+                    System.err.println("Calling javascript function with context already closed:");
+                    error.printStackTrace();
+                    System.err.println("JS stack:");
+                    System.err.println(stack);
+                  }
+                });
+              }
+              return this;
+            }
+          };
+        }
+
+
       public void addClosable(AutoCloseable closable) {
         closables.add(closable);
       }
@@ -56,9 +89,11 @@ public class WorkerContext implements AutoCloseable {
         }
       }
 
-      public void postMessage(Object message) {
-        // Do something with the thread we are posting to?
-        // I don't understand yet how I get this message in the "right" thread
+      public void postMessage(Object message) throws Exception {
+        if (WorkerContext.this.onMessage == null) {
+          throw new Exception("No listener set up for this context");
+        }
+        WorkerContext.this.onMessage.accept(message);
       }
 
       // public void onMessage(Consumer<InterContextValue> listener) throws Exception {
@@ -77,6 +112,7 @@ public class WorkerContext implements AutoCloseable {
     private Value exports;
     private Plugin plugin;
     private ExposedContext exposed_context;
+    public Consumer<Object> onMessage;
 
     @FunctionalInterface
     public interface NodeStyleCallback {
@@ -146,6 +182,7 @@ public class WorkerContext implements AutoCloseable {
     static public void createAsync(
       Plugin plugin,
       Object workerData,
+      Consumer<Object> onMessage,
       String file_to_load,
       OutputStream out,
       OutputStream err,
@@ -154,12 +191,41 @@ public class WorkerContext implements AutoCloseable {
       // System.out.println("create start");
       WorkerContext.async(
         plugin,
+        // (error, value) -> callback.executeVoid(WorkerContext.htmlLikeClone(error), value),
         (error, value) -> callback.executeVoid(error, value),
         () -> {
           // System.out.println("create callback");
-          return new WorkerContext(file_to_load, plugin, workerData, out, err);
+          return new WorkerContext(file_to_load, plugin, onMessage, workerData, out, err);
         }
       );
+    }
+
+    // static public void createRealAsync(
+    //   Plugin plugin,
+    //   Object workerData,
+    //   Consumer<Object> onMessage,
+    //   String file_to_load,
+    //   OutputStream out,
+    //   OutputStream err,
+    //   Value callback
+    // )  {
+    //   Thread thread = new Thread(() -> {
+    //     try {
+    //       new WorkerContext(file_to_load, plugin, onMessage, workerData, out, err);
+    //     } catch (Exception error) {}
+    //   });
+    //   thread.start();
+    // }
+
+    @FunctionalInterface
+    public interface CompletelyGenericFunction {
+        Object apply(Object... args);
+
+        default Runnable asRunnable() {
+          return () -> {
+            this.apply();
+          };
+        }
     }
 
     static public Context createContext(ExposedContext exposed_context) {
@@ -199,53 +265,64 @@ public class WorkerContext implements AutoCloseable {
 
     public static class AsyncOutputStream extends OutputStream {
       private Plugin plugin = null;
-      private BufferedOutputStream buffer = null;
+      private ConcurrentLinkedQueue<byte[]> buffer = new ConcurrentLinkedQueue<byte[]>();
+      private OutputStream destination = null;
       private BukkitTask task = null;
 
+      // TODO Move the use of this object to the websocket thread
+      // .... When we have an executor, redirect the output of this to something else.
       public AsyncOutputStream(Plugin plugin, OutputStream destination) {
         this.plugin = plugin;
-        this.buffer = new BufferedOutputStream(destination);
+        this.destination = destination;
       }
 
       private void schedule() {
         if (this.task == null) {
           this.task = this.plugin.getServer().getScheduler().runTask(plugin, () -> {
             this.task = null;
+
             try {
-              this.buffer.flush();
+              byte[] b = this.buffer.poll();
+              while (b != null) {
+                this.destination.write(b);
+                b = this.buffer.poll();
+              }
             } catch (Exception error) {
-              error.printStackTrace()
+              error.printStackTrace();
             }
           });
         }
       }
 
       public void write(byte[] b, int off, int len) throws java.io.IOException {
-        this.buffer.write(b, off, len);
-        this.schedule();
+        byte[] bytes = Arrays.copyOfRange(b, off, len);
+        this.write(bytes);
+        // this.schedule();
       }
 
       public void write(byte[] b) throws java.io.IOException {
-        this.buffer.write(b);
+        this.buffer.add(b);
         this.schedule();
       }
 
       public void write(int b) throws java.io.IOException {
-        this.buffer.write(b);
-        this.schedule();
+        throw new java.io.IOException("Is this really called?");
+
+        // byte[] bytes = new byte[b];
+        // this.buffer.add();
+        // this.schedule();
       }
     }
 
     public WorkerContext(String file_to_load, Plugin plugin) throws Exception {
-      this(file_to_load, plugin, null, System.out, System.err);
+      this(file_to_load, plugin, null, null, System.out, System.err);
     }
-    public WorkerContext(String file_to_load, Plugin plugin, Object workerData, OutputStream out, OutputStream err) throws Exception {
+    public WorkerContext(String file_to_load, Plugin plugin, Consumer<Object> onMessage, Object workerData, OutputStream out, OutputStream err) throws Exception {
       // System.out.println("out #2: " + String.valueOf(out));
       // System.out.println("err #2: " + String.valueOf(err));
-
-
       this.exposed_context = new WorkerContext.ExposedContext();
       this.plugin = plugin;
+      this.onMessage = onMessage;
       try {
         Context context = WorkerContext.createContext(this.exposed_context, out, err);
         context.getPolyglotBindings().putMember("workerData", workerData);
@@ -268,6 +345,7 @@ public class WorkerContext implements AutoCloseable {
         this.exports = require_fn.execute(file_to_load);
       } catch (Exception error) {
         this.close();
+        error.printStackTrace();
         throw error;
       }
     }
@@ -285,16 +363,6 @@ public class WorkerContext implements AutoCloseable {
         throw new Exception("No listener set up for this context");
       }
       this.exposed_context.listener.accept(message);
-      // if (this.emit_event != null) {
-      //   try {
-      //     return this.emit_event.execute(event).as(InterContextEvent.class);
-      //   } catch (Exception error) {
-      //     error.printStackTrace();
-      //     return null;
-      //   }
-      // } else {
-      //   return null;
-      // }
     }
 
     public Value eval(String source) {
