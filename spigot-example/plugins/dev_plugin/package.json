@@ -25,6 +25,15 @@
       },
       "leave": {
         "description": "Leave a plugin plot"
+      },
+      "list": {
+        "description": "List all your plots"
+      },
+      "tp": {
+        "description": "Teleport to a player or a plot"
+      },
+      "set-name": {
+        "description": "Set a name for your plot"
       }
     }
   },

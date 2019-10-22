@@ -41,7 +41,7 @@ public class WorkerContext implements AutoCloseable {
 
       // public Consumer<InterContextValue> listener;
       public Consumer<Object> listener;
-      private Timer timer = new Timer("Timeout thread", true);
+      public Timer timer = new Timer("Timeout thread", true);
 
       public void ExposedContext() {}
 
@@ -69,12 +69,13 @@ public class WorkerContext implements AutoCloseable {
                       WorkerContext.this.terminate();
 
                       System.err.println("TIMEOUT Terminated context");
-                      WorkerContext.this.runInBukkit(() -> {
-                        System.err.println("TIMEOUT Running next bukkit tick");
-                        try {
-                          ExposedContext.this.postMessage("exit");
-                        } catch (Exception error) {}
-                      });
+                      // TODO Re-enable this when I figure out the memory problem
+                      // WorkerContext.this.runInBukkit(() -> {
+                      //   System.err.println("TIMEOUT Running next bukkit tick");
+                      //   try {
+                      //     ExposedContext.this.postMessage("exit");
+                      //   } catch (Exception error) {}
+                      // });
                     }
                 }, delay);
               }
@@ -288,19 +289,17 @@ public class WorkerContext implements AutoCloseable {
         }
     }
 
-    static public Context createContext(ExposedContext exposed_context) {
+    public Context createContext(ExposedContext exposed_context) {
       return createContext(exposed_context, System.out);
     }
-    static public Context createContext(ExposedContext exposed_context, OutputStream out) {
+    public Context createContext(ExposedContext exposed_context, OutputStream out) {
       return createContext(exposed_context, out, System.err);
     }
-    static public Context createContext(ExposedContext exposed_context, OutputStream out, OutputStream err) {
-      Engine engine = Engine.newBuilder().build();
-
+    public Context createContext(ExposedContext exposed_context, OutputStream out, OutputStream err) {
       Context context = Context.newBuilder("js")
         .allowAllAccess(true)
         .allowHostAccess(true)
-        .engine(engine)
+        .engine(this.getEngine())
         .option("js.ecmascript-version", "2020")
         // .option("js.experimental-foreign-object-prototype", "true")
         // .option("inspect", "8228")
@@ -377,6 +376,28 @@ public class WorkerContext implements AutoCloseable {
     public WorkerContext(String file_to_load, Plugin plugin) throws Exception {
       this(file_to_load, plugin, null, null, System.out, System.err);
     }
+
+    static private Source source;
+    static private Engine engine;
+    public Source getSource() throws Exception {
+      if (WorkerContext.source == null) {
+        // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
+        // Reader stream = new InputStreamReader(this.getResource("boot.js"));
+        // Source source = Source.newBuilder("js", stream, "boot.js").build();
+        File file = new File(Unchained.self.getDataFolder(), "dist/entry.js");
+        Source source = Source.newBuilder("js", file).build();
+        WorkerContext.source = source;
+      }
+      return WorkerContext.source;
+    }
+    public Engine getEngine() {
+      if (WorkerContext.engine == null) {
+        Engine engine = Engine.newBuilder().build();
+        WorkerContext.engine = engine;
+      }
+      return WorkerContext.engine;
+    }
+
     public WorkerContext(String file_to_load, Plugin plugin, Consumer<Object> onMessage, Object workerData, OutputStream out, OutputStream err) throws Exception {
       // System.out.println("out #2: " + String.valueOf(out));
       // System.out.println("err #2: " + String.valueOf(err));
@@ -384,7 +405,7 @@ public class WorkerContext implements AutoCloseable {
       this.plugin = plugin;
       this.onMessage = onMessage;
       try {
-        Context context = WorkerContext.createContext(this.exposed_context, out, err);
+        Context context = this.createContext(this.exposed_context, out, err);
         context.getPolyglotBindings().putMember("workerData", workerData);
         context.getPolyglotBindings().putMember("context", exposed_context);
         context.getPolyglotBindings().putMember("plugin", plugin);
@@ -394,12 +415,7 @@ public class WorkerContext implements AutoCloseable {
         this.context.getBindings("js").putMember("module", module_value_for_webpack);
         this.context.getBindings("js").putMember("exports", module_value_for_webpack.getMember("exports"));
 
-        // NOTE Use this to move entry.js and PluginBridge.js inside the .jar
-        // Reader stream = new InputStreamReader(this.getResource("boot.js"));
-        // Source source = Source.newBuilder("js", stream, "boot.js").build();
-        File file = new File(Unchained.self.getDataFolder(), "dist/entry.js");
-        Source source = Source.newBuilder("js", file).build();
-        context.eval(source);
+        context.eval(this.getSource());
 
         Value require_fn = this.context.eval("js", "module.exports");
         this.exports = require_fn.execute(file_to_load);
@@ -444,10 +460,12 @@ public class WorkerContext implements AutoCloseable {
     public void close() {
       this.reset();
       this.context.close(true);
+      this.exposed_context.timer.cancel();
     }
 
     public void terminate() {
       this.exposed_context.closeAll();
       this.context.close(true);
+      this.exposed_context.timer.cancel();
     }
 }

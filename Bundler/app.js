@@ -34,20 +34,21 @@ io.use((socket, next) => {
       return next(new Error('authentication error'));
     }
   });
-
-  bukkit_websocket.on('close', async () => {
-    try {
-      socket.disconnect(true);
-    } catch (err) {
-      console.log(`err:`, err)
-    }
-  });
 });
 
 
 io.on('connection', (client_websocket) => {
   console.log('Connection');
   let bukkit_websocket = client_websocket.bukkit_websocket;
+
+  bukkit_websocket.on('close', async () => {
+    try {
+      console.log(`Trying to close client websocket`);
+      client_websocket.disconnect(true);
+    } catch (err) {
+      console.log(`err:`, err)
+    }
+  });
 
   console.log('Open!');
   client_websocket.emit('verified');

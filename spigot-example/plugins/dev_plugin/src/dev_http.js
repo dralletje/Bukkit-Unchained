@@ -129,14 +129,22 @@ module.exports = plugin => {
       online: true
     });
 
+
     return worker;
   };
 
   for (let db_plot of plots.find({}).toArray()) {
     // console.log(`db_plot:`, db_plot);
-    refresh_plot(db_plot).catch(err => {
-      console.error(`Refresh plot '${db_plot.plot_id}' err:`, err);
-    });
+    do_async('Memory leak checker', async () => {
+      while (true) {
+        console.time('refreshing plot');
+        await refresh_plot(db_plot);
+        console.timeEnd('refreshing plot');
+      }
+    })
+    // refresh_plot(db_plot).catch(err => {
+    //   console.error(`Refresh plot '${db_plot.plot_id}' err:`, err);
+    // });
   }
 
   // client.db('database').runCommand({
