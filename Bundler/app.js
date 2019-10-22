@@ -1,6 +1,5 @@
 let express = require('express');
 let cors = require('cors');
-let fetch = require('node-fetch');
 
 let { compile } = require('./compile.js');
 
@@ -38,7 +37,7 @@ io.use((socket, next) => {
 
   bukkit_websocket.on('close', async () => {
     try {
-      socket.disconnect();
+      socket.disconnect(true);
     } catch (err) {
       console.log(`err:`, err)
     }
@@ -58,6 +57,9 @@ io.on('connection', (client_websocket) => {
     if (message.type === 'log') {
       client_websocket.emit('log', message);
       return
+    }
+    if (message.type === 'execution_error') {
+      client_websocket.emit('execution_error', message);
     }
     console.log(`message:`, message)
   });

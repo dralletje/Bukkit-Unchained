@@ -390,6 +390,12 @@ let LoadEditor = ({ session_id, ...props }) => {
         body: colorize(message.body)
       });
     });
+    io.on("execution_error", log_error => {
+      append_log(set_log, {
+        level: 'error',
+        body: <LogError message={log_error.message} stack={log_error.stack} />
+      });
+    });
     io.on("log_error", log_error => {
       append_log(set_log, {
         level: 'error',

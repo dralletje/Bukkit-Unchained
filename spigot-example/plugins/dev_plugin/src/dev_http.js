@@ -1,4 +1,4 @@
-let { ref, Worker } = require("worker_threads");
+let { Worker } = require("worker_threads");
 let uuid = require("uuid/v4");
 
 let { MongoClient } = require("./mongo.js");
@@ -59,7 +59,7 @@ module.exports = plugin => {
       }
 
       if (active_refresh !== refreshing_plots.get(db_plot.plot_id)) {
-        return;
+        throw new Error('Worker already starting');
       }
 
       // ...before I slaughter er
@@ -93,7 +93,7 @@ module.exports = plugin => {
     let error_message = null;
     worker.on('message', message => {
       if (message.type === 'error') {
-        console.log('Error message:', message.stack);
+        console.log('Worker message.type = error:', message.stack);
         error_message = message;
       }
     })
@@ -129,7 +129,7 @@ module.exports = plugin => {
       online: true
     });
 
-    return error_message;
+    return worker;
   };
 
   for (let db_plot of plots.find({}).toArray()) {
@@ -380,7 +380,7 @@ module.exports = plugin => {
           let plot = plots.findOne({ password: message.session_id });
           if (plot == null) {
             // throw new Error(`Plot for key not found`);
-            websocket.send({ type: 'error', message: 'No plot found for key' });
+            websocket.send({ type: 'execution_error', message: 'No plot found for key' });
             return;
           }
 
@@ -408,14 +408,25 @@ module.exports = plugin => {
           { $set: { script: message.script } }
         );
 
-        await refresh_plot(plot.plot_id)
+        try {
+          let worker = await refresh_plot(plot.plot_id)
 
-        // console.log(`active_plots.get(plot.plot_id):`, active_plots.get(plot.plot_id))
-        if (active_plots.get(plot.plot_id)) {
+          // TODO Need to place this on a more realtime place
           connect_websocket_to_worker(websocket, active_plots.get(plot.plot_id));
-        }
+          worker.on('message', (message) => {
+            if (message.type === 'caught_error') {
+              websocket.send({ type: 'execution_error', message: message.message, stack: message.stack })
+            }
+          });
+        } catch (error) {
+          if (error instanceof Java.type('org.graalvm.polyglot.PolyglotException') && error.isCancelled()) {
+            websocket.send({ type: 'execution_error', message: 'Code did timeout' })
+          } else  {
+            console.error(`Refresh plot error:`, error);
+            websocket.send({ type: 'execution_error', message: error.message, stack: error.stack })
 
-        // console.log(`result:`, result)
+          }
+        }
       }
     });
   });
