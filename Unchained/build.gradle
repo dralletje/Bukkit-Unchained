@@ -11,6 +11,9 @@ repositories {
     maven {
         url = 'https://papermc.io/repo/repository/maven-public/'
     }
+    maven {
+      url "http://repo.dmulloy2.net/nexus/repository/public/"
+    }
 
     maven {
         url = 'http://repo.maven.apache.org/maven2'
@@ -31,6 +34,7 @@ dependencies {
     compileOnly 'org.graalvm:graal-sdk:1.0.0-rc6'
     compileOnly 'com.oracle.truffle:truffle-api:1.0.0-rc6'
     compileOnly 'com.destroystokyo.paper:paper-api:1.13.2-R0.1-SNAPSHOT'
+    compileOnly group: "com.comphenix.protocol", name: "ProtocolLib", version: "4.4.0";
 }
 
 group = 'eu.dral'

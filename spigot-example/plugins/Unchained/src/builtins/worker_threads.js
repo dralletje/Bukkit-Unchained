@@ -24,9 +24,14 @@ let context = process.binding("context");
 let plugin = process.binding("plugin");
 export let workerData = Java_to_js(process.binding("workerData"));
 
+let timeout = (workerData && workerData.js_timeout) || 0;
+
+export let wrap_java_function = context.wrap_java_function;
+export let bind_java_fn = context.bind_java_fn;
+
 export let java_fn = fn => {
   let stack = new Error().stack;
-  let java_function = context.wrap_function(plugin, fn, stack);
+  let java_function = context.wrap_function(plugin, fn, stack, timeout);
   return java_function;
 };
 
@@ -34,13 +39,14 @@ export let java_fn = fn => {
 export let isMainThread = plugin.getServer().isPrimaryThread();
 
 export let ref = closable => {
-  if (Java.isJavaObject(closable)) {
+  if (closable instanceof Java.type('java.lang.AutoCloseable')) {
     context.addClosable(closable);
+    return closable.close;
   } else {
-    context.addClosable({ close: java_fn(() => closable.close()) });
+    let better_closeable = Java_type('eu.dral.unchained.AutoCloseables').static.forValue(closable);
+    context.addClosable(better_closeable);
+    return better_closeable.close;
   }
-
-  return closable.close;
 };
 
 let StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
@@ -81,6 +87,7 @@ export class Worker extends EventEmitter {
   ) {
     super();
     this.context = null;
+    this.online = false;
 
     let stdout_stream = Java.type("java.lang.System").out;
     if (stdout === true) {
@@ -98,25 +105,43 @@ export class Worker extends EventEmitter {
 
     let java_worker_data = htmlLikeClone(workerData);
 
+    let timeout_timer = setTimeout(() => {
+      if (this.online === false) {
+        this.emit('error', new Error('Worker timed out after 20 seconds'));
+      }
+    }, 20 * 1000);
+
     WorkerContext.static.createAsync(
       plugin,
       java_worker_data,
-      (java_message) => {
+      java_fn((java_message) => {
         let message = html_unclone(java_message);
         this.emit('message', message);
-      },
+      }),
       url_or_script,
       stdout_stream,
       stderr_stream,
       (error, result) => {
+        clearTimeout(timeout_timer);
         if (error != null) {
+          console.log(`Worker.createAsync error:`, error)
           this.emit("error", error);
         } else {
+          console.log('Worker.createAsync online');
+          this.online = true;
           this.emit("online");
           this.context = result;
         }
       }
     );
+
+    this.on('error', (error) => {
+      try {
+        this.terminate();
+      } catch (err) {
+
+      }
+    })
   }
 
   postMessage(message) {
@@ -157,9 +182,9 @@ class MessagePort extends EventEmitter {
     super();
     this.context = context;
 
-    this.context.onMessage(message => {
+    this.context.onMessage(java_fn(message => {
       this.emit("message", html_unclone(message));
-    });
+    }));
   }
   postMessage(message) {
     this.context.postMessage(htmlLikeClone(message));

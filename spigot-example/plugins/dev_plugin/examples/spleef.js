@@ -1,7 +1,7 @@
 let current_match = null;
 
-let Material = plugin.classes['org.bukkit.Material'];
-let Gamemode = plugin.classes['org.bukkit.GameMode'];
+let Material = Array.type('org.bukkit.Material');
+let Gamemode = Array.type('org.bukkit.GameMode');
 
 let spleef_material = plugin.buildconfig.define_key('spleef-material', 'material');
 let spleef_region = plugin.buildconfig.define_key('spleef-region', 'region');

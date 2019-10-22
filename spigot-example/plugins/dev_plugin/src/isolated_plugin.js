@@ -41,13 +41,20 @@ let start_timer = label => {
   };
 };
 
+let on_message_with_type = (type, onMessage) => {
+  parentPort.on('message', message => {
+    if (message.type === type) {
+      onMessage(message);
+    }
+  })
+}
+
 export let create_isolated_plugin = ({
   plugin: java_plugin,
   source,
   ...config
 }) => {
   let plugin = new JavaPlugin(java_plugin);
-  let external_events = new EventEmitter();
 
   let session_id = `${config.plot_x}:${config.plot_z}`;
   // let session_id = "only-one-for-now";
@@ -140,45 +147,50 @@ export let create_isolated_plugin = ({
   };
 
   let GameMode = Java.type("org.bukkit.GameMode");
-  plugin.events.PlayerMove(event => {
-    if (event.isCancelled()) return;
+  on_message_with_type("run_plugin", () => {
+    plugin.events.PlayerMove(event => {
+      if (event.isCancelled()) return;
 
-    let to_is_in = location_filter(event.getTo());
-    let from_is_in = location_filter(event.getFrom());
-    if (!to_is_in && from_is_in) {
-      // Moving into plugin area
-      let player = event.getPlayer();
-      setImmediate(() => {
-        leave_plugin_plot(player);
-      });
-    }
+      let to_is_in = location_filter(event.getTo());
+      let from_is_in = location_filter(event.getFrom());
+      if (!to_is_in && from_is_in) {
+        // Moving into plugin area
+        let player = event.getPlayer();
+        setImmediate(() => {
+          leave_plugin_plot(player);
+        });
+      }
 
-    if (to_is_in && !from_is_in) {
-      // Moving out of plugin area
-      let player = event.getPlayer();
+      if (to_is_in && !from_is_in) {
+        // Moving out of plugin area
+        let player = event.getPlayer();
 
-      // prettier-ignore
-      player.sendMessage(`${ChatColor.GREEN}You are in a plugin area.`)
-      // prettier-ignore
-      player.sendMessage(`${ChatColor.GREEN}Type ${ChatColor.BLUE}/enter ${ChatColor.GREEN} to join.`);
-    }
+        // prettier-ignore
+        player.sendMessage(`${ChatColor.GREEN}You are in a plugin area.`)
+        // prettier-ignore
+        player.sendMessage(`${ChatColor.GREEN}Type ${ChatColor.BLUE}/enter ${ChatColor.GREEN} to join.`);
+      }
+    });
   });
 
   let PlayerJoinEvent = Java.type("org.bukkit.event.player.PlayerJoinEvent");
-
-  plugin.events.PlayerQuit(event => {
-    if (playing_player.has(event.getPlayer().getName())) {
-      leave_plugin_plot(event.getPlayer());
-    }
+  on_message_with_type("run_plugin", () => {
+    plugin.events.PlayerQuit(event => {
+      if (playing_player.has(event.getPlayer().getName())) {
+        leave_plugin_plot(event.getPlayer());
+      }
+    });
   });
 
   timer.log("Events");
+
+  let mocked_bukkit_events = new EventEmitter();
 
   let _isolated_events = create_isolated_events({ plugin, adapt });
   let isolated_events = {
     ..._isolated_events,
     onPlayerJoin: handler => {
-      external_events.on("PlayerJoin", event => {
+      mocked_bukkit_events.on("PlayerJoin", event => {
         handler(event);
       });
     }
@@ -207,7 +219,7 @@ export let create_isolated_plugin = ({
       }
     }
   });
-  external_events.on("plot-player-build", ({ player }) => {
+  on_message_with_type("plot-player-build", ({ player }) => {
     building_players.add(player.getName());
     playing_player.delete(player.getName());
 
@@ -216,7 +228,7 @@ export let create_isolated_plugin = ({
 
   timer.log("Build plugin");
 
-  let do_join = player => {
+  on_message_with_type('plot-player-enter', ({ player }) => {
     if (!location_filter(player.getLocation())) return;
     if (playing_player.has(player.getName())) return;
 
@@ -238,9 +250,15 @@ export let create_isolated_plugin = ({
       let java_event = adapt.from_java(
         new PlayerJoinEvent(player, "Player joined!")
       );
-      external_events.emit("PlayerJoin", java_event);
+      mocked_bukkit_events.emit("PlayerJoin", java_event);
     }
-  };
+  });
+  on_message_with_type("plot-player-leave", ({ player, type }) => {
+    playing_player.delete(player.getName());
+    building_players.delete(player.getName());
+    leave_plugin_plot(player);
+    return;
+  });
 
   let java_world = server.getWorlds()[0];
   let main_world = adapt.from_java(java_world);
@@ -307,23 +325,6 @@ export let create_isolated_plugin = ({
     // edu: null,
   }
 
-  try {
-    let vm = new VM({ sandbox });
-    // vm.run(source);
-    let eval_fn = vm.run(`(source) => eval(source)`);
-    eval_fn(source);
-    parentPort.postMessage({
-      type: 'booted',
-    });
-  } catch (error) {
-    parentPort.postMessage({
-      type: 'error',
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    });
-  }
-
   /* My vm-creation graveyard */
   { // eslint-disable-line
     // let init_global = loadWithNewGlobal({
@@ -349,37 +350,28 @@ export let create_isolated_plugin = ({
     // evaler(source);
   }
 
-  timer.log("Eval");
+  on_message_with_type('run_plugin', ({ source, id }) => {
+    timer.log("Eval start");
 
-  parentPort.on("message", message => {
     try {
-      if (message === "close") {
-        // active_session.teardown();
-        return;
-      }
-
-      if (message.type === "plot-player-enter") {
-        do_join(message.player);
-        return;
-      }
-
-      if (message.type === "plot-player-leave") {
-        let player = message.player;
-        playing_player.delete(player.getName());
-        building_players.delete(player.getName());
-        leave_plugin_plot(player);
-
-        external_events.emit(message.type, message);
-        return;
-      }
-
-      if (message.type === "plot-player-build") {
-        external_events.emit(message.type, message);
-        return;
-      }
-      console.log(`Catch all message:`, message);
+      let vm = new VM({ sandbox });
+      // vm.run(source);
+      let eval_fn = vm.run(`(source) => eval(source)`);
+      eval_fn(source);
+      parentPort.postMessage({
+        response_to: id,
+        type: 'booted',
+      });
     } catch (error) {
-      console.log(`Isolated plugin message error:`, error);
+      parentPort.postMessage({
+        response_to: id,
+        type: 'error',
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
     }
+
+    timer.log("Eval done");
   });
 };

@@ -10,10 +10,12 @@ import java.io.File;
 import java.io.OutputStream;
 import java.io.BufferedOutputStream;
 import java.util.*;
+import java.lang.Runnable;
 import java.util.function.Consumer;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.lang.AutoCloseable;
+import java.lang.reflect.Array;
 
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -39,44 +41,70 @@ public class WorkerContext implements AutoCloseable {
 
       // public Consumer<InterContextValue> listener;
       public Consumer<Object> listener;
+      private Timer timer = new Timer("Timeout thread", true);
 
       public void ExposedContext() {}
 
-      public CompletelyGenericFunction wrap_function(Plugin plugin, Value fn, String stack) {
-          return new CompletelyGenericFunction() {
-            public Object apply(Object... args) {
-              if (plugin.getServer().isPrimaryThread()) {
-                // System.out.println("Running on primary thread!");
-                try {
-                  fn.executeVoid(args);
-                } catch (IllegalStateException error) {
-                  System.err.println("Calling javascript function with context already closed:");
-                  error.printStackTrace();
-                  System.err.println("JS stack:");
-                  System.err.println(stack);
-                }
-              } else {
-                System.out.println("Running from other thread!");
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
-                  System.out.println("Jumped into bukkit thread!");
-                  try {
-                    fn.executeVoid(args);
-                  } catch (IllegalStateException error) {
-                    System.err.println("Calling javascript function with context already closed:");
-                    error.printStackTrace();
-                    System.err.println("JS stack:");
-                    System.err.println(stack);
-                  }
-                });
-              }
-              return this;
-            }
-          };
-        }
+      public CompletelyGenericFunction wrap_java_function(Value fn) throws Exception {
+        return fn.as(CompletelyGenericFunction.class);
+      }
 
+      public CompletelyGenericFunction wrap_function(Plugin plugin, Value fn, String stack) {
+        return this.wrap_function(plugin, fn, stack, 0);
+      }
+      public CompletelyGenericFunction wrap_function(Plugin plugin, Value fn, String stack, int delay) {
+        return new CompletelyGenericFunction() {
+          public Object apply(Object... args) {
+            WorkerContext.this.runInBukkit(() -> {
+              final Map<String, Boolean> is_done = new HashMap<String, Boolean>();
+              is_done.put("is_done", false);
+
+              if (delay > 0) {
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                      if (is_done.get("is_done") == true) return;
+
+                      System.err.println("TIMEOUT Closing context due to timeout");
+                      WorkerContext.this.terminate();
+
+                      System.err.println("TIMEOUT Terminated context");
+                      WorkerContext.this.runInBukkit(() -> {
+                        System.err.println("TIMEOUT Running next bukkit tick");
+                        try {
+                          ExposedContext.this.postMessage("exit");
+                        } catch (Exception error) {}
+                      });
+                    }
+                }, delay);
+              }
+
+              try {
+                fn.executeVoid(args);
+                is_done.put("is_done", true);
+              } catch (IllegalStateException error) {
+                System.err.println("Calling javascript function with context already closed:");
+                error.printStackTrace();
+                System.err.println("JS stack:");
+                System.err.println(stack);
+              }
+            });
+            return this;
+          }
+        };
+      }
 
       public void addClosable(AutoCloseable closable) {
         closables.add(closable);
+      }
+      public void addClosable(Value closable) throws Exception {
+        throw new Exception("To add closeables, you need to implement them in java");
+      }
+      public void addClosable(Value closable, String is_dev_and_thus_insecure) {
+        if (is_dev_and_thus_insecure.equals("is_dev_and_thus_insecure")) {
+          System.err.println("INSECURE addClosable WITH JS VALUE");
+          this.addClosable(closable.as(AutoCloseable.class));
+        }
       }
 
       public void closeAll() {
@@ -200,6 +228,16 @@ public class WorkerContext implements AutoCloseable {
       );
     }
 
+    public void runInBukkit(Runnable task) {
+      if (plugin.getServer().isPrimaryThread()) {
+        // System.out.println("Running on primary thread!");
+        task.run();
+      } else {
+        // System.out.println("Running from other thread!");
+        plugin.getServer().getScheduler().runTask(plugin, task);
+      }
+    }
+
     // static public void createRealAsync(
     //   Plugin plugin,
     //   Object workerData,
@@ -224,6 +262,28 @@ public class WorkerContext implements AutoCloseable {
         default Runnable asRunnable() {
           return () -> {
             this.apply();
+          };
+        }
+
+        default public <T> T[] concatenate(T[] a, T[] b) {
+          int aLen = a.length;
+          int bLen = b.length;
+
+          @SuppressWarnings("unchecked")
+          T[] c = (T[]) Array.newInstance(a.getClass().getComponentType(), aLen + bLen);
+          System.arraycopy(a, 0, c, 0, aLen);
+          System.arraycopy(b, 0, c, aLen, bLen);
+
+          return c;
+        }
+
+        default CompletelyGenericFunction bind(Object arg) {
+          CompletelyGenericFunction self = this;
+          return new CompletelyGenericFunction() {
+            public Object apply(Object... args) {
+              Object[] new_args = this.concatenate(new Object[]{ arg }, args);
+              return self.apply(args);
+            }
           };
         }
     }
@@ -370,35 +430,24 @@ public class WorkerContext implements AutoCloseable {
     }
 
     public void reset() {
+      this.exposed_context.closeAll();
+
       try {
         this.postMessage("close");
-      } catch  (Exception error) {
-        error.printStackTrace();
       }
-      try {
-        this.exposed_context.closeAll();
-      } catch (Exception error) {
+      catch (IllegalStateException error) {}
+      catch  (Exception error) {
         error.printStackTrace();
       }
     }
 
     public void close() {
-      try {
-        this.postMessage("close");
-      } catch  (Exception error) {
-        error.printStackTrace();
-      }
+      this.reset();
+      this.context.close(true);
+    }
 
-      try {
-        this.exposed_context.closeAll();
-      } catch (Exception error) {
-        error.printStackTrace();
-      }
-
-      try {
-        this.context.close(true);
-      } catch (Exception error) {
-        error.printStackTrace();
-      }
+    public void terminate() {
+      this.exposed_context.closeAll();
+      this.context.close(true);
     }
 }

@@ -85,6 +85,10 @@ let AceTheme = styled.div`
     .ace_warning {
       background: none !important;
     }
+    .ace_error {
+      background: none;
+      background-color: #680000;
+    }
 
     .ace_cursor {
       color: #d0d0d0;

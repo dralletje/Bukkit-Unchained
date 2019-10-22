@@ -20,45 +20,57 @@ public class JS_WebSocketServer extends WebSocketServer {
     this.websocketserver = websocketserver;
 	}
 
+  private void runBukkit(Runnable task) {
+    if (this.plugin.getServer().isPrimaryThread()) {
+      System.out.println("[JavaWebsocket] Running on primary thread!");
+      task.run();
+    } else {
+      this.plugin.getServer().getScheduler().runTask(this.plugin, task);
+    }
+  }
+
 	@Override
 	public void onOpen(WebSocket conn, ClientHandshake handshake) {
-    this.plugin.getServer().getScheduler().runTask(this.plugin, () -> {
+    this.runBukkit(() -> {
       this.websocketserver.getMember("onOpen").execute(conn, handshake);
     });
 	}
 
 	@Override
 	public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-    this.plugin.getServer().getScheduler().runTask(this.plugin, () -> {
-      this.websocketserver.getMember("onClose").execute(conn, code, reason, remote);
-    });
+    System.out.println("Closing websockets!");
+    try {
+      this.runBukkit(() -> {
+        this.websocketserver.getMember("onClose").execute(conn, code, reason, remote);
+      });
+    } catch (Exception error) {}
   }
 
 	@Override
 	public void onMessage(WebSocket conn, String message) {
-    this.plugin.getServer().getScheduler().runTask(this.plugin, () -> {
+    this.runBukkit(() -> {
       this.websocketserver.getMember("onMessage").execute(conn, message);
     });
 	}
 
 	@Override
 	public void onMessage( WebSocket conn, ByteBuffer message ) {
-    this.plugin.getServer().getScheduler().runTask(this.plugin, () -> {
+    this.runBukkit(() -> {
       this.websocketserver.getMember("onMessage").execute(conn, message);
     });
 	}
 
 	@Override
 	public void onError(WebSocket conn, Exception ex) {
-    this.plugin.getServer().getScheduler().runTask(this.plugin, () -> {
+    this.runBukkit(() -> {
       this.websocketserver.getMember("onError").execute(conn, ex);
     });
 	}
 
 	@Override
 	public void onStart() {
-    this.plugin.getServer().getScheduler().runTask(this.plugin, () -> {
-		    System.out.println("server started successfully");
+    this.runBukkit(() -> {
+		   System.out.println("server started successfully");
     });
 	}
 }

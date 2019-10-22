@@ -4,8 +4,8 @@ import JsonTree from "react-json-tree";
 import "./App.css";
 import { Codeblock } from "./Code.js";
 import { Flex, SubtleButton } from "./Elements.js";
-import { Router, Link } from "@reach/router"
-
+import { Router, Link } from "@reach/router";
+import useStayScrolled from "react-stay-scrolled";
 
 let WindowEvent = ({ event_name, handler }) => {
   let current_handler = React.useRef(handler);
@@ -36,7 +36,7 @@ let useAction = () => {
     set_loading(true);
     try {
       let result = await action();
-      console.log(`result:`, result)
+      console.log(`result:`, result);
       set_loading(false);
       set_error(null);
       set_result(result);
@@ -76,10 +76,10 @@ let FileTab = ({ name, onChangeName, isActive, onClick, onRemove }) => {
         type="text"
         style={{
           padding: 16,
-          color: 'white',
-          backgroundColor: 'transparent',
-          fontSize: 'inherit',
-          border: 'none',
+          color: "white",
+          backgroundColor: "transparent",
+          fontSize: "inherit",
+          border: "none"
         }}
         spellCheck={false}
         autoFocus
@@ -114,18 +114,25 @@ let FileTab = ({ name, onChangeName, isActive, onClick, onRemove }) => {
       >
         {name}
         <div style={{ width: 10 }} />
-        <div className="show-on-button-hover" onClick={() => {
-          if (window.confirm('You want to REMOVE this file??')) {
-            onRemove()
-          }
-        }}>x</div>
+        <div
+          className="show-on-button-hover"
+          onClick={() => {
+            if (window.confirm("You want to REMOVE this file??")) {
+              onRemove();
+            }
+          }}
+        >
+          x
+        </div>
       </SubtleButton>
     );
   }
 };
 
 let FilesEditor = ({ value: files, onChange }) => {
-  let files_array = Object.entries(files).filter(([key, value]) => value != null);
+  let files_array = Object.entries(files).filter(
+    ([key, value]) => value != null
+  );
   let [current_file, set_current_file] = React.useState(
     files["index.js"] ? "index.js" : files_array[0][0]
   );
@@ -133,7 +140,7 @@ let FilesEditor = ({ value: files, onChange }) => {
   current_file = files[current_file] ? current_file : files_array[0][0];
 
   return (
-    <Flex column style={{ overflow: 'hidden', flex: 1 }}>
+    <Flex column style={{ overflow: "hidden", flex: 1 }}>
       <Flex row style={{ color: "white" }}>
         {files_array.map(([name, content]) => (
           <FileTab
@@ -154,7 +161,7 @@ let FilesEditor = ({ value: files, onChange }) => {
             onRemove={() => {
               onChange({
                 ...files,
-                [name]: null,
+                [name]: null
               });
             }}
           />
@@ -172,43 +179,41 @@ let FilesEditor = ({ value: files, onChange }) => {
           +
         </SubtleButton>
       </Flex>
-      <Flex style={{ padding: 16, paddingTop: 0, overflow: 'scroll', flex: 1 }}>
-        {files[current_file] != null ?
+      <Flex style={{ padding: 16, paddingTop: 0, overflow: "scroll", flex: 1 }}>
+        {files[current_file] != null ? (
           <Codeblock
-          editting={true}
-          value={files[current_file]}
-          onChange={value => {
-            onChange({
-              ...files,
-              [current_file]: value
-            });
-          }}
-        /> : <div></div>}
+            editting={true}
+            value={files[current_file]}
+            onChange={value => {
+              onChange({
+                ...files,
+                [current_file]: value
+              });
+            }}
+          />
+        ) : (
+          <div></div>
+        )}
       </Flex>
     </Flex>
   );
 };
 
-function Editor({ session_id, files, set_files, log }) {
-  let [do_action, { loading, result, error }] = useAction();
+function Editor({ session_id, files, set_files, log, onSave }) {
+  // let [do_action, { loading, result, error }] = useAction();
 
   let execute_code = async () => {
-    do_action(async () => {
-      let response = await fetch("http://localhost:8080", {
-        method: "post",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          key: session_id,
-          files: files
-        })
-      });
-      let json = await response.json();
-      console.log(`json:`, json)
-      return json;
-    });
+    await onSave();
   };
+
+  const listRef = React.useRef();
+  const { stayScrolled /*, scrollBottom*/ } = useStayScrolled(listRef);
+
+  // Typically you will want to use stayScrolled or scrollBottom inside
+  // useLayoutEffect, because it measures and changes DOM attributes (scrollTop) directly
+  React.useLayoutEffect(() => {
+    stayScrolled();
+  }, [stayScrolled, log.length]);
 
   return (
     <div
@@ -236,7 +241,7 @@ function Editor({ session_id, files, set_files, log }) {
           borderRadius: 5,
           backgroundColor: "rgba(0,0,0,.3)",
           height: "80vh",
-          alignItems: 'stretch',
+          alignItems: "stretch"
         }}
       >
         <div
@@ -254,49 +259,33 @@ function Editor({ session_id, files, set_files, log }) {
             width: "30vw",
             overflow: "hidden",
             backgroundColor: "rgb(0, 43, 54)",
-            position: 'relative',
+            position: "relative"
           }}
         >
-          {loading &&
-            <Flex column style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center' }}>
-              <div style={{ fontSize: 24, padding: 30, color: 'white' }}>Loading...</div>
-            </Flex>
-          }
           <div
+            ref={listRef}
             style={{
               overflow: "scroll",
               height: "100%",
               paddingTop: 20,
               paddingLeft: 20,
-              paddingBottom: 20,
-              filter: loading ? `blur(20px)` : ``,
+              paddingBottom: 20
+              // filter: loading ? `blur(20px)` : ``
             }}
           >
-            {result && result.result && (
-              <React.Fragment>
-                <div style={{ color: "rgb(38, 139, 210)", fontWeight: "bold" }}>
-                  Result:
-                </div>
-                <JsonTree
-                  style={{ backgroundColor: "transparent" }}
-                  hideRoot
-                  data={result.result}
-                />
-              </React.Fragment>
-            )}
-            {result && result.error && (
-              <div style={{ color: "rgb(210, 38, 38)" }}>
-                <div style={{ color: "rgb(210, 38, 38)", fontWeight: "bold" }}>Got an error:</div>
-                <div style={{ fontWeight: 'bold' }}>{result.error.message}</div>
-                <pre style={{ color: 'white', width: '100%', overflow: 'scroll' }}>{result.error.stack}</pre>
-              </div>
-            )}
-
-            {log.map(message =>
-                <pre style={{ color: 'white', fontSize: 16, fontFamily: '"Operator Mono"' }}>
-                  {message.body}
-                </pre>
-            )}
+            {log.map((message, i) => (
+              <pre
+                key={i}
+                style={{
+                  margin: 0,
+                  color: "white",
+                  fontSize: 16,
+                  fontFamily: '"Operator Mono"'
+                }}
+              >
+                {message.body}
+              </pre>
+            ))}
           </div>
         </div>
       </Flex>
@@ -305,31 +294,67 @@ function Editor({ session_id, files, set_files, log }) {
 }
 
 let colors = {
-  '0': '#000000',
-  '1': '#0000AA',
-  '2': '#00AA00',
-  '3': '#00AAAA',
-  '4': '#AA0000',
-  '5': '#AA00AA',
-  '6': '#FFAA00',
-  '7': '#AAAAAA',
-  '8': '#555555',
-  '9': '#5555FF',
-  'a': '#55FF55',
-  'b': '#55FFFF',
-  'c': '#FF5555',
-  'd': '#FF55FF',
-  'e': '#FFFF55',
-  'f': '#FFFFFF',
-}
-let colorize = (x) => {
-  let match = x.match(/([^§]*)§([0-9a-fA-F])((?:.|\n)*)/);
+  "0": { color: "#000000" },
+  "1": { color: "#0000AA" },
+  "2": { color: "#00AA00" },
+  "3": { color: "#00AAAA" },
+  "4": { color: "#AA0000" },
+  "5": { color: "#AA00AA" },
+  "6": { color: "#FFAA00" },
+  "7": { color: "#AAAAAA" },
+  "8": { color: "#555555" },
+  "9": { color: "#5555FF" },
+  a: { color: "#55FF55" },
+  b: { color: "#55FFFF" },
+  c: { color: "#FF5555" },
+  d: { color: "#FF55FF" },
+  e: { color: "#FFFF55" },
+  f: { color: "#FFFFFF" },
+
+  r: {
+    color: "#FFFFFF",
+    fontWeight: "normal",
+    textDecoration: "none",
+    fontSize: "normal"
+  },
+  l: { fontWeight: "bold" },
+  m: { textDecoration: "line-through" },
+  n: { textDecoration: "underline" },
+  o: { fontStyle: "italic" }
+};
+let colorize = x => {
+  let match = x.match(/^([^§]*)§([0-9a-fA-Fr-])((?:.|\n)*)/);
   if (match == null) {
     return x;
   }
 
   let [_, before, color, after] = match;
-  return [<span key="before">{before}</span>, <span style={{ color: colors[color] }} key="after">{colorize(after)}</span>]
+  return [
+    <span>{before}</span>,
+    <span style={colors[color]}>{colorize(after)}</span>
+  ];
+};
+
+let socketIo = require("socket.io-client");
+
+let append_log = (set_log, message) => {
+  set_log(existing_log => [...existing_log.slice(-209), message]);
+};
+
+let LogError = (error) => {
+  return (
+    <div style={{ color: "rgb(210, 38, 38)" }}>
+      <div style={{ color: "rgb(210, 38, 38)", fontWeight: "bold" }}>
+        Got an error:
+      </div>
+      <div style={{ fontWeight: "bold" }}>{error.message}</div>
+      <pre
+        style={{ color: "white", width: "100%", overflow: "scroll" }}
+      >
+        {error.stack}
+      </pre>
+    </div>
+  )
 }
 
 let files_storage = scoped_storage("files");
@@ -345,44 +370,39 @@ let LoadEditor = ({ session_id, ...props }) => {
 
   React.useEffect(() => {
     set_is_connecting(true);
-    let websocket = new WebSocket('ws://localhost:8080');
-    websocket_ref.current = websocket;
-    websocket.addEventListener('error', error => {
+    let io = new socketIo("ws://localhost:8080", {
+      query: {
+        token: session_id
+      }
+    });
+    websocket_ref.current = io;
+
+    io.on("error", error => {
       console.log(`error:`, error);
     });
-    websocket.addEventListener('open', () => {
-      console.log('Open');
-      websocket.send(JSON.stringify({ type: 'open', session_id: session_id }));
-      console.log('Send');
-    })
-    websocket.addEventListener('message', _message => {
-      let message = JSON.parse(_message.data);
-      if (message.type === 'open') {
-        set_is_connecting(false);
-      }
-      if (message.type === 'log') {
-        set_log((existing_log) => [
-          ...existing_log,
-          {
-            level: message.level,
-            body: colorize(message.body),
-          },
-        ])
-      }
-      // websocket.send(JSON.stringify({ type: 'open',   }));
-    })
-  }, []);
+    io.on("verified", message => {
+      console.log("On open!");
+      set_is_connecting(false);
+    });
+    io.on("log", message => {
+      append_log(set_log, {
+        level: message.level,
+        body: colorize(message.body)
+      });
+    });
+    io.on("log_error", log_error => {
+      append_log(set_log, {
+        level: 'error',
+        body: <LogError message={log_error.message} stack={log_error.stack} />
+      });
+    });
+  }, [session_id]);
 
-  console.log(`log:`, log)
-
-  React.useEffect(() => {
-    if (is_connecting === false) {
-      websocket_ref.current.send(JSON.stringify({
-        files: files,
-        type: 'files',
-      }));
-    }
-  }, [is_connecting, files]);
+  // React.useEffect(() => {
+  //   if (is_connecting === false) {
+  //     websocket_ref.current.emit('files', { files });
+  //   }
+  // }, [is_connecting, files]);
 
   React.useEffect(() => {
     files_storage.set(files);
@@ -392,15 +412,45 @@ let LoadEditor = ({ session_id, ...props }) => {
     return <div>Loading</div>;
   }
 
-  return <Editor log={log} websocket={websocket_ref.current} session_id={session_id} files={files} set_files={set_files} />
-}
+  return (
+    <Editor
+      log={log}
+      websocket={websocket_ref.current}
+      session_id={session_id}
+      files={files}
+      set_files={set_files}
+      onSave={async () => {
+        append_log(set_log, {
+          level: "system",
+          body: "Updating files..."
+        });
+        try {
+          await new Promise((resolve, reject) => {
+            websocket_ref.current.emit("files", { files }, (error, value) =>
+              error ? reject(error) : resolve(value)
+            );
+          });
+          append_log(set_log, {
+            level: "system",
+            body: "Deployed!"
+          });
+        } catch (error) {
+          append_log(set_log, {
+            level: "error",
+            body: <LogError message={error.message} stack={error.stack} />
+          });
+        }
+      }}
+    />
+  );
+};
 
 let App = () => {
   return (
     <Router>
-       <LoadEditor path="/editor/:session_id" />
+      <LoadEditor path="/editor/:session_id" />
     </Router>
-  )
-}
+  );
+};
 
 export default App;

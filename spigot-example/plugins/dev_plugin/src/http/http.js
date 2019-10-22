@@ -42,9 +42,7 @@ let create_http_server = (port, handler_fn) => {
   server.setExecutor(null); // creates a default executor
   server.start();
 
-  ref({
-    close: () => server.stop(0)
-  });
+  ref(server);
 
   return server;
 };

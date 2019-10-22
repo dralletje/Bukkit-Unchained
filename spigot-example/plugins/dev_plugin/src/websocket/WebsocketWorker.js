@@ -47,9 +47,7 @@ let SimpleServer = Java.extend(WebSocketServer, {
 
 let address = new InetSocketAddress("localhost", 8004);
 let server = new SimpleServer(address);
-ref({
-  close: () => server.close(0),
-});
+ref(server);
 
 console.log('#2');
 server.start();

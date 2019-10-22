@@ -2,7 +2,6 @@ let { Unchained } = require('./bukkit.js');
 let { ref, java_fn } = require('worker_threads');
 
 let bukkit_EventPriority = Java.type('org.bukkit.event.EventPriority');
-
 let BukkitHandlerList = Java.type('org.bukkit.event.HandlerList');
 
 // let bukkit_pluginmanager = org.bukkit.Bukkit.pluginManager;
@@ -46,11 +45,7 @@ let make_addEventListener_for_plugin = (plugin) => {
       plugin
     );
 
-    ref({
-      close: () => {
-        BukkitHandlerList.unregisterAll(listener);
-      },
-    })
+    ref(listener);
 
     return {
       dispose: () => {

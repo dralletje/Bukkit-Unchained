@@ -19,8 +19,10 @@ public class Unchained extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
       Unchained.self = this;
-      this.javascript_context = new WorkerContext("./" + getDataFolder().toString() + "/dist/UnchainedMain.js", this);
-      this.javascript_context.getExports().execute("onEnable");
+      try {
+        this.javascript_context = new WorkerContext("./" + getDataFolder().toString() + "/dist/UnchainedMain.js", this);
+        this.javascript_context.getExports().execute("onEnable");
+      } catch (Exception error) {}
     }
 
     @Override

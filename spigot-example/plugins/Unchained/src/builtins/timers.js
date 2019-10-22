@@ -11,8 +11,8 @@ let bukkit_set_timeout = (callback, delay_in_milliseconds, ...args) => {
   var task = server.getScheduler().runTaskLater(plugin, runnable, delay);
 
   let task_id = task.getTaskId();
-  ref({ close: () => bukkit_clear_task(task_id) });
-  return task_id;
+  ref(task);
+  return { cancel: () => task.cancel() };
 }
 
 let bukkit_set_interval = (callback, interval_in_milliseconds, ...args) => {
@@ -23,8 +23,8 @@ let bukkit_set_interval = (callback, interval_in_milliseconds, ...args) => {
     .runTaskTimer(plugin, runnable, delay, delay);
 
     let task_id = task.getTaskId();
-    ref({ close: () => bukkit_clear_task(task_id) });
-    return task_id;
+    ref(task);
+    return { cancel: () => task.cancel() };
 }
 
 let setImmediate = (callback, ...args) => {
@@ -34,12 +34,17 @@ let setImmediate = (callback, ...args) => {
     .runTask(plugin, runnable);
 
   let task_id = task.getTaskId();
-  ref({ close: () => bukkit_clear_task(task_id) });
-  return task_id;
+  ref(task);
+  return { cancel: () => task.cancel() };
 };
 
-let bukkit_clear_task = (task_id) => {
-  server.getScheduler().cancelTask(task_id);
+let bukkit_clear_task = (task) => {
+  if (task.cancel) {
+    task.cancel();
+  } else {
+    console.log(`task:`, task)
+  }
+  // server.getScheduler().cancelTask(task_id);
 }
 
 module.exports = {

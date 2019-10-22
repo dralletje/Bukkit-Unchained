@@ -12,26 +12,6 @@ let WebSocket = require('./websocket/websocket.js');
 
 let modulo = (x, n) => (x % n < 0 ? n + (x % n) : x % n);
 
-let start_timer = label => {
-  let initial_time = Date.now();
-  let last_time = Date.now();
-
-  return {
-    log: message => {
-      let seconds_spent = (Date.now() - last_time) / 1000;
-      let color = seconds_spent < 0.8 ? ChatColor.GREEN : ChatColor.RED;
-      last_time = Date.now();
-      console.log(label, message, `took ${color}${seconds_spent.toFixed(3)}s`);
-    },
-    end: () => {
-      let seconds_spent = (Date.now() - initial_time) / 1000;
-      let color = seconds_spent < 1 ? ChatColor.GREEN : ChatColor.RED;
-      // prettier-ignore
-      console.log(label, `Completed!, spent ${color}${seconds_spent.toFixed(3)}s ${ChatColor.RESET}in total`);
-    }
-  };
-};
-
 let get_mongo_url = ({ user, password, host, database }) => `mongodb://${user}:${password}@${host}/${database}`
 
 let do_async = async (name, fn) => {
@@ -56,14 +36,18 @@ module.exports = plugin => {
   let plots = database.collection("plots");
 
   let active_plots = new Map();
+  let refreshing_plots = new Map();
+
   let refresh_plot = async db_plot => {
     if (typeof db_plot === "string") {
       db_plot = plots.findOne({ plot_id: db_plot });
     }
 
-    console.log(`plot.plot_id:`, db_plot.plot_id)
+    console.log(`plot.plot_id:`, db_plot.plot_id);
 
     let active_plot = active_plots.get(db_plot.plot_id);
+    let active_refresh = (refreshing_plots.get(db_plot.plot_id) || 1) + 1;
+    refreshing_plots.set(db_plot.plot_id, active_refresh);
     if (active_plot != null) {
       // Wait for the plot to come online first, if it is still booting...
       if (active_plot.active === false) {
@@ -74,15 +58,19 @@ module.exports = plugin => {
         });
       }
 
+      if (active_refresh !== refreshing_plots.get(db_plot.plot_id)) {
+        return;
+      }
+
       // ...before I slaughter er
       try {
         active_plot.worker.terminate();
         console.log(`${ChatColor.GREEN}Worker terminated succesfully`);
       } catch (err) {
-        console.log(`Closing err:`, err);
+        console.log(`${ChatColor.RED}Closing err:`, err);
       }
     } else {
-      console.log("First time booting this worker");
+      console.log(`${ChatColor.GREEN}First time booting this worker`);
     }
 
     let main_path = plugin.java.getDescription().getMain();
@@ -90,6 +78,7 @@ module.exports = plugin => {
       `${plugin.java.getDataFolder()}/dist/PluginWorker.js`,
       {
         workerData: {
+          js_timeout: 10000,
           source: db_plot.script,
           plot_x: db_plot.plot_x,
           plot_z: db_plot.plot_z,
@@ -104,7 +93,7 @@ module.exports = plugin => {
     let error_message = null;
     worker.on('message', message => {
       if (message.type === 'error') {
-        console.log(message.stack);
+        console.log('Error message:', message.stack);
         error_message = message;
       }
     })
@@ -124,6 +113,14 @@ module.exports = plugin => {
     });
 
     console.log(plot_prefix, 'online event triggered!');
+
+    worker.postMessage({
+      type: 'run_plugin',
+      source: db_plot.script,
+      id: active_refresh,
+    });
+
+    console.log(plot_prefix, 'Posting message');
 
     active_plots.set(db_plot.plot_id, {
       worker: worker,
@@ -379,6 +376,7 @@ module.exports = plugin => {
     websocket.on('message', async message => {
       if (session_id == null) {
         if (message.type === 'open') {
+          console.log('Open!');
           let plot = plots.findOne({ password: message.session_id });
           if (plot == null) {
             // throw new Error(`Plot for key not found`);

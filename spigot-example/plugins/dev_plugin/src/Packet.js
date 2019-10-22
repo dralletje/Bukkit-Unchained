@@ -97,11 +97,7 @@ let Packet = {
     );
     protocolManager.addPacketListener(packet_adapter);
 
-    let dispose = ref({
-      close: () => {
-        protocolManager.removePacketListener(packet_adapter);
-      }
-    });
+    let dispose = ref(packet_adapter);
 
     return { dispose: dispose };
   },
@@ -132,11 +128,7 @@ let Packet = {
     );
     protocolManager.addPacketListener(packet_adapter);
 
-    let dispose = ref({
-      close: () => {
-        protocolManager.removePacketListener(packet_adapter);
-      }
-    });
+    let dispose = ref(packet_adapter);
     return { dispose: dispose };
   },
 

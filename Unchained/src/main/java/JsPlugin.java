@@ -127,7 +127,9 @@ public class JsPlugin extends PluginBase {
         // this.classLoader = classLoader;
         this.logger = new PluginLogger(this);
 
-        this.context = new WorkerContext(description.getMain(), this);
+        try {
+          this.context = new WorkerContext(description.getMain(), this);
+        } catch (Exception error) {}
     }
 
     /**

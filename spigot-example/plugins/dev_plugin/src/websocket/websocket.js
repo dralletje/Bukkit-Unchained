@@ -1,4 +1,4 @@
-let { ref, java_fn } = require('worker_threads');
+let { ref, wrap_java_function } = require('worker_threads');
 
 let plugin = process.binding('plugin');
 
@@ -7,7 +7,6 @@ let WeakHashMap = Java.type('java.util.WeakHashMap');
 
 // let WebSocket = Java_type('org.java_websocket.WebSocket');
 // let ClientHandshake = Java_type('org.java_websocket.handshake.ClientHandshake');
-let WebSocketServer = Java_type('org.java_websocket.server.WebSocketServer');
 let JS_WebSocketServer = Java_type('eu.dral.unchained.JS_WebSocketServer');
 
 // let StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
@@ -57,9 +56,8 @@ class Server extends EventEmitter {
       }),
     };
     let server = new JS_WebSocketServer(plugin, SimpleServer, address);
-    ref({
-      close: server.stop
-    })
+
+    ref(server);
     this._server = server;
     server.start();
 
