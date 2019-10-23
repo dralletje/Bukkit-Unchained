@@ -1,5 +1,4 @@
 import React from "react";
-import JsonTree from "react-json-tree";
 
 import "./App.css";
 import { Codeblock } from "./Code.js";
@@ -207,10 +206,8 @@ function Editor({ session_id, files, set_files, log, onSave }) {
   };
 
   const listRef = React.useRef();
-  const { stayScrolled /*, scrollBottom*/ } = useStayScrolled(listRef);
+  const { stayScrolled /*, scrollBottom*/ } = useStayScrolled(listRef, { innacuracy: 50 });
 
-  // Typically you will want to use stayScrolled or scrollBottom inside
-  // useLayoutEffect, because it measures and changes DOM attributes (scrollTop) directly
   React.useLayoutEffect(() => {
     stayScrolled();
   }, [stayScrolled, log.length]);
@@ -372,16 +369,32 @@ let LoadEditor = ({ session_id, ...props }) => {
     set_is_connecting(true);
     let io = new socketIo("ws://localhost:8080", {
       query: {
-        token: session_id
+        session_id: session_id
       }
     });
     websocket_ref.current = io;
 
     io.on("error", error => {
-      console.log(`error:`, error);
+      console.error(`IO error:`, error);
     });
+    io.on('reconnect_attempt', attempts => {
+      console.log(`Reconnect attempt ${attempts}`);
+    })
+    io.on("close", () => {
+      console.log('IO closed');
+    });
+    io.on('reconnecting...', () => {
+      console.log('Reconnected');
+    })
+    io.on('reconnect', () => {
+      console.log('Reconnected');
+    })
+    io.on('disconnect', () => {
+      console.log('Disconnect');
+      io.connect();
+    })
     io.on("verified", message => {
-      console.log("On open!");
+      console.log("On verified!");
       set_is_connecting(false);
     });
     io.on("log", message => {

@@ -37,11 +37,8 @@ public class WorkerContext implements AutoCloseable {
     // }
 
     public class ExposedContext {
-      private ArrayList<AutoCloseable> closables = new ArrayList<AutoCloseable>();
-
       // public Consumer<InterContextValue> listener;
       public Consumer<Object> listener;
-      public Timer timer = new Timer("Timeout thread", true);
 
       public void ExposedContext() {}
 
@@ -60,22 +57,11 @@ public class WorkerContext implements AutoCloseable {
               is_done.put("is_done", false);
 
               if (delay > 0) {
-                timer.schedule(new TimerTask() {
+                WorkerContext.this.timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
                       if (is_done.get("is_done") == true) return;
-
-                      System.err.println("TIMEOUT Closing context due to timeout");
-                      WorkerContext.this.terminate();
-
-                      System.err.println("TIMEOUT Terminated context");
-                      // TODO Re-enable this when I figure out the memory problem
-                      // WorkerContext.this.runInBukkit(() -> {
-                      //   System.err.println("TIMEOUT Running next bukkit tick");
-                      //   try {
-                      //     ExposedContext.this.postMessage("exit");
-                      //   } catch (Exception error) {}
-                      // });
+                      WorkerContext.this.close();
                     }
                 }, delay);
               }
@@ -96,7 +82,7 @@ public class WorkerContext implements AutoCloseable {
       }
 
       public void addClosable(AutoCloseable closable) {
-        closables.add(closable);
+        WorkerContext.this.closables.add(closable);
       }
       public void addClosable(Value closable) throws Exception {
         throw new Exception("To add closeables, you need to implement them in java");
@@ -105,16 +91,6 @@ public class WorkerContext implements AutoCloseable {
         if (is_dev_and_thus_insecure.equals("is_dev_and_thus_insecure")) {
           System.err.println("INSECURE addClosable WITH JS VALUE");
           this.addClosable(closable.as(AutoCloseable.class));
-        }
-      }
-
-      public void closeAll() {
-        for (AutoCloseable closable : closables) {
-          try {
-            closable.close();
-          } catch (Exception error) {
-            error.printStackTrace();
-          }
         }
       }
 
@@ -141,7 +117,9 @@ public class WorkerContext implements AutoCloseable {
     private Value exports;
     private Plugin plugin;
     private ExposedContext exposed_context;
-    public Consumer<Object> onMessage;
+    private Consumer<Object> onMessage;
+    private ArrayList<AutoCloseable> closables = new ArrayList<AutoCloseable>();
+    private Timer timer = new Timer("Timeout thread", true);
 
     @FunctionalInterface
     public interface NodeStyleCallback {
@@ -446,26 +424,25 @@ public class WorkerContext implements AutoCloseable {
     }
 
     public void reset() {
-      this.exposed_context.closeAll();
-
-      try {
-        this.postMessage("close");
-      }
-      catch (IllegalStateException error) {}
-      catch  (Exception error) {
-        error.printStackTrace();
+      for (AutoCloseable closable : this.closables) {
+        try {
+          closable.close();
+        } catch (Exception error) {
+          error.printStackTrace();
+        }
       }
     }
 
     public void close() {
       this.reset();
+      this.timer.cancel();
       this.context.close(true);
-      this.exposed_context.timer.cancel();
-    }
-
-    public void terminate() {
-      this.exposed_context.closeAll();
-      this.context.close(true);
-      this.exposed_context.timer.cancel();
+      runInBukkit(() -> {
+        if (this.onMessage != null) {
+          try {
+            this.onMessage.accept("exit");
+          } catch (Exception error) {}
+        }
+      });
     }
 }

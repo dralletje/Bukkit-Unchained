@@ -1,3 +1,4 @@
+# Adapted from https://aikar.co/2018/07/02/tuning-the-jvm-g1gc-garbage-collector-flags-for-minecraft/
 ../graal-bin/bin/java \
   -Dgraal.LogFile=graallog.log \
   -Xms2G -Xmx2G \

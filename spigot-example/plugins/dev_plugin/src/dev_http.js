@@ -134,17 +134,16 @@ module.exports = plugin => {
   };
 
   for (let db_plot of plots.find({}).toArray()) {
-    // console.log(`db_plot:`, db_plot);
-    do_async('Memory leak checker', async () => {
-      while (true) {
-        console.time('refreshing plot');
-        await refresh_plot(db_plot);
-        console.timeEnd('refreshing plot');
-      }
-    })
-    // refresh_plot(db_plot).catch(err => {
-    //   console.error(`Refresh plot '${db_plot.plot_id}' err:`, err);
-    // });
+    // do_async('Memory leak checker', async () => {
+    //   while (true) {
+    //     console.time('refreshing plot');
+    //     await refresh_plot(db_plot);
+    //     console.timeEnd('refreshing plot');
+    //   }
+    // })
+    refresh_plot(db_plot).catch(err => {
+      console.error(`Refresh plot '${db_plot.plot_id}' err:`, err);
+    });
   }
 
   // client.db('database').runCommand({
@@ -385,10 +384,11 @@ module.exports = plugin => {
       if (session_id == null) {
         if (message.type === 'open') {
           console.log('Open!');
+          console.log(`message.session_id:`, message.session_id)
           let plot = plots.findOne({ password: message.session_id });
           if (plot == null) {
             // throw new Error(`Plot for key not found`);
-            websocket.send({ type: 'execution_error', message: 'No plot found for key' });
+            websocket.send({ type: 'error', message: 'No plot found for key' });
             return;
           }
 
