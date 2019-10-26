@@ -24,6 +24,8 @@ export let create_build_plugin = ({
   let BlockAction = adapt.get_class("org.bukkit.event.block.Action");
   let ChatColor = Java.type("org.bukkit.ChatColor");
 
+  require('./builder-plugin/util-commands.js')({ plugin, adapt, commands });
+
   commands.registerCommand({
     name: "set",
     onCommand: (player, args) => {
@@ -81,7 +83,6 @@ export let create_build_plugin = ({
 
   let interaction_events = [
     "BlockPlace",
-    "BlockBreak",
     "PlayerBucketEmpty",
     "PlayerBucketFill",
     "HangingBreak",
@@ -99,6 +100,14 @@ export let create_build_plugin = ({
       { priority: "LOW" }
     );
   }
+
+  events.onBlockBreak(event => {
+    if (event.getPlayer().getItemInHand().getType() === Material.DEBUG_STICK) {
+      event.setCancelled(true);
+      return;
+    }
+    event.setCancelled(false);
+  }, { priority: "LOW" })
 
   // prettier-ignore
   let CuboidRegionSelector = Java_type("com.sk89q.worldedit.regions.selector.CuboidRegionSelector");

@@ -23,18 +23,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.reflections.Reflections;
 
 public class WorkerContext implements AutoCloseable {
-    // public static class InterContextValue {
-    //   // public Map<String, Object> data;
-    //   public Object data;
-    //
-    //   public InterContextValue(Object value) {
-    //     this.data = value;
-    //   }
-    //
-    //   public InterContextValue(Value value_data) {
-    //     this.data = WorkerContext.htmlLikeClone(value_data);
-    //   }
-    // }
+    public static Object EXIT_EVENT_TYPE = new Object();
 
     public class ExposedContext {
       // public Consumer<InterContextValue> listener;
@@ -45,25 +34,22 @@ public class WorkerContext implements AutoCloseable {
       public CompletelyGenericFunction wrap_java_function(Value fn) throws Exception {
         return fn.as(CompletelyGenericFunction.class);
       }
-
       public CompletelyGenericFunction wrap_function(Plugin plugin, Value fn, String stack) {
-        return this.wrap_function(plugin, fn, stack, 0);
-      }
-      public CompletelyGenericFunction wrap_function(Plugin plugin, Value fn, String stack, int delay) {
         return new CompletelyGenericFunction() {
           public Object apply(Object... args) {
             WorkerContext.this.runInBukkit(() -> {
               final Map<String, Boolean> is_done = new HashMap<String, Boolean>();
               is_done.put("is_done", false);
 
-              if (delay > 0) {
+              if (WorkerContext.this.timeout > 0) {
                 WorkerContext.this.timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
                       if (is_done.get("is_done") == true) return;
+                      System.err.println("Closing worker because of timeout...");
                       WorkerContext.this.close();
                     }
-                }, delay);
+                }, WorkerContext.this.timeout);
               }
 
               try {
@@ -81,8 +67,12 @@ public class WorkerContext implements AutoCloseable {
         };
       }
 
-      public void addClosable(AutoCloseable closable) {
+      public Runnable addClosable(AutoCloseable closable) {
         WorkerContext.this.closables.add(closable);
+        // System.out.println("Closable count: " + WorkerContext.this.closables.size());
+        return () -> {
+          WorkerContext.this.closables.remove(closable);
+        };
       }
       public void addClosable(Value closable) throws Exception {
         throw new Exception("To add closeables, you need to implement them in java");
@@ -118,8 +108,11 @@ public class WorkerContext implements AutoCloseable {
     private Plugin plugin;
     private ExposedContext exposed_context;
     private Consumer<Object> onMessage;
-    private ArrayList<AutoCloseable> closables = new ArrayList<AutoCloseable>();
+    // private Set<AutoCloseable> closables = Collections.newSetFromMap(new WeakHashMap<AutoCloseable, Boolean>());
+    private Set<AutoCloseable> closables = new HashSet<AutoCloseable>();
     private Timer timer = new Timer("Timeout thread", true);
+
+    public int timeout = 0;
 
     @FunctionalInterface
     public interface NodeStyleCallback {
@@ -440,7 +433,7 @@ public class WorkerContext implements AutoCloseable {
       runInBukkit(() -> {
         if (this.onMessage != null) {
           try {
-            this.onMessage.accept("exit");
+            this.onMessage.accept(WorkerContext.EXIT_EVENT_TYPE);
           } catch (Exception error) {}
         }
       });

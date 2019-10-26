@@ -5,7 +5,7 @@ let HoverEvent = Java.type('net.md_5.bungee.api.chat.HoverEvent');
 
 // NOTE: SHOW_ENTITY is completely useless
 
-export let chat = (strings, ...components) => {
+let chat = (strings, ...components) => {
   let builder = new ComponentBuilder("");
 
   for (let string of strings) {
@@ -38,6 +38,12 @@ chat.open_url = (url, components) => {
   return builder.create();
 }
 
+chat.run_command = (url, components) => {
+  let builder = get_builder(components);
+  builder.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, url))
+  return builder.create();
+}
+
 chat.show_text = (text, components) => {
   let builder = get_builder(components);
   builder.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, get_builder(text).create()))
@@ -47,7 +53,7 @@ chat.show_text = (text, components) => {
 for (let color of ChatColor.values()) {
   let color_name = color.getName().toLowerCase();
   chat[color_name] = (components, ...possible_actual_components) => {
-    if (Array.isArray(components) && components.every(x => typeof x === 'string')) {
+    if (Array.isArray(components) && Array.from(components).every(x => typeof x === 'string')) {
       // This should trigger when we use this color as a template function
       return chat[color_name](chat(components, ...possible_actual_components));
     }
@@ -58,14 +64,4 @@ for (let color of ChatColor.values()) {
   }
 }
 
-export let adapted = (adapt) => {
-  let adapted_chat = (...args) => adapt.from_java(chat(...args));
-
-  for (let [key, fn] of chat) {
-    if (typeof fn === 'function') {
-      adapted_chat[key] = (...args) => adapt.from_java(chat[key](...args));
-    }
-  }
-
-  return adapted_chat;
-}
+export default chat;

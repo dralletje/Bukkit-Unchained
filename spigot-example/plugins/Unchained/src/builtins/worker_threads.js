@@ -24,14 +24,17 @@ let context = process.binding("context");
 let plugin = process.binding("plugin");
 export let workerData = Java_to_js(process.binding("workerData"));
 
-let timeout = (workerData && workerData.js_timeout) || 0;
-
-export let wrap_java_function = context.wrap_java_function;
-export let bind_java_fn = context.bind_java_fn;
-
-export let java_fn = fn => {
+export let java_fn = original_fn => {
   let stack = new Error().stack;
-  let java_function = context.wrap_function(plugin, fn, stack, timeout);
+  let fn = async (...args) => {
+    try {
+      original_fn(...args);
+    } catch (error) {
+      // TODO Post this to parentPort
+      console.error(`Java fn error:`, error)
+    }
+  }
+  let java_function = context.wrap_function(plugin, fn, stack);
   return java_function;
 };
 
@@ -40,12 +43,18 @@ export let isMainThread = plugin.getServer().isPrimaryThread();
 
 export let ref = closable => {
   if (closable instanceof Java.type('java.lang.AutoCloseable')) {
-    context.addClosable(closable);
-    return closable.close;
+    let removeClosable = context.addClosable(closable);
+    return () => {
+      removeClosable();
+      closable.close();
+    };
   } else {
     let better_closeable = Java_type('eu.dral.unchained.AutoCloseables').static.forValue(closable);
-    context.addClosable(better_closeable);
-    return better_closeable.close;
+    let removeClosable = context.addClosable(better_closeable);
+    return () => {
+      removeClosable();
+      better_closeable.close();
+    };
   }
 };
 
@@ -111,11 +120,19 @@ export class Worker extends EventEmitter {
       }
     }, 20 * 1000);
 
+    console.log(`WorkerContext.EXIT_EVENT_TYPE:`, WorkerContext.EXIT_EVENT_TYPE)
+    console.log(`WorkerContext.static.EXIT_EVENT_TYPE:`, WorkerContext.static.EXIT_EVENT_TYPE)
+
     WorkerContext.static.createAsync(
       plugin,
       java_worker_data,
       java_fn((java_message) => {
         let message = html_unclone(java_message);
+
+        if (message === WorkerContext.static.EXIT_EVENT_TYPE) {
+          this.emit('exit');
+          return;
+        }
         this.emit('message', message);
       }),
       url_or_script,
@@ -137,6 +154,7 @@ export class Worker extends EventEmitter {
 
     this.on('error', (error) => {
       try {
+        console.error('Terminating worker because of error:', error.stack);
         this.terminate();
       } catch (err) {
 
@@ -151,9 +169,17 @@ export class Worker extends EventEmitter {
     this.context.postMessage(htmlLikeClone(message));
   }
 
+  setTimeout(timeout) {
+    if (this.context == null) {
+      throw new Error("Worker not yet online");
+    }
+    this.context.timeout = timeout;
+  }
+
   terminate() {
     if (this.context == null) {
-      throw new Error("Context already terminated");
+      // throw new Error("Context already terminated");
+      return;
     }
     this.context.close();
     this.context = null;

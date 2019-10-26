@@ -1,6 +1,8 @@
 let ChatColor = Java.type('org.bukkit.ChatColor');
 let { inspect } = require('util');
 
+class PlayerError extends Error {}
+
 var _getProperties = function(object) {
   try {
     if (Array.isArray(object)) {
@@ -82,7 +84,7 @@ var onTabComplete = (plugin, player, args) => {
   );
 
   if (code_match == null) {
-    console.log(`Code not matching a simple getter: '${code}'`);
+    // console.log(`Code not matching a simple getter: '${code}'`);
     return [];
   }
 
@@ -176,19 +178,36 @@ let player_environment = {
 
 
 let repl = (plugin, player, code) => {
+  if (!player.isOp()) {
+    throw new PlayerError('You are not allowed to run jsrepl, sorry :)');
+  }
+
   player.sendMessage(`${ChatColor.DARK_GRAY}> ${ChatColor.GRAY}${code}`);
-  let repl_fn = load({
-    name: '~repl',
-    script: `(function($_, self, events, exports, require, module, __dirname, __filename) { return ${code} })`,
-  });
+
   let player_env = player_environment[player.getName()] || {
     timeout: null, // setTimeout result
     exports: {}, // Runner,
     last_result: null,
   };
+  let injects = {
+    $_: player_env.last_result,
+    self: player,
+    events: plugin.events,
+    exports: player_env.exports,
+    require: module.require,
+    module: module,
+    __dirname: '/',
+    __filename: '/repl.js',
+    plugin: plugin,
+    server: plugin.java.getServer(),
+  }
+  let repl_fn = load({
+    name: '~repl',
+    script: `(function(${Object.keys(injects).join(', ')}) { return ${code} })`,
+  });
 
   try {
-    let result = repl_fn(player_env.last_result, player, plugin.events, player_env.exports, module.require, module, __dirname, __filename);
+    let result = repl_fn(...Object.values(injects));
     player_environment[player.getName()] = {
       timeout: null,
       exports: player_env.exports,

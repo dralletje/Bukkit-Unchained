@@ -72,8 +72,9 @@ export class JavaPlugin extends EventEmitter {
               } catch (err) {
                 // prettier-ignore
                 console.log(`${ChatColor.DARK_RED}[${this.java.getName()}] Error in onCommand(${alias}):`, err)
+                let error_message = err.getMessage ? err.getMessage() : err.message;
                 // prettier-ignore
-                sender.sendMessage(`${ChatColor.DARK_RED}[${this.java.getName()}] ${ChatColor.RED}${err.message}`);
+                sender.sendMessage(`${ChatColor.DARK_RED}[${this.java.getName()}] ${ChatColor.RED}${error_message}`);
               }
             })();
           }
@@ -82,7 +83,6 @@ export class JavaPlugin extends EventEmitter {
         return false;
       },
       onTabComplete: (sender, command, alias, command_args) => {
-        console.log("Tab complete", command.getName());
         if (this.commandMap.has(command.getName())) {
           let handler = this.commandMap.get(command.getName());
           if (handler.onTabComplete) {

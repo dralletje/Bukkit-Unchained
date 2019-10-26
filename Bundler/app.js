@@ -42,7 +42,12 @@ let get_bukkit_socket = (client_socket, session_id) => {
       }
 
       bukkit_websocket.isAlive = false;
-      bukkit_websocket.ping(() => {});
+
+      try {
+        bukkit_websocket.ping(() => {});
+      } catch (error) {
+        clearInterval(ping_interval);
+      }
     }, 5 * 1000);
 
     let the_chamber_of_secrets_has_been_opened = false;

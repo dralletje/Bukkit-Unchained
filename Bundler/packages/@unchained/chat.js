@@ -1,60 +1,88 @@
 let ChatColor = Java.type('net.md_5.bungee.api.ChatColor');
-let ClickEvent = Java.type('net.md_5.bungee.api.chat.ClickEvent');
-let ComponentBuilder = Java.type('net.md_5.bungee.api.chat.ComponentBuilder');
-let HoverEvent = Java.type('net.md_5.bungee.api.chat.HoverEvent');
+// let ComponentBuilder = Java.type('net.md_5.bungee.api.chat.ComponentBuilder');
+// let ClickEvent = Java.type('net.md_5.bungee.api.chat.ClickEvent');
+// let HoverEvent = Java.type('net.md_5.bungee.api.chat.HoverEvent');
 
 // NOTE: SHOW_ENTITY is completely useless
 
+
+let componentize = (value) => {
+  if (typeof value === 'string') {
+    return {text: value };
+  } else {
+    return value;
+  }
+}
+
 let chat = (strings, ...components) => {
-  let builder = new ComponentBuilder("");
+  if (!Array.isArray(strings)) {
+    return componentize(strings);
+  }
+
+  let extra = []
 
   for (let string of strings) {
-    builder.append(string);
+    extra.push(componentize(string));
 
     let component = components.shift();
     if (component != null) {
-      builder.append(component);
+      extra.push(componentize(component));
     }
   }
 
-  return builder.create();
-}
-
-let get_builder = (components) => {
-  if (typeof components === 'string') {
-    return new ComponentBuilder(components);
-  } else {
-    let builder = new ComponentBuilder("")
-    for (let component of components) {
-      builder.append(component);
-    }
-    return builder;
+  return {
+    text: '',
+    extra: extra,
   }
 }
 
-chat.open_url = (url, components) => {
-  let builder = get_builder(components);
-  builder.event(new ClickEvent(ClickEvent.Action.OPEN_URL, url))
-  return builder.create();
+chat.open_url = (url, component) => {
+  return {
+    text: '',
+    clickEvent: { action: 'open_url', value: url },
+    extra: [component],
+  };
 }
 
-chat.show_text = (text, components) => {
-  let builder = get_builder(components);
-  builder.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, get_builder(text).create()))
-  return builder.create();
+chat.run_command = (command, component) => {
+  return {
+    text: '',
+    clickEvent: { action: 'run_command', value: command },
+    extra: [component],
+  };
 }
+
+chat.show_text = (text, component) => {
+  return {
+    text: '',
+    hoverEvent: { action: 'show_text', value: text },
+    extra: [component],
+  };
+}
+
+let text_styles = [ChatColor.BOLD, ChatColor.UNDERLINE, ChatColor.STRIKETHROUGH, ChatColor.ITALIC, ChatColor.OBFUSCATED]
 
 for (let color of ChatColor.values()) {
   let color_name = color.getName().toLowerCase();
-  chat[color_name] = (components, ...possible_actual_components) => {
-    if (Array.isArray(components) && components.every(x => typeof x === 'string')) {
+  chat[color_name] = (component, ...possible_actual_components) => {
+    if (Array.isArray(component) && Array.from(component).every(x => typeof x === 'string')) {
       // This should trigger when we use this color as a template function
-      return chat[color_name](chat(components, ...possible_actual_components));
+      return chat[color_name](chat(component, ...possible_actual_components));
     }
 
-    let builder = get_builder(components);
-    builder.color(color)
-    return builder.create();
+    if (text_styles.includes(color)) {
+      return {
+        text: '',
+        [color.getName()]: true,
+        extra: [component],
+      };
+    }
+
+    return {
+      text: '',
+      color: color.getName(),
+      extra: [component],
+    };
   }
 }
 

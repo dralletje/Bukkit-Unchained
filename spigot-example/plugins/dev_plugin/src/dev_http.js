@@ -2,17 +2,21 @@ let { Worker } = require("worker_threads");
 let uuid = require("uuid/v4");
 
 let { MongoClient } = require("./mongo.js");
-let { chat } = require("./chat.js");
+let chat = require("./chat.js");
 
 let ChatColor = Java.type("org.bukkit.ChatColor");
+let GameMode = Java.type("org.bukkit.GameMode");
+let Location = Java.type('org.bukkit.Location');
 
-let WebSocket = require('./websocket/websocket.js');
+let WebSocket = require("./websocket/websocket.js");
 
 // let Packet = require('./Packet.js');
 
+let float = n => Java.type("java.lang.Float").parseFloat(String(n));
 let modulo = (x, n) => (x % n < 0 ? n + (x % n) : x % n);
 
-let get_mongo_url = ({ user, password, host, database }) => `mongodb://${user}:${password}@${host}/${database}`
+let get_mongo_url = ({ user, password, host, database }) =>
+  `mongodb://${user}:${password}@${host}/${database}`;
 
 let do_async = async (name, fn) => {
   try {
@@ -21,14 +25,22 @@ let do_async = async (name, fn) => {
     console.error(`Error in '${name}':`);
     console.error(error.stack);
   }
+};
+
+let ensure_mongo_for_plugin = ({ mongo_client }) => {
+  client.db('database').runCommand({
+    createUser: '-1_4',
+    pwd: 'password123',
+    roles: Java.to(['readWrite']),
+  });
 }
 
 module.exports = plugin => {
   let mongo_url = get_mongo_url({
-    user: '-1_4',
-    password: 'password123',
-    host: 'localhost:32768',
-    database: 'database',
+    user: "-1_4",
+    password: "password123",
+    host: "localhost:32768",
+    database: "database"
   });
   let mongo_client = new MongoClient(mongo_url);
   let database = mongo_client.db("Unchained");
@@ -59,7 +71,7 @@ module.exports = plugin => {
       }
 
       if (active_refresh !== refreshing_plots.get(db_plot.plot_id)) {
-        throw new Error('Worker already starting');
+        throw new Error("Worker already starting");
       }
 
       // ...before I slaughter er
@@ -78,27 +90,39 @@ module.exports = plugin => {
       `${plugin.java.getDataFolder()}/dist/PluginWorker.js`,
       {
         workerData: {
-          js_timeout: 10000,
           source: db_plot.script,
           plot_x: db_plot.plot_x,
           plot_z: db_plot.plot_z,
           mongo_url: `${db_plot.plot_x},${db_plot.plot_z}`,
           entry_path: main_path
-        },
-        stdout: true,
-        stderr: true
+        }
+        // stdout: true,
+        // stderr: true
       }
     );
 
+    worker.on("exit", () => {
+      console.log("Worker exit:", db_plot.plot_id);
+      let active_plot = active_plots.get(db_plot.plot_id);
+      if (active_plot.worker === worker && active_plot.online) {
+        active_plots.set(db_plot.plot_id, {
+          ...active_plot,
+          online: false
+        });
+      } else {
+        console.error("Exit on unregistered worker?");
+      }
+    });
+
     let error_message = null;
-    worker.on('message', message => {
-      if (message.type === 'error') {
-        console.log('Worker message.type = error:', message.stack);
+    worker.on("message", message => {
+      if (message.type === "error") {
+        console.log("Worker message.type = error:", message.stack);
         error_message = message;
       }
-    })
+    });
 
-    let plot_prefix = `${ChatColor.BLUE}[${db_plot.plot_x},${db_plot.plot_z}]${ChatColor.WHITE}`
+    let plot_prefix = `${ChatColor.BLUE}[${db_plot.plot_x},${db_plot.plot_z}]${ChatColor.WHITE}`;
 
     active_plots.set(db_plot.plot_id, {
       worker: worker,
@@ -112,15 +136,30 @@ module.exports = plugin => {
       worker.once("error", reject);
     });
 
-    console.log(plot_prefix, 'online event triggered!');
+    console.log(plot_prefix, "online event triggered!");
 
-    worker.postMessage({
-      type: 'run_plugin',
-      source: db_plot.script,
-      id: active_refresh,
+    worker.setTimeout(10 * 1000);
+
+    await new Promise((resolve, reject) => {
+      worker.once("message", message => {
+        if (message === 'exit') return;
+        if (message.type === "run_plugin_done") {
+          resolve();
+        } else {
+          console.log(`Expected run_plugin_done message:`, message);
+          // prettier-ignore
+          reject(new Error("Expected run_plugin_done message but got something else"));
+        }
+      });
+      worker.postMessage({
+        type: "run_plugin",
+        source: db_plot.script,
+        id: active_refresh
+      });
     });
+    worker.setTimeout(1 * 1000);
 
-    console.log(plot_prefix, 'Posting message');
+    console.log(plot_prefix, "Posting message");
 
     active_plots.set(db_plot.plot_id, {
       worker: worker,
@@ -128,7 +167,6 @@ module.exports = plugin => {
       plot_z: db_plot.plot_z,
       online: true
     });
-
 
     return worker;
   };
@@ -145,12 +183,6 @@ module.exports = plugin => {
       console.error(`Refresh plot '${db_plot.plot_id}' err:`, err);
     });
   }
-
-  // client.db('database').runCommand({
-  //   createUser: '-1_4',
-  //   pwd: 'password123',
-  //   roles: Java.to(['readWrite']),
-  // });
 
   let location_to_plot = location => {
     let chunk_x = location.getChunk().getX();
@@ -240,15 +272,23 @@ module.exports = plugin => {
   plugin.command("enter", {
     onCommand: (player, command, alias, args) => {
       let { id: plot_id } = location_to_plot(player.getLocation());
-      if (active_plots.get(plot_id)) {
-        player.sendMessage(`${ChatColor.GREEN}Joining plot!`);
-        active_plots.get(plot_id).worker.postMessage({
-          type: "plot-player-enter",
-          player: player
-        });
-      } else {
+      let active_plot = active_plots.get(plot_id);
+      if (active_plot == null) {
         player.sendMessage(`${ChatColor.RED}No active plot here!`);
+        return;
       }
+
+      if (!active_plot.online) {
+        // prettier-ignore
+        player.sendMessage(`${ChatColor.RED}Plugin has crashed or in process of botting!`);
+        return;
+      }
+
+      player.sendMessage(`${ChatColor.GREEN}Joining plot!`);
+      active_plots.get(plot_id).worker.postMessage({
+        type: "plot-player-enter",
+        player: player
+      });
     },
     onTabComplete: () => {
       return [];
@@ -259,13 +299,41 @@ module.exports = plugin => {
   plugin.command("leave", {
     onCommand: (player, command, alias, args) => {
       let { id: plot_id } = location_to_plot(player.getLocation());
-      if (active_plots.get(plot_id)) {
-        active_plots.get(plot_id).worker.postMessage({
-          type: "plot-player-leave",
-          player: player
-        });
-        player.sendMessage(`${ChatColor.GREEN}You just left the plot!`);
-      }
+
+      try {
+        if (active_plots.get(plot_id)) {
+          active_plots.get(plot_id).worker.postMessage({
+            type: "plot-player-leave",
+            player: player
+          });
+        }
+      } catch (error) {}
+
+      player.sendActionBar(`${ChatColor.BLACK}Left plugin area`);
+      player.setGameMode(GameMode.CREATIVE);
+      player.setCompassTarget(new Location(plugin.getServer().getWorlds()[0], 0, 0, 0));
+      player.setDisplayName(player.getName());
+      player.setExhaustion(0);
+      player.setExp(0);
+      // player.setFlying(false)
+      player.setFlySpeed(float(0.2));
+      player.setFoodLevel(20);
+      player.setHealth(20);
+      // player.setHealthScale(1)
+      // player.setHealthScaled(false)
+      player.setLevel(0);
+      player.setPlayerListHeaderFooter("Dev server!", "Cool footer");
+      player.setPlayerListName(player.getName());
+      // player.setSaturation(0);
+      // player.setScoreboard(null)
+      player.setTotalExperience(0);
+      player.setWalkSpeed(float(0.2));
+
+      player.resetPlayerTime();
+      player.resetPlayerWeather();
+      player.resetTitle();
+
+      player.sendMessage(`${ChatColor.GREEN}You just left the plot!`);
     }
   });
 
@@ -278,13 +346,15 @@ module.exports = plugin => {
     event => {
       let player = event.getPlayer();
       let message = event.getMessage();
+      let isOp = player.isOp();
 
       player.sendMessage(`${ChatColor.GRAY}${message}`);
 
-      if (valid_commands.some(x => message.startsWith(x))) {
+      if (isOp || valid_commands.some(x => message.startsWith(x))) {
         return;
       }
-      if (event.message.startsWith("//")) {
+
+      if (message.startsWith("//")) {
         event.setCancelled(true);
         // prettier-ignore
         player.sendMessage(`${ChatColor.RED}You can only use worldedit while in builder mode!`);
@@ -339,72 +409,79 @@ module.exports = plugin => {
   let server = new WebSocket.Server({ port: 8000 });
 
   let connect_websocket_to_worker = (websocket, active_plot) => {
-    let plot_prefix = `${ChatColor.BLUE}[${active_plot.plot_x},${active_plot.plot_z}]${ChatColor.WHITE}`
+    let plot_prefix = `${ChatColor.BLUE}[${active_plot.plot_x},${active_plot.plot_z}]${ChatColor.WHITE}`;
 
-    console.log(plot_prefix, 'Connecting with websocket...');
+    console.log(plot_prefix, "Connecting with websocket...");
 
-    do_async('Stdout', async () => {
-      try {
-        for await (let buffer of active_plot.worker.stdout) {
-          let lines = buffer.toString().split("\n");
-          websocket.send({
-            type: 'log',
-            body: lines.slice(0, -1).join('\n'),
-          });
-          for (let line of lines.slice(0, -1)) {
-            console.log(plot_prefix, line);
+    if (active_plot.worker.stdout) {
+      do_async("Stdout", async () => {
+        try {
+          for await (let buffer of active_plot.worker.stdout) {
+            let lines = buffer.toString().split("\n");
+            websocket.send({
+              type: "log",
+              body: lines.slice(0, -1).join("\n")
+            });
+            for (let line of lines.slice(0, -1)) {
+              console.log(plot_prefix, line);
+            }
           }
+        } catch (error) {
+          console.log(`error:`, error);
         }
-      } catch (error) {
-        console.log(`error:`, error);
-      }
-    });
-    do_async('Stderr', async () => {
-      try {
-        for await (let buffer of active_plot.worker.stderr) {
-          let lines = buffer.toString().split("\n");
-          websocket.send({
-            type: 'log',
-            body: lines.slice(0, -1).join('\n'),
-          });
-          for (let line of lines.slice(0, -1)) {
-            console.log(plot_prefix, line);
+      });
+    }
+    if (active_plot.worker.stderr) {
+      do_async("Stderr", async () => {
+        try {
+          for await (let buffer of active_plot.worker.stderr) {
+            let lines = buffer.toString().split("\n");
+            websocket.send({
+              type: "log",
+              body: lines.slice(0, -1).join("\n")
+            });
+            for (let line of lines.slice(0, -1)) {
+              console.log(plot_prefix, line);
+            }
           }
+        } catch (error) {
+          console.log(`error:`, error);
         }
-      } catch (error) {
-        console.log(`error:`, error);
-      }
-    });
-  }
+      });
+    }
+  };
 
-  server.on('connection', (websocket) => {
+  server.on("connection", websocket => {
     let session_id = null;
 
-    websocket.on('message', async message => {
+    websocket.on("message", async message => {
       if (session_id == null) {
-        if (message.type === 'open') {
-          console.log('Open!');
-          console.log(`message.session_id:`, message.session_id)
+        if (message.type === "open") {
+          console.log("Open!");
+          console.log(`message.session_id:`, message.session_id);
           let plot = plots.findOne({ password: message.session_id });
           if (plot == null) {
             // throw new Error(`Plot for key not found`);
-            websocket.send({ type: 'error', message: 'No plot found for key' });
+            websocket.send({ type: "error", message: "No plot found for key" });
             return;
           }
 
-          session_id = message.session_id
+          session_id = message.session_id;
 
-          websocket.send({ type: 'open' });
+          websocket.send({ type: "open" });
 
           if (active_plots.get(plot.plot_id)) {
-            connect_websocket_to_worker(websocket, active_plots.get(plot.plot_id));
+            connect_websocket_to_worker(
+              websocket,
+              active_plots.get(plot.plot_id)
+            );
           }
         } else {
           console.log(`Unknown type '${message.type}'`);
         }
       }
 
-      if (message.type === 'script') {
+      if (message.type === "script") {
         // console.log(`message:`, message);
         let plot = plots.findOne({ password: session_id });
         if (plot == null) {
@@ -417,22 +494,39 @@ module.exports = plugin => {
         );
 
         try {
-          let worker = await refresh_plot(plot.plot_id)
+          let worker = await refresh_plot(plot.plot_id);
 
           // TODO Need to place this on a more realtime place
-          connect_websocket_to_worker(websocket, active_plots.get(plot.plot_id));
-          worker.on('message', (message) => {
-            if (message.type === 'caught_error') {
-              websocket.send({ type: 'execution_error', message: message.message, stack: message.stack })
+          connect_websocket_to_worker(
+            websocket,
+            active_plots.get(plot.plot_id)
+          );
+          worker.on("message", message => {
+            if (message.type === "caught_error") {
+              websocket.send({
+                type: "execution_error",
+                message: message.message,
+                stack: message.stack
+              });
             }
           });
         } catch (error) {
-          if (error instanceof Java.type('org.graalvm.polyglot.PolyglotException') && error.isCancelled()) {
-            websocket.send({ type: 'execution_error', message: 'Code did timeout' })
-          } else  {
+          if (
+            error instanceof
+              Java.type("org.graalvm.polyglot.PolyglotException") &&
+            error.isCancelled()
+          ) {
+            websocket.send({
+              type: "execution_error",
+              message: "Code did timeout"
+            });
+          } else {
             console.error(`Refresh plot error:`, error);
-            websocket.send({ type: 'execution_error', message: error.message, stack: error.stack })
-
+            websocket.send({
+              type: "execution_error",
+              message: error.message,
+              stack: error.stack
+            });
           }
         }
       }

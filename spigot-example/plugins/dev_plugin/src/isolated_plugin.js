@@ -293,7 +293,8 @@ export let create_isolated_plugin = ({
     buildconfig: isolated_buildconfig,
     world: main_world,
     getServer: () => isolated_server,
-    events: isolated_events
+    events: isolated_events,
+    commands: plugin_commands,
   };
 
   timer.log("Isolated plugin");
@@ -358,9 +359,10 @@ export let create_isolated_plugin = ({
       // vm.run(source);
       let eval_fn = vm.run(`(source) => eval(source)`);
       eval_fn(source);
+      console.log('Hey');
       parentPort.postMessage({
         response_to: id,
-        type: 'booted',
+        type: 'run_plugin_done',
       });
     } catch (error) {
       parentPort.postMessage({

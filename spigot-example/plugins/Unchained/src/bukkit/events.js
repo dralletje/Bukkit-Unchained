@@ -1,4 +1,3 @@
-let { Unchained } = require('./bukkit.js');
 let { ref, java_fn } = require('worker_threads');
 
 let bukkit_EventPriority = Java.type('org.bukkit.event.EventPriority');
@@ -17,20 +16,14 @@ let make_addEventListener_for_plugin = (plugin) => {
   ) => {
     let priority_symbol = bukkit_EventPriority[priority.toUpperCase()];
 
-    var eventExecutor = function(listener, event) {
-      (async () => {
-          try {
-            await handler(event);
-          } catch (error) {
-            Unchained.handle_error({
-              error: error,
-              location: `event handler`,
-              name: eventType.getName(),
-              player: event.getPlayer && event.getPlayer(),
-            });
-          }
-      })();
-    };
+    var eventExecutor = java_fn(async (listener, event) => {
+      try {
+        await handler(event);
+      } catch (error) {
+        console.log(`error:`, error)
+        throw error;
+      }
+    });
 
     // Create an instance of our empty Listener implementation to track the handler
     var listener = new UnchainedListener();
@@ -41,7 +34,7 @@ let make_addEventListener_for_plugin = (plugin) => {
       eventType.class || eventType,
       listener,
       priority_symbol,
-      java_fn(eventExecutor),
+      eventExecutor,
       plugin
     );
 

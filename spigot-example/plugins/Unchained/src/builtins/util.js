@@ -1,6 +1,7 @@
 let util = require('util');
 
 let { sortBy, first, last, fromPairs, flatten } = require('lodash');
+let dedent = require('dedent');
 
 let  ChatColor = Java.type("org.bukkit.ChatColor");
 
@@ -167,12 +168,34 @@ let make_value_plain = (value, path = []) => {
   throw new Error('Unknown value type');
 }
 
+// let error_decontructors = [
+//   {
+//     name: 'Multiple applicable overloads',
+//     regex: /Multiple applicable overloads found for method name (.*) \(candidates: \[(Method\[(public|private)( default)? ([^ ]+) ([^(]+)\(([^)]+)\)](, )?)+], arguments: \[(.*)\]\)/,
+//     format: ([method_name, ]) => {
+//       return dedent`
+//
+//       `;
+//     },
+//   }
+// ]
+
 let format_error = (error, path = []) => {
   if (error.stack == null && error.getStack != null) {
     console.log(`error:`, Object.keys(error));
     console.log(error);
     error = { stack: error.getStack(), message: error.getMessage() };
   }
+
+  // for (let decontructor of error_decontructors) {
+  //   let match = error.message.match(decontructor.regex);
+  //   if (match != null) {
+  //
+  //     error.stack = decontructor.format(match.slice(1)).join('\n') + '\n' + error.stack;
+  //
+  //     break;
+  //   }
+  // }
 
   let INVOKE_MISMATCH = /INVOKE on JavaObject\[([^\]]+)] failed due to: (.*)/;
   let invoke_mismatch = error.message.match(INVOKE_MISMATCH);
@@ -201,7 +224,7 @@ let format_error = (error, path = []) => {
         }
       }
 
-      error.stack = new_lines.join('\n') + '\n' + error.stack;;
+      error.stack = new_lines.join('\n') + '\n' + error.stack;
     } else {
 
     }

@@ -1,4 +1,4 @@
-let { ref, wrap_java_function } = require('worker_threads');
+let { ref } = require('worker_threads');
 
 let plugin = process.binding('plugin');
 

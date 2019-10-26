@@ -23,7 +23,7 @@ global.crypto = {
 
 let minecraft_types = require("./minecraft-types.js");
 // prettier-ignore
-let minecraft_data_protocol = require("minecraft-data/minecraft-data/data/pc/1.14.1/protocol.json");
+let minecraft_data_protocol = require("minecraft-data/minecraft-data/data/pc/1.14.4/protocol.json");
 let ProtoDef = require("protodef").ProtoDef;
 
 let Packet = {

@@ -2,6 +2,7 @@ let PlayerEntity = Java.type("org.bukkit.entity.Player");
 let ChatColor = Java.type('org.bukkit.ChatColor')
 
 let WeakHashMap = Java.type('java.util.WeakHashMap');
+let Map = Java.type('java.util.Map');
 
 let start_timer = (label) => {
   let initial_time = Date.now();
@@ -25,15 +26,24 @@ let start_timer = (label) => {
 let java_get_prototype_chain = function*(java_class) {
   let current_class = java_class.class || java_class;
   while (current_class != null) {
+    if (current_class.isEnum && current_class.isEnum()) {
+      yield current_class;
+      yield Java.type('java.lang.Enum').class;
+      return;
+    }
+
+    if (current_class.getGenericSuperclass == null) {
+      // https://docs.oracle.com/javase/9/docs/api/java/lang/reflect/ParameterizedType.html
+      console.warn(`class without getGenericSuperclass:`, current_class.getTypeName())
+      return;
+    }
+
     yield current_class;
-    if (current_class.isEnum && current_class.isEnum()) return;
 
     // for (let implementing_class of current_class.getInterfaces()) {
     //   yield* java_get_prototype_chain(implementing_class);
     // }
-    if (current_class.getGenericSuperclass == null) {
-      console.warn(`current_class:`, current_class.getClass().getName())
-    }
+
     current_class = current_class.getGenericSuperclass();
   }
 };
@@ -60,17 +70,23 @@ let return_if_player = possible_player => {
 };
 
 let AllowedClasses = [
+  { java_class: Java.type('java.lang.Enum') },
   { java_class: Java.type('java.util.regex.Pattern') },
   { java_class: Java.type('net.md_5.bungee.api.ChatColor') },
   { java_class: Java.type('net.md_5.bungee.api.chat.ClickEvent') },
   { java_class: Java.type('net.md_5.bungee.api.chat.ComponentBuilder') },
   { java_class: Java.type('net.md_5.bungee.api.chat.HoverEvent') },
   { java_class: Java.type('net.md_5.bungee.api.chat.TextComponent') },
+  { java_class: Java.type('net.md_5.bungee.api.ChatMessageType') },
   { java_class: Java.type("org.bukkit.inventory.Merchant") },
+  {
+    java_class: Java.type("org.bukkit.inventory.PlayerInventory"),
+    get_location: inventory => [inventory.getLocation()],
+    get_players: inventory => [inventory.getHolder()]
+  },
   {
     java_class: Java.type("org.bukkit.inventory.Inventory"),
     get_location: inventory => [inventory.getLocation()],
-    get_players: inventory => return_if_player(inventory.getHolder())
   },
   {
     java_class: Java.type('org.bukkit.inventory.InventoryHolder'),
@@ -97,6 +113,8 @@ let AllowedClasses = [
     java_class: Java.type("org.bukkit.entity.Entity"),
     get_locations: entity => [entity.getLocation()]
   },
+
+  // TODO These things stick around, so need something to auto-cleanup
   // {
   //   java_class: Java.type("org.bukkit.boss.BossBar"),
   //   get_players: bossbar => Array.from(bossbar.getPlayers())
@@ -278,6 +296,16 @@ export let make_adapters = filters => {
       }
 
       let java_class = value.getClass();
+
+      if (value instanceof Map) {
+        let object = {};
+        for (let entry of value.entrySet()) {
+          // TODO Allow only string keys
+          object[entry.getKey().toString()] = adapt.to_java(entry.getValue());
+        }
+        return object;
+      }
+
       if (value instanceof Java.type("java.util.List") || java_class.isArray()) {
         return Java.from(value)
           .map(x => {
@@ -302,7 +330,7 @@ export let make_adapters = filters => {
           ? Array.from(
               java_get_prototype_chain(java_class.getInterfaces()[0])
             )
-          : []),
+          : java_class.getInterfaces()),
         ...Array.from(java_get_prototype_chain(java_class))
       ].map(x => x.getName());
 
@@ -387,6 +415,12 @@ export let make_adapters = filters => {
 
         adapt.validate(this);
       }
+
+      // TODO Use this if I'm going to make something implement all it's interfaces
+      // .... (Currently I only chose one "best matching" interface)
+      // [Symbol.hasInstance](value) {
+      //
+      // }
     }
 
     Object.defineProperty (JavaAdapter, 'name', { value: java_class_name });
