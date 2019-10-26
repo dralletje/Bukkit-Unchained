@@ -95,9 +95,9 @@ module.exports = plugin => {
           plot_z: db_plot.plot_z,
           mongo_url: `${db_plot.plot_x},${db_plot.plot_z}`,
           entry_path: main_path
-        }
-        // stdout: true,
-        // stderr: true
+        },
+        stdout: true,
+        stderr: true
       }
     );
 
