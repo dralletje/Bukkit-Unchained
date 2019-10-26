@@ -7,9 +7,11 @@ let { compile } = require("./compile.js");
 
 let url = "mongodb://localhost:32768/database";
 
+let bukkit_websocket_url = process.env.BUKKIT_WEBSOCKET_URL || 'ws://localhost:8000';
+
 let get_bukkit_socket = (client_socket, session_id) => {
   return new Promise((resolve, reject) => {
-    let bukkit_websocket = new WebSocket("ws://localhost:8000");
+    let bukkit_websocket = new WebSocket(bukkit_websocket_url);
 
     bukkit_websocket.on('open', () => {
       bukkit_websocket.send(JSON.stringify({ type: 'open', session_id: session_id }))
@@ -181,8 +183,9 @@ let main = async () => {
   //   }
   // })
 
-  http.listen(8080, () => {
-    console.log("Listening on port 8080");
+  let port = process.env.PORT || 8080;
+  http.listen(port, () => {
+    console.log(`Listening on port ${port}`);
   });
 };
 
