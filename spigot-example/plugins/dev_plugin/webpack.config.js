@@ -1,10 +1,10 @@
-const path = require("path");
+let path = require("path");
+let baseconfig = require('../Unchained/plugin-webpack.config.js');
 
 module.exports = {
   entry: {
-    dev_plugin: "./src/index.js",
-    PluginWorker: './src/PluginWorker',
-    WebsocketWorker: './src/WebsocketWorker',
+    Valhalla: "./src/Valhalla.js",
+    Sandbox: './src/Sandbox/Sandbox.js',
   },
   mode: "development",
   // devtool: 'eval-source-map',
@@ -12,16 +12,6 @@ module.exports = {
     filename: "[name].js",
     path: path.resolve(__dirname, "dist"),
     libraryTarget: "commonjs2"
-  },
-  externals: {
-    bukkit: "commonjs bukkit",
-    fs: "commonjs fs",
-    vm: "commonjs vm",
-    vm2: "commonjs vm2",
-    child_process: "commonjs child_process",
-    worker_threads: "commonjs worker_threads",
-    "bukkit/JavaPlugin": "commonjs bukkit/JavaPlugin",
-    "aws-sdk": "empty"
   },
   // module: {
   //   rules: [
@@ -42,9 +32,5 @@ module.exports = {
   //     }
   //   ]
   // },
-  node: {
-    process: false,
-    module: false,
-    setImmediate: false,
-  }
+  ...baseconfig,
 };

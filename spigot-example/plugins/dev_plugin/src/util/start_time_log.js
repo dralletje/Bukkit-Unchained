@@ -1,6 +1,6 @@
 let ChatColor = Java.type("org.bukkit.ChatColor");
 
-let start_timer = label => {
+export let start_timer = label => {
   let initial_time = Date.now();
   let last_time = Date.now();
 

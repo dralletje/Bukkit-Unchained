@@ -1,19 +1,28 @@
-let { Worker } = require("worker_threads");
-let uuid = require("uuid/v4");
+import { Worker } from "worker_threads"
+import uuid from "uuid/v4"
+import { JavaPlugin } from "bukkit/JavaPlugin"
 
-let { MongoClient } = require("./mongo.js");
-let chat = require("./chat.js");
+import WebSocket from "./websocket/websocket.js"
+import { MongoClient } from "./util/mongo.js"
+import chat from "./util/chat.js"
 
 let ChatColor = Java.type("org.bukkit.ChatColor");
 let GameMode = Java.type("org.bukkit.GameMode");
 let Location = Java.type('org.bukkit.Location');
 
-let WebSocket = require("./websocket/websocket.js");
-
-// let Packet = require('./Packet.js');
+let plugin = new JavaPlugin();
 
 let float = n => Java.type("java.lang.Float").parseFloat(String(n));
 let modulo = (x, n) => (x % n < 0 ? n + (x % n) : x % n);
+
+let env = Java.type('java.lang.System').getenv();
+let MONGO_URL = env.get('MONGO_URL');
+let SENTRY_URL = env.get('SENTRY_URL');
+let WEBSOCKET_PORT = env.get('WEBSOCKET_PORT');
+
+console.log(`MONGO_URL:`, MONGO_URL);
+console.log(`SENTRY_URL:`, SENTRY_URL);
+console.log(`WEBSOCKET_PORT:`, WEBSOCKET_PORT)
 
 let get_mongo_url = ({ user, password, host, database }) =>
   `mongodb://${user}:${password}@${host}/${database}`;
@@ -28,14 +37,14 @@ let do_async = async (name, fn) => {
 };
 
 let ensure_mongo_for_plugin = ({ mongo_client }) => {
-  client.db('database').runCommand({
+  mongo_client.db('database').runCommand({
     createUser: '-1_4',
     pwd: 'password123',
     roles: Java.to(['readWrite']),
   });
 }
 
-module.exports = plugin => {
+let plugin_runner = () => {
   let mongo_url = get_mongo_url({
     user: "-1_4",
     password: "password123",
@@ -87,7 +96,7 @@ module.exports = plugin => {
 
     let main_path = plugin.java.getDescription().getMain();
     let worker = new Worker(
-      `${plugin.java.getDataFolder()}/dist/PluginWorker.js`,
+      `${plugin.java.getDataFolder()}/dist/Sandbox.js`,
       {
         workerData: {
           source: db_plot.script,
@@ -157,9 +166,8 @@ module.exports = plugin => {
         id: active_refresh
       });
     });
-    worker.setTimeout(1 * 1000);
 
-    console.log(plot_prefix, "Posting message");
+    worker.setTimeout(1 * 3000);
 
     active_plots.set(db_plot.plot_id, {
       worker: worker,
@@ -311,11 +319,11 @@ module.exports = plugin => {
 
       player.sendActionBar(`${ChatColor.BLACK}Left plugin area`);
       player.setGameMode(GameMode.CREATIVE);
-      player.setCompassTarget(new Location(plugin.getServer().getWorlds()[0], 0, 0, 0));
+      player.setCompassTarget(new Location(plugin.java.getServer().getWorlds()[0], 0, 0, 0));
       player.setDisplayName(player.getName());
       player.setExhaustion(0);
       player.setExp(0);
-      // player.setFlying(false)
+      player.setAllowFlight(true)
       player.setFlySpeed(float(0.2));
       player.setFoodLevel(20);
       player.setHealth(20);
@@ -364,49 +372,14 @@ module.exports = plugin => {
     { priority: "LOWEST" }
   );
 
-  // prettier-ignore
-  let CreatureSpawnEvent = Java.type("org.bukkit.event.entity.CreatureSpawnEvent");
-  plugin.events.CreatureSpawn(event => {
-    if (
-      !event.getCause ||
-      event.getCause() !== CreatureSpawnEvent.SpawnReason.CUSTOM
-    ) {
-      event.setCancelled(true);
-    }
-  });
-
-  let interaction_events = [
-    "BlockBreak",
-    "BlockPlace",
-    "PlayerBucketEmpty",
-    "PlayerBucketFill",
-    "PlayerInteract",
-    "HangingBreak",
-    "HangingPlace",
-    "InventoryOpen",
-    "PlayerDropItem",
-    "PlayerPickupItem"
-  ];
-  for (let event of interaction_events) {
-    let event_name = event;
-    if (plugin.events[event_name]) {
-      plugin.events[event_name](
-        event => {
-          event.setCancelled(true);
-        },
-        { priority: "LOWEST" }
-      );
-    } else {
-      console.error(`Event not found on plugin:`, event_name);
-    }
-  }
+  require('./Protection.js').default(plugin);
 
   // Packet.addOutgoingPacketListener(Packet.fromServer.TAB_COMPLETE, event => {
   //   console.log(`event.getData():`, event.getData())
   // })
 
-  console.log("Http server");
   let server = new WebSocket.Server({ port: 8000 });
+  console.log(`Websocket server running on port`)
 
   let connect_websocket_to_worker = (websocket, active_plot) => {
     let plot_prefix = `${ChatColor.BLUE}[${active_plot.plot_x},${active_plot.plot_z}]${ChatColor.WHITE}`;
@@ -427,7 +400,7 @@ module.exports = plugin => {
             }
           }
         } catch (error) {
-          console.log(`error:`, error);
+          console.error(`error in reading stdout:`, error);
         }
       });
     }
@@ -445,7 +418,7 @@ module.exports = plugin => {
             }
           }
         } catch (error) {
-          console.log(`error:`, error);
+          console.log(`error in stderr:`, error);
         }
       });
     }
@@ -533,3 +506,38 @@ module.exports = plugin => {
     });
   });
 };
+
+plugin.onEnable(() => {
+  try {
+    if (plugin.java.getServer().getWorlds().length === 0) {
+      plugin.events.WorldLoad(() => {
+        plugin_runner(plugin);
+      });
+    } else {
+      plugin_runner(plugin);
+    }
+  } catch (err) {
+    console.error("Could't load plugin runner");
+    console.error(err);
+  }
+});
+
+// Always enable jsrepl
+plugin.onEnable(() => {
+  try {
+    require("./jsrepl/jsrepl.js")(plugin);
+  } catch (err) {
+    console.error("Could't load jsrepl plugin");
+    console.error(err);
+  }
+});
+
+try {
+  let chunk_generator = require("./PlotGenerator.js")(plugin);
+  plugin.setDefaultChunkGenerator(chunk_generator);
+} catch (err) {
+  console.error("Could't load plot generator plugin");
+  console.error(err);
+}
+
+export default plugin.getBridge();

@@ -1,17 +1,22 @@
 {
-  "name": "dev_plugin",
+  "name": "valhalla",
   "version": "1.0.0",
-  "main": "dist/dev_plugin.js",
+  "main": "dist/Valhalla.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "webpack --watch"
+    "watch": "webpack --watch",
+    "start": "webpack"
   },
-  "author": "",
+  "author": "Michiel Dral <m.c.dral@gmail.com>",
   "license": "ISC",
   "bukkit": {
-    "api-version": "1.13",
+    "enable": true,
+    "api-version": "1.14.4",
     "commands": {
       "jsrepl": {
+        "description": "Execute inline javascript"
+      },
+      ">": {
         "description": "Execute inline javascript"
       },
       "claim": {
@@ -40,17 +45,17 @@
   "dependencies": {
     "app-root-path": "^2.2.1",
     "bluebird": "^3.7.0",
-    "json-loader": "^0.5.7",
     "lodash": "^4.17.11",
     "minecraft-data": "^2.39.1",
     "prismarine-nbt": "^1.2.1",
     "thenify": "^3.3.0",
     "uglify-js": "^3.6.0",
     "uuid": "^3.3.3",
-    "uuid-1345": "^0.99.7",
-    "webpack-cli": "^3.3.9"
+    "uuid-1345": "^0.99.7"
   },
   "devDependencies": {
+    "json-loader": "^0.5.7",
+    "webpack-cli": "^3.3.9",
     "@babel/core": "^7.6.4",
     "@babel/plugin-proposal-class-properties": "^7.5.5",
     "@babel/plugin-proposal-json-strings": "^7.2.0",

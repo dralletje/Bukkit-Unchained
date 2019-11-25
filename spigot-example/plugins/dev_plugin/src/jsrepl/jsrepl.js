@@ -238,4 +238,15 @@ module.exports = (plugin) => {
       return result;
     },
   });
+
+  plugin.command('>', {
+    onCommand: (sender, command, alias, args) => {
+      repl(plugin, sender, [...args].join(' '));
+      return true;
+    },
+    onTabComplete: (sender, command, alias, args) => {
+      let result = onTabComplete(plugin, sender, args);
+      return result;
+    },
+  });
 }

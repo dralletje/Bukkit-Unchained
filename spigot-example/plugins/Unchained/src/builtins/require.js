@@ -35,7 +35,7 @@ let basic_require = (module_path) => {
 
   // TODO Use eval? Or context.eval?
   let sandbox_fn = global.load({
-    name: 'test.js',
+    name: module_object.filename,
     script: commonJsWrap,
   });
 
@@ -98,6 +98,7 @@ class Module {
     this.filename = filename;
     this.cache = require_cache;
     this.exports = {};
+    this.parent = {};
 
     this.require = (module_path) => {
       // console.log(`FROM ${this.filename}`,)
@@ -133,6 +134,7 @@ let builtin_module_map = {
   worker_threads: () => require('./worker_threads.js'),
   bukkit: () => require('../bukkit/bukkit.js'),
   'bukkit/JavaPlugin': () => require('../bukkit/JavaPlugin.js'),
+  'bukkit/Packet': () => require('../bukkit/Packet/Packet.js'),
 };
 
 module.exports = {

@@ -56,6 +56,7 @@ public class WorkerContext implements AutoCloseable {
                 fn.executeVoid(args);
                 is_done.put("is_done", true);
               } catch (IllegalStateException error) {
+                is_done.put("is_done", true);
                 System.err.println("Calling javascript function with context already closed:");
                 error.printStackTrace();
                 System.err.println("JS stack:");
@@ -209,6 +210,25 @@ public class WorkerContext implements AutoCloseable {
         plugin.getServer().getScheduler().runTask(plugin, task);
       }
     }
+
+    // class BukkitExecutor {
+    //   Plugin plugin;
+    //   public BukkitExecutor(Plugin plugin) {
+    //     this.plugin = plugin;
+    //   }
+    //   public void runInMain(Runnable task) {
+    //     if (plugin.getServer().isPrimaryThread()) {
+    //       // System.out.println("Running on primary thread!");
+    //       task.run();
+    //     } else {
+    //       // System.out.println("Running from other thread!");
+    //       plugin.getServer().getScheduler().runTask(plugin, task);
+    //     }
+    //   }
+    //   public void runInSide(Runnable task) {
+    //     plugin.getServer().getScheduler().runTaskAsynchronously(plugin, task);
+    //   }
+    // }
 
     // static public void createRealAsync(
     //   Plugin plugin,

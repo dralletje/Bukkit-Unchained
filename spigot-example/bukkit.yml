@@ -38,4 +38,4 @@ ticks-per:
 aliases: now-in-commands.yml
 worlds:
   world:
-    generator: dev_plugin
+    generator: valhalla

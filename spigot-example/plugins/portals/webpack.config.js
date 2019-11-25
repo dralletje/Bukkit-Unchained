@@ -1,4 +1,5 @@
-const path = require('path');
+let path = require('path');
+let baseconfig = require('../Unchained/plugin-webpack.config.js');
 
 module.exports = {
   entry: './src/index.js',
@@ -6,15 +7,7 @@ module.exports = {
   output: {
     filename: 'main.js',
     path: path.resolve(__dirname, 'dist'),
-    library: 'portals',
-    libraryTarget: 'umd',
+    libraryTarget: "commonjs2"
   },
-  externals: {
-    bukkit: 'bukkit',
-    fs: 'fs',
-    child_process: 'child_process',
-  },
-  node: {
-    process: false,
-  }
+  ...baseconfig,
 };

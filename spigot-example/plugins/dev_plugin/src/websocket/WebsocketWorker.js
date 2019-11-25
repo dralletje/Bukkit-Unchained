@@ -37,7 +37,7 @@ let SimpleServer = Java.extend(WebSocketServer, {
     if (websocket) {
       console.error("an error occured on connection " + websocket.getRemoteSocketAddress()  + ":" + error);
     } else {
-      console.log(`error:`, error)
+      console.error(`an error occured with the whole websocket server:`, error)
     }
   },
   onStart: () => {

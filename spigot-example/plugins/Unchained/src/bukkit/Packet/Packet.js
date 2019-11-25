@@ -23,7 +23,7 @@ global.crypto = {
 
 let minecraft_types = require("./minecraft-types.js");
 // prettier-ignore
-let minecraft_data_protocol = require("minecraft-data/minecraft-data/data/pc/1.14.4/protocol.json");
+let minecraft_data_protocol = require("./protocol.json");
 let ProtoDef = require("protodef").ProtoDef;
 
 let Packet = {
@@ -39,11 +39,6 @@ let Packet = {
   }),
 
   to_server_protocol: once(() => {
-    let minecraft_types = require("./minecraft-types.js");
-    let minecraft_data_protocol = require("minecraft-data/minecraft-data/data/pc/1.14.1/protocol.json");
-    // let minecraft_data = minecraft_data_factory('1.13.2');
-    let ProtoDef = require("protodef").ProtoDef;
-
     let proto = new ProtoDef(false);
     proto.addTypes(minecraft_types);
     proto.addProtocol(minecraft_data_protocol, ["play", "toServer"]);

@@ -13,3 +13,6 @@ spigot-example/plugins/WorldEdit/sessions/*
 spigot-example/usercache.json
 
 node_modules
+*.bd
+spigot-example/plugins/FastAsyncWorldEdit/history/*
+spigot-example/plugins/FastAsyncWorldEdit/**/message.yml

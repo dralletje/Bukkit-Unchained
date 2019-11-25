@@ -1,4 +1,5 @@
-let Packet = require('./Packet.js');
+let Packet = require("bukkit/Packet");
+
 let React = require('./Reakkit.js');
 
 let ANGLE = (1 / 360) * 256;
@@ -18,7 +19,6 @@ class FakePlayer extends React.Component {
 
     let entity_counter = Packet.get_entity_count();
     this.entity_id = entity_counter.incrementAndGet();
-
 
     Packet.send_packet(player, {
       name: "named_entity_spawn",

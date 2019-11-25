@@ -1,6 +1,6 @@
 let { range, sortBy } = require('lodash');
-let = BlockFace = Java.type("org.bukkit.block.BlockFace");
-let = Particle = Java.type("org.bukkit.Particle");
+let BlockFace = Java.type("org.bukkit.block.BlockFace");
+let Particle = Java.type("org.bukkit.Particle");
 let Vector = Java.type('org.bukkit.util.Vector');
 
 let { delay } = require('./util.js');

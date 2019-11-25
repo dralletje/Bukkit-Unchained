@@ -62,28 +62,42 @@ chat.show_text = (text, component) => {
 
 let text_styles = [ChatColor.BOLD, ChatColor.UNDERLINE, ChatColor.STRIKETHROUGH, ChatColor.ITALIC, ChatColor.OBFUSCATED]
 
-for (let color of ChatColor.values()) {
-  let color_name = color.getName().toLowerCase();
-  chat[color_name] = (component, ...possible_actual_components) => {
-    if (Array.isArray(component) && Array.from(component).every(x => typeof x === 'string')) {
-      // This should trigger when we use this color as a template function
-      return chat[color_name](chat(component, ...possible_actual_components));
-    }
+let apply_styles = (styles, component, ...possible_actual_components) => {
+  if (Array.isArray(component) && Array.from(component).every(x => typeof x === 'string')) {
+    // This should trigger when we use this color as a template function
+    return apply_styles(styles, chat(component, ...possible_actual_components));
+  }
 
-    if (text_styles.includes(color)) {
-      return {
-        text: '',
-        [color.getName()]: true,
-        extra: [component],
-      };
-    }
+  let result = {
+    text: '',
+    extra: [component],
+  };
 
-    return {
-      text: '',
-      color: color.getName(),
-      extra: [component],
-    };
+  // Actually apply the styles after this
+  for (let style of styles) {
+    if (text_styles.includes(style)) {
+      result[style.getName()] = true;
+    } else {
+      result.color = style.getName();
+    }
+  }
+  return result;
+}
+
+let add_style_selectors = (receiver, styles = []) => {
+  for (let style of ChatColor.values()) {
+    let style_name = style.getName().toLowerCase();
+
+    Object.defineProperty(receiver, style_name, {
+      get: () => {
+        let apply = (...components) => apply_styles([...styles, style], ...components);
+        add_style_selectors(apply, [...styles, style]);
+        return apply;
+      },
+    })
   }
 }
+
+add_style_selectors(chat);
 
 export default chat;

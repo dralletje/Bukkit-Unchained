@@ -1,10 +1,11 @@
 import React from "react";
+import useStayScrolled from "react-stay-scrolled";
 
+// import { RegionView } from './MinecraftRenderer.js';
 import "./App.css";
 import { Codeblock } from "./Code.js";
 import { Flex, SubtleButton } from "./Elements.js";
 import { Router, Link } from "@reach/router";
-import useStayScrolled from "react-stay-scrolled";
 
 let WindowEvent = ({ event_name, handler }) => {
   let current_handler = React.useRef(handler);
@@ -465,6 +466,8 @@ let LoadEditor = ({ session_id, ...props }) => {
 };
 
 let App = () => {
+  // return <RegionView />
+
   return (
     <Router>
       <LoadEditor path="/editor/:session_id" />

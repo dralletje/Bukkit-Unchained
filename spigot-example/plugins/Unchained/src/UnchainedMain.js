@@ -5,6 +5,8 @@ let fs = require("fs");
 
 let server = process.binding("plugin").getServer();
 
+let ChatColor = Java.type('org.bukkit.ChatColor');
+
 let get_commandmap = () => {
   return Reflection.get_private_field(server, "commandMap");
 };
@@ -67,7 +69,13 @@ let load_all_plugins = async (with_name = null) => {
   let with_matching_name = package_json_paths.filter(path => {
     try {
       let plugin_description = get_plugin_description(path);
-      return with_name == null || plugin_description.name === with_name;
+      return (
+        (
+          with_name == null ||
+          plugin_description.name === with_name
+        ) &&
+        plugin_description.enable !== false
+      );
     } catch (err) {
       return false;
     }
@@ -138,6 +146,7 @@ let get_plugin_description = package_json_path => {
     name: package_json.name,
     version: package_json.version,
     author: package_json.author,
+    enable: package_json.bukkit.enable || true,
     main: path.join(
       path.relative(process.cwd(), path.dirname(package_json_path)),
       package_json.main || "index.js"
@@ -163,14 +172,14 @@ let methods = {
 
     if (alias === "jsplugin") {
       try {
-        console.log("Starting plugin reload...");
+        console.log(`${ChatColor.WHITE}Starting plugin reload...`);
         let plugin_name = [...args].join(" ") || null;
         load_all_plugins(plugin_name).catch(err => {
-          console.log(`err:`, err);
+          console.error(`Async load all plugins error:`, err);
         });
         return true;
       } catch (err) {
-        console.log(`err:`, err);
+        console.error(`Sync load all plugin error:`, err);
       }
     }
   },

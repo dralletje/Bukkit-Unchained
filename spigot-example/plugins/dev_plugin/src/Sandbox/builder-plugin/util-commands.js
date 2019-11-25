@@ -20,4 +20,22 @@ module.exports = ({ plugin, commands, adapt }) => {
     // },
     arguments: [{ parser: 'minecraft:item_stack' }],
   });
+
+  commands.registerCommand({
+    name: "give-2",
+    onCommand: (player, args) => {
+      let material = Material.matchMaterial(args[0]);
+
+      if (material == null) {
+        throw new commands.InvalidArgumentsError('No item found by that name');
+      }
+
+      player.getInventory().addItem(new ItemStack(material, 1));
+      player.sendMessage(`${ChatColor.GREEN}Here you go, one ${material.name()}`);
+    },
+    // onTabComplete: (player, alias, args) => {
+    //   if (args)
+    // },
+    arguments: [{ parser: 'minecraft:item_stack' }],
+  });
 }

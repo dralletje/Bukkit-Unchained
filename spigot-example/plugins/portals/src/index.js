@@ -1,8 +1,10 @@
 let { range, sortBy, throttle, random } = require("lodash");
 
+let { JavaPlugin } = require("bukkit/JavaPlugin");
+let Packet = require("bukkit/Packet");
+
 let { delay, precondition, queue_function } = require("./util.js");
-let Packet = require("./Packet.js");
-let { FakePlayer } = require('./EntityComponents.js');
+let { FakePlayer } = require("./EntityComponents.js");
 
 let {
   Plane,
@@ -12,8 +14,8 @@ let {
 } = require("./Geometry.js");
 let { Drone } = require("./Drone.js");
 
-let ChatColor = Java.type('org.bukkit.ChatColor');
-let Material = Java.type('org.bukkit.Material');
+let ChatColor = Java.type("org.bukkit.ChatColor");
+let Material = Java.type("org.bukkit.Material");
 let BlockFace = Java.type("org.bukkit.block.BlockFace");
 let Vector = Java.type("org.bukkit.util.Vector");
 let Location = Java.type("org.bukkit.Location");
@@ -34,12 +36,12 @@ let block_middle = location => {
   return location.clone().add(new Vector(0.5, 0.5, 0.5));
 };
 
-let get_transformation_matrix_for_portal = (portal) => {
+let get_transformation_matrix_for_portal = portal => {
   // Single portal mirror
   if (portal.corner_blocks) {
     portal = {
       from: portal,
-      to: reverse_portal(portal),
+      to: reverse_portal(portal)
     };
   }
 
@@ -53,34 +55,32 @@ let get_transformation_matrix_for_portal = (portal) => {
     .map(x => x.getLocation())
     .map(x => block_middle(x));
 
-  let transformation_matrix = TransformationMatrix.from_vector_mappings([
-    { from: JavaVector.to_js(left), to: JavaVector.to_js(left2) },
-    { from: JavaVector.to_js(right), to: JavaVector.to_js(right2) },
+  let transformation_matrix = TransformationMatrix.from_vector_mappings(
+    [
+      { from: JavaVector.to_js(left), to: JavaVector.to_js(left2) },
+      { from: JavaVector.to_js(right), to: JavaVector.to_js(right2) },
+      {
+        from: JavaVector.to_js(
+          right_top.toVector().add(from.looking_direction)
+        ),
+        to: JavaVector.to_js(right_top2.toVector().add(to.looking_direction))
+      },
+      // {
+      //   from: JavaVector.to_js(right_top.toVector().add(right_top.toVector().crossProduct(left.toVector()))),
+      //   to: JavaVector.to_js(right_top2.toVector().add(right_top2.toVector().crossProduct(left2.toVector())))
+      // },
+      { from: JavaVector.to_js(left_top), to: JavaVector.to_js(left_top2) }
+    ],
     {
-      from: JavaVector.to_js(right_top.toVector().add(from.looking_direction)),
-      to: JavaVector.to_js(right_top2.toVector().add(to.looking_direction))
-    },
-    // {
-    //   from: JavaVector.to_js(right_top.toVector().add(right_top.toVector().crossProduct(left.toVector()))),
-    //   to: JavaVector.to_js(right_top2.toVector().add(right_top2.toVector().crossProduct(left2.toVector())))
-    // },
-    { from: JavaVector.to_js(left_top), to: JavaVector.to_js(left_top2) }
-  ], {
-    world: { from: left.getWorld(), to: left2.getWorld() }
-  });
+      world: { from: left.getWorld(), to: left2.getWorld() }
+    }
+  );
 
   return transformation_matrix;
 };
 
 let NINE_SQUARED = 9 ** 2;
 let EIGHT_SQUARED = 8 ** 2;
-
-let console_time = (...args) => {
-  console.time(...args)
-};
-let console_timeEnd = (...args) => {
-  console.timeEnd(...args)
-};
 
 let render_entity_to_player = (player, { key, value }) => {
   let runtime_metadata = player_runtime_metadata(player, "render_entities");
@@ -90,7 +90,7 @@ let render_entity_to_player = (player, { key, value }) => {
       let instance = has_rendered[key];
       return instance;
     },
-    set: (instance) => {
+    set: instance => {
       runtime_metadata.set({
         ...runtime_metadata.get({ default: {} }),
         [key]: instance
@@ -100,8 +100,8 @@ let render_entity_to_player = (player, { key, value }) => {
 
   let instance = instance_storage.get();
   let resulting_instance = Reakkit.render_single_instance(instance, value);
-  instance_storage.set(resulting_instance)
-}
+  instance_storage.set(resulting_instance);
+};
 
 let portal_get_visible_planes = (player, portal) => {
   let { corner_blocks } = portal;
@@ -137,7 +137,7 @@ let portal_get_visible_planes = (player, portal) => {
 
   let planes = [left_plane, right_plane, top_plane, bottom_plane];
   return planes;
-}
+};
 
 let render_portal = async (player, location, _portal) => {
   let { from, to } = _portal;
@@ -329,9 +329,9 @@ let render_portal = async (player, location, _portal) => {
       .filter(x => x != null);
 
     if (is_in_same_world(player.getLocation(), portal_center)) {
-      let own_location_mirrored = transformation_matrix.inverse().apply_to_location(
-        player.getLocation()
-      );
+      let own_location_mirrored = transformation_matrix
+        .inverse()
+        .apply_to_location(player.getLocation());
       let mirrored_player_location = (({ location }) => {
         if (has_become_real) {
           return null;
@@ -519,16 +519,13 @@ let middle_between_vectors = (v1, v2) => {
 
 let is_in_same_world = (location1, location2) => {
   return location1.getWorld() === location2.getWorld();
-}
+};
 
 let check_for_portal_crossing = (event, _portal) => {
   let { from, to } = _portal;
-  let [
-    bottom_left,
-    top_left,
-    top_right,
-    bottom_right
-  ] = from.corner_blocks.map(x => x.getLocation()).map(x => block_middle(x));
+  let [bottom_left, top_left, top_right, bottom_right] = from.corner_blocks
+    .map(x => x.getLocation())
+    .map(x => block_middle(x));
   let plane_point = middle_between_vectors(bottom_left, top_right);
 
   if (!is_in_same_world(plane_point, event.getTo())) {
@@ -592,20 +589,20 @@ let player_runtime_metadata = (player, key) => {
   };
 };
 
-let Reakkit = require('./Reakkit.js');
+let Reakkit = require("./Reakkit.js");
 
 let plugin_item = ({ material, title, description, active }) => {
-  let ItemStack = Java.type('org.bukkit.inventory.ItemStack');
-  let ItemFlag = Java.type('org.bukkit.inventory.ItemFlag');
-  let Enchantment = Java.type('org.bukkit.enchantments.Enchantment');
+  let ItemStack = Java.type("org.bukkit.inventory.ItemStack");
+  let ItemFlag = Java.type("org.bukkit.inventory.ItemFlag");
+  let Enchantment = Java.type("org.bukkit.enchantments.Enchantment");
 
   let itemstack = new ItemStack(material);
   let itemmeta = itemstack.getItemMeta();
 
   itemmeta.setDisplayName(title);
   if (description != null) {
-    if (typeof description === 'string') {
-      description = description.split('\n');
+    if (typeof description === "string") {
+      description = description.split("\n");
     }
     itemmeta.setLore(description);
   }
@@ -618,45 +615,34 @@ let plugin_item = ({ material, title, description, active }) => {
 
   itemstack.setItemMeta(itemmeta);
   return itemstack;
-}
+};
 
-let reverse_portal = (portal) => {
+let reverse_portal = portal => {
   return {
     ...portal,
     corner_blocks: portal.corner_blocks.slice().reverse(),
-    looking_direction: portal.looking_direction.clone().multiply(-1),
-  }
-}
+    looking_direction: portal.looking_direction.clone().multiply(-1)
+  };
+};
 
-module.exports = plugin => {
+let plugin = new JavaPlugin();
+plugin.onEnable(() => {
+  console.log("Portals enabled");
+
   let portals = [];
 
   try {
-    let worldedit_gui = require('./worldedit-gui/index.js');
+    let worldedit_gui = require("./worldedit-gui/index.js");
     worldedit_gui(plugin);
   } catch (error) {
     console.log(`${ChatColor.RED}Error while enabling wordedit gui:`);
     console.log(error);
   }
 
-  try {
-    let worldedit_gui = require('./webpack-test/index.js');
-    worldedit_gui(plugin);
-  } catch (error) {
-    console.log(`${ChatColor.RED}Error while enabling webpack test:`);
-    console.log(error);
-  }
-
-  // try {
-  //   let http_server = require('./http-server/index.js');
-  //   http_server(plugin);
-  // } catch (error) {
-  //   console.log(`${ChatColor.RED}Error while enabling wordedit gui:`);
-  //   console.log(error);
-  // }
-
   // TODO On block change, apply block change to portals
   // plugin.events.PlayerBreak
+
+  require('./WorldeditVisualizer.js')(plugin);
 
   plugin.events.PlayerMove(async event => {
     let player = event.getPlayer();
@@ -665,12 +651,14 @@ module.exports = plugin => {
     }
   });
 
-  plugin.events.PlayerMove(queue_function(async event => {
-    let player = event.getPlayer();
-    for (let portal of portals) {
-      await render_portal(player, event.getTo(), portal);
-    }
-  }));
+  plugin.events.PlayerMove(
+    queue_function(async event => {
+      let player = event.getPlayer();
+      for (let portal of portals) {
+        await render_portal(player, event.getTo(), portal);
+      }
+    })
+  );
 
   // TODO Show animations of projected players
   // plugin.events.PlayerAnimation(event => {
@@ -678,7 +666,7 @@ module.exports = plugin => {
   // })
 
   // let InventorySlot = Java.type('org.bukkit.inventory.EquipmentSlot');
-  plugin.events.PlayerInteract(async (event) => {
+  plugin.events.PlayerInteract(async event => {
     let block_face = event.getBlockFace();
     let block = event.getClickedBlock();
     let item = event.getItem();
@@ -692,15 +680,21 @@ module.exports = plugin => {
     if (item == null) {
       return;
     }
-    if (item.getItemMeta().getDisplayName() !== 'Portal creation') {
+    if (item.getItemMeta().getDisplayName() !== "Portal creation") {
       return;
     }
     event.setCancelled(true);
 
-    let selected_portal_storage = player_runtime_metadata(player, "selected_portal");
+    let selected_portal_storage = player_runtime_metadata(
+      player,
+      "selected_portal"
+    );
 
     let looking_location = block.getLocation();
-    let looking_direction = block_face.getDirection().clone().multiply(-1);
+    let looking_direction = block_face
+      .getDirection()
+      .clone()
+      .multiply(-1);
 
     let corner_blocks = await trace_portal(
       player,
@@ -724,11 +718,11 @@ module.exports = plugin => {
       player.sendMessage(`${ChatColor.BLUE}Destination portal selected, activating...`);
       let from_to_portal = {
         from: selected_portal,
-        to: reverse_portal({ corner_blocks, looking_direction }),
+        to: reverse_portal({ corner_blocks, looking_direction })
       };
       let to_from_portal = {
         from: { corner_blocks, looking_direction },
-        to: reverse_portal(selected_portal),
+        to: reverse_portal(selected_portal)
       };
 
       portals.push(from_to_portal);
@@ -745,21 +739,22 @@ module.exports = plugin => {
   let portal_tool = (active = false) => {
     let tool = plugin_item({
       material: Material.IRON_HOE,
-      title: 'Portal creation',
-      description: [
-        'Click on a frame of blue wool',
-      ],
-      active: active,
+      title: "Portal creation",
+      description: ["Click on a frame of blue wool"],
+      active: active
     });
     return tool;
-  }
+  };
 
-  plugin.command("itemstack", async (player) => {
+  plugin.command("itemstack", async player => {
     player.getInventory().setItemInMainHand(portal_tool(false));
   });
 
   plugin.command("portal", async player => {
-    let selected_portal_storage = player_runtime_metadata(player, "selected_portal");
+    let selected_portal_storage = player_runtime_metadata(
+      player,
+      "selected_portal"
+    );
 
     let looking_location = player.getTargetBlockExact(120).getLocation();
     let looking_direction = player
@@ -789,15 +784,15 @@ module.exports = plugin => {
         from: selected_portal,
         to: {
           corner_blocks: corner_blocks.slice().reverse(),
-          looking_direction: looking_direction.clone().multiply(-1),
-        },
+          looking_direction: looking_direction.clone().multiply(-1)
+        }
       };
       let to_from_portal = {
         from: {
           corner_blocks: corner_blocks.slice().reverse(),
-          looking_direction: looking_direction.clone().multiply(-1),
+          looking_direction: looking_direction.clone().multiply(-1)
         },
-        to: selected_portal,
+        to: selected_portal
       };
       portals.push(from_to_portal);
       portals.push(to_from_portal);
@@ -807,6 +802,7 @@ module.exports = plugin => {
       await render_portal(player, player.getLocation(), to_from_portal);
       player.sendMessage(`${ChatColor.DARK_BLUE}Portal activated!`);
     }
-
   });
-};
+});
+
+module.exports = plugin.getBridge();

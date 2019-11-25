@@ -1,6 +1,8 @@
-import { create_isolated_commands } from "./isolated/commands.js";
-import { create_isolated_events } from "./isolated/events.js";
-import { make_adapters } from "./isolated/primitives.js";
+import { create_isolated_commands } from "../isolated/commands.js";
+import { create_isolated_events } from "../isolated/events.js";
+import { make_adapters } from "../isolated/primitives.js";
+
+import Packet from 'bukkit/Packet';
 
 let SkPlayer = Java_type("com.sk89q.worldedit.bukkit.BukkitPlayer");
 let worldedit_session_for_player = player => {
@@ -24,7 +26,19 @@ export let create_build_plugin = ({
   let BlockAction = adapt.get_class("org.bukkit.event.block.Action");
   let ChatColor = Java.type("org.bukkit.ChatColor");
 
-  require('./builder-plugin/util-commands.js')({ plugin, adapt, commands });
+  let CHUNK = 16;
+  let plot_boundaries = {
+    x: {
+      min: plot_config.plot_x * CHUNK * 5 + CHUNK - 1,
+      max: (plot_config.plot_x + 1) * CHUNK * 5
+    },
+    z: {
+      min: plot_config.plot_z * CHUNK * 5 + CHUNK - 1,
+      max: (plot_config.plot_z + 1) * CHUNK * 5
+    }
+  };
+
+  require('./util-commands.js')({ plugin, adapt, commands });
 
   commands.registerCommand({
     name: "set",
@@ -50,33 +64,57 @@ export let create_build_plugin = ({
       return result.map(x => x.name).filter(x => x.startsWith(text));
     }
   });
+
+  let ensure_worldedit_region_for_player = (player) => {
+    // set global mask
+    let RegionMask = Java_type('com.sk89q.worldedit.function.mask.RegionMask');
+    let CuboidRegion = Java_type('com.sk89q.worldedit.regions.CuboidRegion');
+
+    let session = worldedit_session_for_player(adapt.to_java(player));
+
+    // NOTE Cool idea, doesn't work with FAWE asyncness though
+    // let AbstractMask = Java_type('com.sk89q.worldedit.function.mask.AbstractMask');
+    // let MyMask = Java.extend(AbstractMask, {
+    //   test: filters.location,
+    // })
+    // session.setMask(new MyMask())
+
+    session.setMask(new RegionMask(new CuboidRegion(
+      BlockVector3.static.at(plot_boundaries.x.min, 0, plot_boundaries.z.min),
+      BlockVector3.static.at(plot_boundaries.x.max, 255, plot_boundaries.z.max)
+    )))
+    // console.log(`event:`, event)
+    // console.log(`event.setCancelled:`, event.setCancelled)
+  }
+
+  commands.registerCommand({
+    name: '/set',
+    onCommand: (player, _2, _3, perform_default) => {
+      ensure_worldedit_region_for_player(player);
+      perform_default();
+    },
+    arguments: [{ parser: 'minecraft:item_stack' }],
+  });
+
+  commands.registerCommand({
+    name: '/replace',
+    onCommand: (player, _2, _3, perform_default) => {
+      ensure_worldedit_region_for_player(player);
+      perform_default();
+    },
+    arguments: [{ parser: 'minecraft:item_stack' }, { parser: 'minecraft:item_stack' }],
+  });
+
   commands.handleDefault((event, player) => {
     let message = event.getMessage();
 
-    console.log(`message:`, message)
     if (message.startsWith('/leave')) {
       event.setCancelled(false);
       return;
     }
 
     if (message.startsWith('//')) {
-      // set global mask
-      let RegionMask = Java_type('com.sk89q.worldedit.function.mask.RegionMask');
-      let CuboidRegion = Java_type('com.sk89q.worldedit.regions.CuboidRegion');
-
-      let session = worldedit_session_for_player(adapt.to_java(player));
-      let AbstractMask = Java_type('com.sk89q.worldedit.function.mask.AbstractMask');
-      let MyMask = Java.extend(AbstractMask, {
-        test: filters.location,
-      })
-      session.setMask(new MyMask())
-
-      // session.setMask(new RegionMask(new CuboidRegion(
-      //   BlockVector3.static.at(bounds.x.min, 0, bounds.z.min),
-      //   BlockVector3.static.at(bounds.x.max, 255, bounds.z.max)
-      // )))
-      // console.log(`event:`, event)
-      // console.log(`event.setCancelled:`, event.setCancelled)
+      ensure_worldedit_region_for_player(player);
       event.setCancelled(false);
     }
   });
@@ -164,8 +202,13 @@ export let create_build_plugin = ({
 
   return {
     apply_to: player => {
-      console.log(`Builder player.getName():`, player.getName());
-      commands.activateFor(player)
+      try {
+        console.log(`Apply to builder player.getName():`, player.getName());
+        commands.activateFor(player);
+        console.log('Applied');
+      } catch (error) {
+        console.log(`apply_to error:`, error)
+      }
     }
   };
 };

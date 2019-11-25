@@ -120,9 +120,6 @@ export class Worker extends EventEmitter {
       }
     }, 20 * 1000);
 
-    console.log(`WorkerContext.EXIT_EVENT_TYPE:`, WorkerContext.EXIT_EVENT_TYPE)
-    console.log(`WorkerContext.static.EXIT_EVENT_TYPE:`, WorkerContext.static.EXIT_EVENT_TYPE)
-
     WorkerContext.static.createAsync(
       plugin,
       java_worker_data,
@@ -196,6 +193,9 @@ let html_unclone = java_clone => {
   }
   if (java_clone instanceof Java.type("java.util.List")) {
     return Array.from(java_clone);
+  }
+  if (java_clone === WorkerContext.static.EXIT_EVENT_TYPE) {
+    return java_clone;
   }
   if (Java.isJavaObject(java_clone)) {
     console.log(`isJavaObject java_clone:`, java_clone);

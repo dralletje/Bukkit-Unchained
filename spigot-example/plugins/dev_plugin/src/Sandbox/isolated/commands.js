@@ -1,6 +1,6 @@
-import { debounce } from "lodash";
+// import { debounce } from "lodash";
 
-import Packet from "../Packet.js";
+import Packet from "bukkit/Packet";
 
 let ChatColor = Java.type("org.bukkit.ChatColor");
 
@@ -54,9 +54,10 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
     let { onCommand } = commands_map.get(command);
 
     try {
-      onCommand(player, args, command);
+      // TODO Restrict usage of setCancelled false to builder plugin
+      onCommand(player, args, command, () => event.setCancelled(false));
     } catch (err) {
-      if (err instanceof PlayerMistakeError ) {
+      if (err instanceof PlayerMistakeError) {
         console.log(`${ChatColor.RED}${err.message}`);
       } else {
         throw err;
@@ -145,6 +146,7 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
       // refresh_command_map();
     },
     activateFor: player => {
+      console.log(`activeFor player.getName():`, player.getName())
       let GREEDY_ASK = {
         children: [],
         flags: {
@@ -201,6 +203,8 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
           children: children_from_command_arguments(command.arguments),
         }
       });
+
+      console.log(`to_nodes(command_nodes):`, to_nodes(command_nodes))
 
       Packet.send_packet(player, {
         name: "declare_commands",
