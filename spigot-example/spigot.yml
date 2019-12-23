@@ -12,6 +12,7 @@
 
 config-version: 12
 settings:
+  log-villager-deaths: true
   debug: false
   save-user-cache-on-stop-only: false
   sample-count: 12
@@ -60,6 +61,7 @@ advancements:
   - minecraft:story/disabled
 world-settings:
   default:
+    trident-despawn-rate: 1200
     view-distance: default
     seed-outpost: 165745296
     verbose: false
@@ -134,3 +136,5 @@ world-settings:
       entity: 50
     squid-spawn-range:
       min: 45.0
+  worldeditregentempworld:
+    verbose: false

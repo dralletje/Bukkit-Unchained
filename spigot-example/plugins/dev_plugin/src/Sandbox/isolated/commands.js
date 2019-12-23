@@ -128,7 +128,7 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
       description,
       onCommand,
       onTabComplete = () => [],
-      arguments: command_arguments,
+      arguments: command_arguments
     }) => {
       if (commands_map.get(name)) {
         console.log(`Overwriting existing '${name}' command`);
@@ -140,13 +140,13 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
         description: description,
         onCommand: onCommand,
         onTabComplete: onTabComplete,
-        arguments: command_arguments,
+        arguments: command_arguments
       });
 
       // refresh_command_map();
     },
     activateFor: player => {
-      console.log(`activeFor player.getName():`, player.getName())
+      console.log(`activeFor player.getName():`, player.getName());
       let GREEDY_ASK = {
         children: [],
         flags: {
@@ -167,21 +167,23 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
           return [];
         }
 
-        return [{
-          flags: {
-            command_node_type: 2,
-            has_command: args.length === 0 ? 1 : 0,
-            // has_custom_suggestions: 1
-          },
-          extraNodeData: {
-            name: arg.name || "argument",
-            parser: arg.parser,
-            properties: 2,
-            // suggests: "minecraft:ask_server"
-          },
-          children: children_from_command_arguments(args),
-        }];
-      }
+        return [
+          {
+            flags: {
+              command_node_type: 2,
+              has_command: args.length === 0 ? 1 : 0
+              // has_custom_suggestions: 1
+            },
+            extraNodeData: {
+              name: arg.name || "argument",
+              parser: arg.parser,
+              properties: 2
+              // suggests: "minecraft:ask_server"
+            },
+            children: children_from_command_arguments(args)
+          }
+        ];
+      };
 
       // TODO Write brigadier library (I know one exists but I feel like I can do better)
       let command_nodes = Array.from(commands_map.values()).map(command => {
@@ -192,7 +194,7 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
             },
             extraNodeData: command.name,
             children: [GREEDY_ASK]
-          }
+          };
         }
 
         return {
@@ -200,11 +202,9 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
             command_node_type: 1
           },
           extraNodeData: command.name,
-          children: children_from_command_arguments(command.arguments),
-        }
+          children: children_from_command_arguments(command.arguments)
+        };
       });
-
-      console.log(`to_nodes(command_nodes):`, to_nodes(command_nodes))
 
       Packet.send_packet(player, {
         name: "declare_commands",
@@ -214,11 +214,11 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
   };
 };
 
-let to_nodes = (children) => {
+let to_nodes = children => {
   let MUTABLE_NODES = [];
   let MUTABLE_NODES_MAPPING = new Map();
 
-  let add_node = (node) => {
+  let add_node = node => {
     if (MUTABLE_NODES_MAPPING.has(node)) {
       return MUTABLE_NODES_MAPPING.get(node);
     }
@@ -229,15 +229,16 @@ let to_nodes = (children) => {
 
     let node_clone = { ...node };
     MUTABLE_NODES.push(node_clone);
-    node_clone.children = node_clone.children && node_clone.children.map(add_node);
+    node_clone.children =
+      node_clone.children && node_clone.children.map(add_node);
     return index;
-  }
+  };
 
   let rootIndex = add_node({
-          flags: {
-            command_node_type: 0
-          },
-          children: children,
-        });
+    flags: {
+      command_node_type: 0
+    },
+    children: children
+  });
   return { rootIndex, nodes: MUTABLE_NODES };
-}
+};

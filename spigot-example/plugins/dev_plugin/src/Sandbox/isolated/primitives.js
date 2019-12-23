@@ -1,40 +1,44 @@
 let PlayerEntity = Java.type("org.bukkit.entity.Player");
-let ChatColor = Java.type('org.bukkit.ChatColor')
+let ChatColor = Java.type("org.bukkit.ChatColor");
 
-let WeakHashMap = Java.type('java.util.WeakHashMap');
-let Map = Java.type('java.util.Map');
+let WeakHashMap = Java.type("java.util.WeakHashMap");
+let Map = Java.type("java.util.Map");
 
-let start_timer = (label) => {
+let start_timer = label => {
   let initial_time = Date.now();
   let last_time = Date.now();
 
   return {
-    log: (message) => {
+    log: message => {
       let seconds_spent = (Date.now() - last_time) / 1000;
-      let color = seconds_spent < 0.8 ? ChatColor.GREEN : ChatColor.RED
+      let color = seconds_spent < 0.8 ? ChatColor.GREEN : ChatColor.RED;
       last_time = Date.now();
-      console.log(label, message, `took ${color}${(seconds_spent.toFixed(3))}s`);
+      console.log(label, message, `took ${color}${seconds_spent.toFixed(3)}s`);
     },
     end: () => {
       let seconds_spent = (Date.now() - initial_time) / 1000;
-      let color = seconds_spent < 1 ? ChatColor.GREEN : ChatColor.RED
+      let color = seconds_spent < 1 ? ChatColor.GREEN : ChatColor.RED;
+      // prettier-ignore
       console.log(label, `Completed!, spent ${color}${seconds_spent.toFixed(3)}s ${ChatColor.RESET}in total`);
     }
-  }
-}
+  };
+};
 
 let java_get_prototype_chain = function*(java_class) {
   let current_class = java_class.class || java_class;
   while (current_class != null) {
     if (current_class.isEnum && current_class.isEnum()) {
       yield current_class;
-      yield Java.type('java.lang.Enum').class;
+      yield Java.type("java.lang.Enum").class;
       return;
     }
 
     if (current_class.getGenericSuperclass == null) {
       // https://docs.oracle.com/javase/9/docs/api/java/lang/reflect/ParameterizedType.html
-      console.warn(`class without getGenericSuperclass:`, current_class.getTypeName())
+      console.warn(
+        `class without getGenericSuperclass:`,
+        current_class.getTypeName()
+      );
       return;
     }
 
@@ -59,9 +63,9 @@ let get_all_constructors = function*(object) {
   let constructor = object.constructor;
   while (constructor !== Function.prototype) {
     yield constructor;
-    constructor = Object.getPrototypeOf(constructor)
+    constructor = Object.getPrototypeOf(constructor);
   }
-}
+};
 
 let get_class = c => c.class || c;
 
@@ -70,15 +74,19 @@ let return_if_player = possible_player => {
 };
 
 let AllowedClasses = [
-  { java_class: Java.type('java.lang.Enum') },
-  { java_class: Java.type('java.util.regex.Pattern') },
-  { java_class: Java.type('net.md_5.bungee.api.ChatColor') },
-  { java_class: Java.type('net.md_5.bungee.api.chat.ClickEvent') },
-  { java_class: Java.type('net.md_5.bungee.api.chat.ComponentBuilder') },
-  { java_class: Java.type('net.md_5.bungee.api.chat.HoverEvent') },
-  { java_class: Java.type('net.md_5.bungee.api.chat.TextComponent') },
-  { java_class: Java.type('net.md_5.bungee.api.ChatMessageType') },
+  { java_class: Java.type("java.lang.Class") },
+  { java_class: Java.type("java.lang.Enum") },
+  { java_class: Java.type("java.util.UUID") },
+  { java_class: Java.type("java.util.regex.Pattern") },
+
+  { java_class: Java.type("net.md_5.bungee.api.ChatColor") },
+  { java_class: Java.type("net.md_5.bungee.api.chat.ClickEvent") },
+  { java_class: Java.type("net.md_5.bungee.api.chat.ComponentBuilder") },
+  { java_class: Java.type("net.md_5.bungee.api.chat.HoverEvent") },
+  { java_class: Java.type("net.md_5.bungee.api.chat.TextComponent") },
+  { java_class: Java.type("net.md_5.bungee.api.ChatMessageType") },
   { java_class: Java.type("org.bukkit.inventory.Merchant") },
+  { java_class: Java.type("org.bukkit.entity.minecart.PoweredMinecart") },
   {
     java_class: Java.type("org.bukkit.inventory.PlayerInventory"),
     get_location: inventory => [inventory.getLocation()],
@@ -86,13 +94,14 @@ let AllowedClasses = [
   },
   {
     java_class: Java.type("org.bukkit.inventory.Inventory"),
-    get_location: inventory => [inventory.getLocation()],
+    get_location: inventory => [inventory.getLocation()]
   },
+  { java_class: Java.type("org.bukkit.enchantments.Enchantment") },
   {
-    java_class: Java.type('org.bukkit.inventory.InventoryHolder'),
-    get_players: (holder) => return_if_player(holder),
+    java_class: Java.type("org.bukkit.inventory.InventoryHolder"),
+    get_players: holder => return_if_player(holder)
   },
-  { java_class: Java.type('org.bukkit.attribute.AttributeModifier') },
+  { java_class: Java.type("org.bukkit.attribute.AttributeModifier") },
   // { java_class: Java.type('org.bukkit.attribute.AttributeModifier.Operation') },
   { java_class: Java.type("org.bukkit.inventory.ItemStack") },
   {
@@ -103,6 +112,11 @@ let AllowedClasses = [
     java_class: Java.type("org.bukkit.entity.Player"),
     get_locations: player => [player.getLocation()],
     get_players: player => [player]
+  },
+  {
+    java_class: Java.type("org.bukkit.entity.LivingEntity"),
+    get_locations: entity => [entity.getLocation()],
+    get_players: return_if_player
   },
   {
     java_class: Java.type("org.bukkit.entity.HumanEntity"),
@@ -144,7 +158,7 @@ let AllowedClasses = [
   },
   {
     java_class: Java.type("org.bukkit.event.player.PlayerMoveEvent"),
-    get_locations: event => [event.getTo(), event.getFrom()],
+    get_locations: event => [event.getTo(), event.getFrom()]
   },
   {
     java_class: Java.type("org.bukkit.event.entity.PlayerLeashEntityEvent"),
@@ -174,6 +188,14 @@ let AllowedClasses = [
   { java_class: Java.type("org.bukkit.block.Block") },
   { java_class: Java.type("org.bukkit.Material") },
   { java_class: Java.type("org.bukkit.GameMode") },
+  { java_class: Java.type("org.bukkit.block.data.Directional") },
+  { java_class: Java.type('org.bukkit.block.data.Rotatable') },
+  { java_class: Java.type('org.bukkit.block.data.Bisected') },
+  { java_class: Java.type("org.bukkit.block.data.BlockData") },
+
+  { java_class: Java.type("org.bukkit.inventory.ItemFlag") },
+  { java_class: Java.type("org.bukkit.inventory.meta.ItemMeta") },
+
   { java_class: Java.type("org.bukkit.block.BlockFace") },
   { java_class: Java.type("org.bukkit.Particle") },
   { java_class: Java.type("org.bukkit.entity.EntityType") },
@@ -183,12 +205,12 @@ let AllowedClasses = [
   { java_class: Java.type("org.bukkit.block.banner.PatternType") },
   // { java_class: Java.type("org.bukkit.Tag") },
   { java_class: Java.type("org.bukkit.block.banner.Pattern") },
-  { java_class: Java.type('org.bukkit.WeatherType') },
-  { java_class: Java.type('org.bukkit.ChatColor') },
-  { java_class: Java.type('org.bukkit.inventory.EquipmentSlot') },
-  { java_class: Java.type('org.bukkit.event.block.Action') },
+  { java_class: Java.type("org.bukkit.WeatherType") },
+  { java_class: Java.type("org.bukkit.ChatColor") },
+  { java_class: Java.type("org.bukkit.inventory.EquipmentSlot") },
+  { java_class: Java.type("org.bukkit.event.block.Action") },
 
-  { java_class: Java.type('org.bukkit.NamespacedKey') },
+  { java_class: Java.type("org.bukkit.NamespacedKey") }
 ];
 
 // AllowedClasses = [
@@ -226,7 +248,6 @@ for (let event_class of event_classes) {
   }
 }
 
-
 export let make_adapters = filters => {
   // let adapt_timer = start_timer(` ${ChatColor.DARK_BLUE}ADAPT:${ChatColor.WHITE}`);
 
@@ -239,8 +260,11 @@ export let make_adapters = filters => {
       js_to_java_object.set(this, java_object);
     }
   }
-  js_to_java_class.set(JavaObject, { get_locations: () => [], get_players: () => [], java_class: null });
-
+  js_to_java_class.set(JavaObject, {
+    get_locations: () => [],
+    get_players: () => [],
+    java_class: null
+  });
 
   let adapted_classes = {};
   let adapt = {
@@ -251,7 +275,7 @@ export let make_adapters = filters => {
         let class_description = js_to_java_class.get(constructor);
         if (class_description == null) {
           console.error(`constructor:`, constructor.name);
-          throw new Error('No class description found');
+          throw new Error("No class description found");
         }
         let { get_locations, get_players, java_class } = class_description;
 
@@ -269,7 +293,7 @@ export let make_adapters = filters => {
         }
       }
     },
-    get_class: (class_name) => {
+    get_class: class_name => {
       let adapted = adapted_classes[class_name];
       if (adapted) {
         return adapted;
@@ -306,13 +330,16 @@ export let make_adapters = filters => {
         return object;
       }
 
-      if (value instanceof Java.type("java.util.List") || java_class.isArray()) {
+      if (
+        value instanceof Java.type("java.util.List") ||
+        java_class.isArray()
+      ) {
         return Java.from(value)
           .map(x => {
             try {
               return adapt.from_java(x);
             } catch {
-              console.log(`x:`, x)
+              console.log(`x:`, x);
               return null;
             }
           })
@@ -327,9 +354,7 @@ export let make_adapters = filters => {
 
       let java_class_names = [
         ...(java_class.getInterfaces().length === 1
-          ? Array.from(
-              java_get_prototype_chain(java_class.getInterfaces()[0])
-            )
+          ? Array.from(java_get_prototype_chain(java_class.getInterfaces()[0]))
           : java_class.getInterfaces()),
         ...Array.from(java_get_prototype_chain(java_class))
       ].map(x => x.getName());
@@ -348,8 +373,8 @@ export let make_adapters = filters => {
         .find(Boolean);
 
       if (JavaAdapter == null) {
-        console.log(`value:`, value)
-        console.log(`java_class:`, java_class)
+        console.log(`value:`, value);
+        console.log(`java_class:`, java_class);
         // prettier-ignore
         throw new Error(`No adapter found for java class "${java_class_names.join('", "')}"`);
       }
@@ -368,7 +393,7 @@ export let make_adapters = filters => {
         } else {
           if (js_to_java_object.get(value)) {
             adapt.validate(value);
-            return js_to_java_object.get(value)
+            return js_to_java_object.get(value);
           } else {
             return value;
           }
@@ -382,7 +407,7 @@ export let make_adapters = filters => {
   let adapt_class = ({
     java_class,
     get_locations = () => [],
-    get_players = () => [],
+    get_players = () => []
   }) => {
     let java_class_name = java_class.class.getName();
     if (adapted_classes[java_class_name]) {
@@ -423,22 +448,29 @@ export let make_adapters = filters => {
       // }
     }
 
-    Object.defineProperty (JavaAdapter, 'name', { value: java_class_name });
-    js_to_java_class.set(JavaAdapter, { get_locations, get_players, java_class });
+    Object.defineProperty(JavaAdapter, "name", { value: java_class_name });
+    Object.defineProperty(JavaAdapter, "class", { value: JavaAdapter });
+    js_to_java_class.set(JavaAdapter, {
+      get_locations,
+      get_players,
+      java_class
+    });
     js_to_java_object.set(JavaAdapter, java_class);
     adapted_classes[java_class_name] = JavaAdapter;
 
-    let create_java_method = (name) => {
+    let create_java_method = name => {
       return function(...args) {
         let java_args = args.map(arg => adapt.to_java(arg));
+        console.log(`java_args:`, java_args)
         let java_this = js_to_java_object.get(this);
+        console.log(`java_this:`, java_this)
         let java_method = java_this[name] || java_this.static[name];
         let java_return = java_method(...java_args);
         return adapt.from_java(java_return);
       };
     };
 
-    let create_java_getter = (name) => {
+    let create_java_getter = name => {
       return function() {
         let java_return = js_to_java_object.get(this)[name];
         return adapt.from_java(java_return);
@@ -490,10 +522,14 @@ export let make_adapters = filters => {
     for (let field of java_class.class.getFields()) {
       let declared_class = field.getDeclaringClass();
       let Modifier = Java.type("java.lang.reflect.Modifier");
+      if (field.getName() === 'class') {
+        console.log(`declared_class:`, declared_class);
+        console.log(`valid_interfaces:`, valid_interfaces)
+        console.log('valid_interfaces.includes(declared_class):', valid_interfaces.includes(declared_class));
+        console.log(`is_static:`, Modifier.isStatic(field.getModifiers()))
+      }
       if (valid_interfaces.includes(declared_class)) {
-        let is_static = Modifier.isStatic(
-          field.getModifiers()
-        );
+        let is_static = Modifier.isStatic(field.getModifiers());
         let is_final = Modifier.isFinal(field.getModifiers());
         let field_holder = is_static ? static_properties : instance_properties;
 

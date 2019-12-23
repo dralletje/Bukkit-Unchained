@@ -129,7 +129,7 @@ let Packet = {
 
   combined_id: (blockdata) => {
     // Most hacky stuff pfff
-    let BLOCK = Java.type("net.minecraft.server.v1_14_R1.Block").class.static;
+    let BLOCK = Java.type("net.minecraft.server.v1_15.Block").class.static;
     let iblockdata = Java_type("com.comphenix.protocol.wrappers.WrappedBlockData")
       .static.createData(blockdata)
       .getHandle();

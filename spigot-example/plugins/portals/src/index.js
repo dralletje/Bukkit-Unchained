@@ -79,6 +79,16 @@ let get_transformation_matrix_for_portal = portal => {
   return transformation_matrix;
 };
 
+let combined_id = blockdata => {
+  // Most hacky stuff pfff
+  let BLOCK = Java.type("net.minecraft.server.v1_15_R1.Block").class.static;
+  let iblockdata = Java_type("com.comphenix.protocol.wrappers.WrappedBlockData")
+    .static.createData(blockdata)
+    .getHandle();
+  let combined_id = BLOCK.getCombinedId(iblockdata);
+  return combined_id;
+};
+
 let NINE_SQUARED = 9 ** 2;
 let EIGHT_SQUARED = 8 ** 2;
 
@@ -384,7 +394,7 @@ let render_portal = async (player, location, _portal) => {
             location.getZ() - chunk_z * 16
           ],
           y: location.getBlockY(),
-          blockId: Packet.combined_id(blockdata)
+          blockId: combined_id(blockdata)
         })
       );
     }
@@ -392,9 +402,7 @@ let render_portal = async (player, location, _portal) => {
     //
     // console_time("Send chunks");
     // prettier-ignore
-    for (let [chunk_key, { records, chunk_x, chunk_z }] of Object.entries(
-      chunks
-    )) {
+    for (let [chunk_key, { records, chunk_x, chunk_z }] of Object.entries(chunks)) {
       Packet.send_packet(player, {
         name: "multi_block_change",
         params: {
@@ -642,7 +650,7 @@ plugin.onEnable(() => {
   // TODO On block change, apply block change to portals
   // plugin.events.PlayerBreak
 
-  require('./WorldeditVisualizer.js')(plugin);
+  require("./WorldeditVisualizer.js")(plugin);
 
   plugin.events.PlayerMove(async event => {
     let player = event.getPlayer();

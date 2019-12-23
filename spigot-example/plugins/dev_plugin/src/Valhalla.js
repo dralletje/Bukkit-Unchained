@@ -46,10 +46,10 @@ let ensure_mongo_for_plugin = ({ mongo_client }) => {
 
 let plugin_runner = () => {
   let mongo_url = get_mongo_url({
-    user: "-1_4",
-    password: "password123",
+    user: "unchained",
+    password: "unchained",
     host: "localhost:32768",
-    database: "database"
+    database: "admin"
   });
   let mongo_client = new MongoClient(mongo_url);
   let database = mongo_client.db("Unchained");
@@ -160,11 +160,13 @@ let plugin_runner = () => {
           reject(new Error("Expected run_plugin_done message but got something else"));
         }
       });
+      console.log('RUN PLUGIN #1')
       worker.postMessage({
         type: "run_plugin",
-        source: db_plot.script,
+        source: db_plot.script || "",
         id: active_refresh
       });
+      console.log('RUN PLUGIN #2')
     });
 
     worker.setTimeout(1 * 3000);
@@ -249,6 +251,8 @@ let plugin_runner = () => {
         return true;
       }
 
+      console.log('cool');
+
       let { x, z, id: plot_id } = plot_location;
       let plot = plots.findOne({ plot_id });
       if (plot == null || plot.owner !== player_id) {
@@ -256,11 +260,15 @@ let plugin_runner = () => {
         return true;
       }
 
+      console.log('HEY')
+
       let editor_url = `${EDITOR_URL}/${plot.password}`;
       let url = chat.show_text(
         "This will open an editor in your browser",
         chat.open_url(editor_url, "https://dral.eu/editor")
       );
+
+      console.log('COOL');
 
       if (active_plots.get(plot_id)) {
         active_plots.get(plot_id).worker.postMessage({

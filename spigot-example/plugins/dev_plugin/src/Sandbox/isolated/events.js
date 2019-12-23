@@ -85,7 +85,7 @@ export let create_isolated_events = ({ plugin, adapt }) => {
       continue;
     }
 
-    isolated_events[`on${event_name}`] = handler => {
+    isolated_events[`on${event_name}`] = async (handler) => {
       addListener(
         event => {
           // if (event.isCancelled && event.isCancelled()) {
@@ -98,7 +98,12 @@ export let create_isolated_events = ({ plugin, adapt }) => {
           } catch {}
 
           if (js_event == null) return;
-          handler(js_event);
+          try {
+            handler(js_event);
+          } catch (error) {
+            console.log(`Error in event for "on${event_name}":`, error.stack);
+            throw error;
+          }
 
           try {
             adapt.validate(js_event);

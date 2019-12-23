@@ -68,7 +68,7 @@ export let create_isolated_buildconfig = ({ plugin, plot_id, adapt }) => {
   let BuildConfigTypes = {
     material: {
       get_from_player: player => {
-        let target_block = player.getTargetBlock(5);
+        let target_block = player.getTargetBlockExact(5);
         return target_block.getType();
       },
       to_plain: material => {
@@ -221,6 +221,11 @@ export let create_isolated_buildconfig = ({ plugin, plot_id, adapt }) => {
         }
         return build_storage_cache.get(plot_id);
       } catch (error) {
+        let message = error.message || error.toString();
+        if (message.includes('java.nio.file.NoSuchFileException')) {
+          return {}
+        }
+
         console.log(`Build storage get error:`, error);
         return {};
       }

@@ -30,7 +30,6 @@ class FakePlayer extends React.Component {
         z: location.getZ(),
         yaw: pack_yaw(location.getYaw()),
         pitch: pack_pitch(location.getPitch()),
-        metadata: []
       }
     });
 

@@ -31,9 +31,6 @@ public class WorkerContext implements AutoCloseable {
 
       public void ExposedContext() {}
 
-      public CompletelyGenericFunction wrap_java_function(Value fn) throws Exception {
-        return fn.as(CompletelyGenericFunction.class);
-      }
       public CompletelyGenericFunction wrap_function(Plugin plugin, Value fn, String stack) {
         return new CompletelyGenericFunction() {
           public Object apply(Object... args) {
@@ -257,27 +254,27 @@ public class WorkerContext implements AutoCloseable {
           };
         }
 
-        default public <T> T[] concatenate(T[] a, T[] b) {
-          int aLen = a.length;
-          int bLen = b.length;
-
-          @SuppressWarnings("unchecked")
-          T[] c = (T[]) Array.newInstance(a.getClass().getComponentType(), aLen + bLen);
-          System.arraycopy(a, 0, c, 0, aLen);
-          System.arraycopy(b, 0, c, aLen, bLen);
-
-          return c;
-        }
-
-        default CompletelyGenericFunction bind(Object arg) {
-          CompletelyGenericFunction self = this;
-          return new CompletelyGenericFunction() {
-            public Object apply(Object... args) {
-              Object[] new_args = this.concatenate(new Object[]{ arg }, args);
-              return self.apply(args);
-            }
-          };
-        }
+        // default public <T> T[] concatenate(T[] a, T[] b) {
+        //   int aLen = a.length;
+        //   int bLen = b.length;
+        //
+        //   @SuppressWarnings("unchecked")
+        //   T[] c = (T[]) Array.newInstance(a.getClass().getComponentType(), aLen + bLen);
+        //   System.arraycopy(a, 0, c, 0, aLen);
+        //   System.arraycopy(b, 0, c, aLen, bLen);
+        //
+        //   return c;
+        // }
+        //
+        // default CompletelyGenericFunction bind(Object arg) {
+        //   CompletelyGenericFunction self = this;
+        //   return new CompletelyGenericFunction() {
+        //     public Object apply(Object... args) {
+        //       Object[] new_args = this.concatenate(new Object[]{ arg }, args);
+        //       return self.apply(args);
+        //     }
+        //   };
+        // }
     }
 
     public Context createContext(ExposedContext exposed_context) {

@@ -9,7 +9,7 @@
   },
   "author": "",
   "license": "ISC",
-  "disabled-bukkit": {
+  "bukkit": {
     "enable": false,
     "api-version": "1.13",
     "dev": true,
@@ -22,12 +22,7 @@
   },
   "dependencies": {
     "lodash": "^4.17.11",
-    "mathjs": "^5.8.0",
-    "minecraft-data": "^2.37.5",
-    "prismarine-nbt": "^1.2.1",
-    "protodef": "^1.6.9",
-    "uuid-1345": "^0.99.7",
-    "zlib": "^1.0.5"
+    "mathjs": "^5.8.0"
   },
   "devDependencies": {
     "webpack": "^4.41.0",

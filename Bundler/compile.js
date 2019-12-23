@@ -55,6 +55,7 @@ let create_memory_fs = files => {
 let apply_files_to_memory_fs = (memory_fs, files, path = "/") => {
   for (let [key, value] of Object.entries(files || {})) {
     let sub_path = `${path}/${key}`;
+    console.log(`sub_path:`, sub_path)
     if (typeof value === "string") {
       memory_fs.writeFileSync(sub_path, value);
     } else {
@@ -92,6 +93,7 @@ let compile = async ({ files, entry_file }) => {
       // },
       {
         bukkit: 'bukkit',
+        'bukkit/Packet': 'bukkit/Packet',
         fs: 'fs',
         child_process: 'child_process',
         module: 'module',

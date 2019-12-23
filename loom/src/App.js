@@ -137,7 +137,13 @@ let FilesEditor = ({ value: files, onChange }) => {
     files["index.js"] ? "index.js" : files_array[0][0]
   );
 
-  current_file = files[current_file] ? current_file : files_array[0][0];
+  console.log(`1. current_file:`, current_file)
+  console.log(`files[current_file]:`, files[current_file])
+
+  current_file = files[current_file] != null ? current_file : files_array[0][0];
+
+  console.log(`Object.keys(files):`, Object.keys(files))
+  console.log(`2. current_file:`, current_file)
 
   return (
     <Flex column style={{ overflow: "hidden", flex: 1 }}>
@@ -148,6 +154,7 @@ let FilesEditor = ({ value: files, onChange }) => {
             name={name}
             isActive={name === current_file}
             onClick={() => {
+              console.log(`name:`, name)
               set_current_file(name);
             }}
             onChangeName={new_name => {
