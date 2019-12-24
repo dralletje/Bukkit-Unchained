@@ -99,7 +99,7 @@ public class WorkerContext implements AutoCloseable {
     }
 
     // https://github.com/ronmamo/reflections#integrating-into-your-build-lifecycle
-    public static Reflections reflections = new Reflections("org.bukkit.event");
+    public static Reflections reflections = new Reflections("org.bukkit");
 
     private Context context;
     private Value exports;

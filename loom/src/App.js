@@ -189,6 +189,7 @@ let FilesEditor = ({ value: files, onChange }) => {
       <Flex style={{ padding: 16, paddingTop: 0, overflow: "scroll", flex: 1 }}>
         {files[current_file] != null ? (
           <Codeblock
+            key={current_file}
             editting={true}
             value={files[current_file]}
             onChange={value => {
@@ -343,7 +344,7 @@ let colorize = x => {
 let socketIo = require("socket.io-client");
 
 let append_log = (set_log, message) => {
-  set_log(existing_log => [...existing_log.slice(-209), message]);
+  set_log(existing_log => [...existing_log.slice(-20), message]);
 };
 
 let LogError = (error) => {

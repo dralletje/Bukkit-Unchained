@@ -44,14 +44,22 @@ let create_pretty_console = (key) => {
   };
 }
 
+let timers = {};
 module.exports = {
   trace: (message) => {
     console.log(message);
     console.log((new Error()).stack);
   },
-  time: console.time,
+  time: (message) => {
+    timers[message] = performance.now();
+  },
   timeLog: console.timeLog,
-  timeEnd: console.timeEnd,
+  timeEnd: (message) => {
+    if (timers[message]) {
+      console.log(message, performance.now() - timers[message])
+      timers[message] = null;
+    }
+  },
   log: create_pretty_console('log'),
   error: create_pretty_console('error'),
   warn: create_pretty_console('warn'),

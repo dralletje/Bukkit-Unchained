@@ -169,7 +169,7 @@ let plugin_runner = () => {
       console.log('RUN PLUGIN #2')
     });
 
-    worker.setTimeout(1 * 3000);
+    worker.setTimeout(30 * 1000);
 
     active_plots.set(db_plot.plot_id, {
       worker: worker,

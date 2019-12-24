@@ -267,16 +267,40 @@ let create_isolated_plugin = () => {
     selectEntities: () => {}
   };
 
+  let get_combined_id = (_blockdata) => {
+    try {
+      let blockdata = adapt.to_java(_blockdata);
+      let BLOCK = Java.type("net.minecraft.server.v1_15_R1.Block").class.static;
+      let iblockdata = Java_type("com.comphenix.protocol.wrappers.WrappedBlockData")
+        .static.createData(blockdata)
+        .getHandle();
+      let combined_id = BLOCK.getCombinedId(iblockdata);
+
+      // let block_id = blockdata.getMaterial().getId();
+      // console.log(`block_id:`, block_id)
+      return combined_id;
+    } catch (error) {
+      console.log(`error:`, error);
+      throw error;
+    }
+  }
+
   let dev_plugin = {
     // Packet: Packet,
     send_packet: (player, packet) => {
       return Packet.send_packet(adapt.to_java(player), packet);
     },
+
+    get_combined_id: get_combined_id,
     buildconfig: isolated_buildconfig,
     world: main_world,
     getServer: () => isolated_server,
     events: isolated_events,
     commands: plugin_commands,
+
+    __test_error_handling: () => {
+      throw new Error("This error should reach outside the sandbox");
+    }
   };
 
   timer.log("Isolated plugin");
@@ -316,7 +340,6 @@ let create_isolated_plugin = () => {
       // vm.run(source);
       let eval_fn = vm.run(`(source) => eval(source)`);
       eval_fn(source);
-      console.log('Hey');
       parentPort.postMessage({
         response_to: id,
         type: 'run_plugin_done',

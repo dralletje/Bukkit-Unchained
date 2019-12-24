@@ -129,12 +129,13 @@ let Packet = {
 
   combined_id: (blockdata) => {
     // Most hacky stuff pfff
-    let BLOCK = Java.type("net.minecraft.server.v1_15.Block").class.static;
-    let iblockdata = Java_type("com.comphenix.protocol.wrappers.WrappedBlockData")
-      .static.createData(blockdata)
-      .getHandle();
-    let combined_id = BLOCK.getCombinedId(iblockdata);
-    return combined_id;
+    // let BLOCK = Java.type("net.minecraft.server.v1_15.Block").class.static;
+    // let iblockdata = Java_type("com.comphenix.protocol.wrappers.WrappedBlockData")
+    //   .static.createData(blockdata)
+    //   .getHandle();
+    // let combined_id = BLOCK.getCombinedId(iblockdata);
+    let blockId = blockdata.getMaterial().getId();
+    return  (blockId << 4 | (0 & 15));
   },
 
   multiblock_entry: ({ in_chunk: [x, z], y, blockId }) => {

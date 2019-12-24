@@ -1,4 +1,4 @@
-[truffle] opt fail         from_java                                                   |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+[truffle] opt fail         AsyncGenerator.prototype.next                               |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
 jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
 	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
 	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
@@ -11,7 +11,202 @@ jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
 	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
 	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
 
-[truffle] opt fail         Console.log                                                 |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+[truffle] opt fail         AsyncGeneratorRootNode@2c2311f                              |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@560f9bdf                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@cd6e17e                              |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@61f1c316                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@dc44cab                              |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@7110f9b0                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@7b846da6                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@5de9308b                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@2d3d3c2b                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@2362778a                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@591ecfeb                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@1d701595                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@3ac0925d                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@6ba9f1a5                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@582597ec                             |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
+jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
+	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)
+	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:147)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compilePEGraph(TruffleCompilerImpl.java:534)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.compileAST(TruffleCompilerImpl.java:455)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:637)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl$TruffleCompilationWrapper.performCompilation(TruffleCompilerImpl.java:579)
+	at org.graalvm.compiler.core.CompilationWrapper.run(CompilationWrapper.java:178)
+	at org.graalvm.compiler.truffle.compiler.TruffleCompilerImpl.doCompile(TruffleCompilerImpl.java:280)
+	at org.graalvm.compiler.truffle.compiler.hotspot.libgraal.HotSpotToSVMEntryPoints.doCompile(HotSpotToSVMEntryPoints.java:253)
+
+[truffle] opt fail         AsyncGeneratorRootNode@27b0221                              |Reason jdk.vm.ci.code.BailoutException: Code installation failed: code is too large 
 jdk.vm.ci.code.BailoutException: Code installation failed: code is too large
 	at jdk.vm.ci.hotspot.HotSpotCodeCacheProvider.installCode(HotSpotCodeCacheProvider.java:150)
 	at org.graalvm.compiler.core.target.Backend.createInstalledCode(Backend.java:194)

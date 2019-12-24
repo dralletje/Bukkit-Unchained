@@ -55,6 +55,7 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
 
     try {
       // TODO Restrict usage of setCancelled false to builder plugin
+      // TODO Make this show errors for async events too
       onCommand(player, args, command, () => event.setCancelled(false));
     } catch (err) {
       if (err instanceof PlayerMistakeError) {
