@@ -147,7 +147,7 @@ let plugin_runner = () => {
 
     console.log(plot_prefix, "online event triggered!");
 
-    worker.setTimeout(10 * 1000);
+    worker.setTimeout(30 * 1000);
 
     await new Promise((resolve, reject) => {
       worker.once("message", message => {

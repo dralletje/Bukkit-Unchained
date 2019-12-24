@@ -55,18 +55,33 @@ let create_isolated_plugin = () => {
   };
 
   let location_filter = location => {
+    let loc_x = location.getX();
+    let loc_z = location.getZ();
     return (
-      location.getX() > location_boundaries.x.min &&
-      location.getX() < location_boundaries.x.max &&
-      location.getZ() > location_boundaries.z.min &&
-      location.getZ() < location_boundaries.z.max
+      loc_x > location_boundaries.x.min &&
+      loc_x < location_boundaries.x.max &&
+      loc_z > location_boundaries.z.min &&
+      loc_z < location_boundaries.z.max
     );
   };
+
+  // let location_filter = new Function(`location`, `
+  //   let loc_x = location.getX();
+  //   let loc_z = location.getZ();
+  //   return (
+  //     loc_x > ${location_boundaries.x.min} &&
+  //     loc_x < ${location_boundaries.x.max} &&
+  //     loc_z > ${location_boundaries.z.min} &&
+  //     loc_z < ${location_boundaries.z.max}
+  //   );
+  // `)
 
   let playing_player = new Set();
   let filters = {
     location: location_filter,
     player: player => {
+      // console.log(`playing_player:`, playing_player);
+      // console.log(`player.getName():`, player.getName())
       return playing_player.has(player.getName());
     }
   };
@@ -256,7 +271,7 @@ let create_isolated_plugin = () => {
     getOnlinePlayers: () => Array.from(playing_player.values()).map(x => (isolated_server.getPlayer(x))).filter(Boolean),
     getPlayer: (...args) => adapt.from_java(server.getPlayer(...args)),
     getPlayerExact: (...args) => adapt.from_java(server.getPlayerExact(...args)),
-    getScheduler: () => {},
+    getScheduler: () => adapt.from_java(server.getScheduler()),
     getTag: () => {},
     getTags: () => {},
     getVersion: () => {},
@@ -285,6 +300,8 @@ let create_isolated_plugin = () => {
     }
   }
 
+  // let dev_plugin_events = new EventEmitter();
+  // let is_already_enabled = false;
   let dev_plugin = {
     // Packet: Packet,
     send_packet: (player, packet) => {
@@ -297,10 +314,27 @@ let create_isolated_plugin = () => {
     getServer: () => isolated_server,
     events: isolated_events,
     commands: plugin_commands,
-
+    region: {
+      min: main_world.getBlockAt(location_boundaries.x.min + 1, 0, location_boundaries.z.min + 1).getLocation(),
+      max: main_world.getBlockAt(location_boundaries.x.max - 1, 255, location_boundaries.z.max - 1).getLocation(),
+    },
+    // onEnable: () => {
+    //
+    // },
     __test_error_handling: () => {
       throw new Error("This error should reach outside the sandbox");
-    }
+    },
+    __test_java_clone_performance_single: (cloneable) => {
+      let java_cloneable = adapt.to_java(cloneable);
+      java_cloneable.clone();
+    },
+    __test_java_clone_performance_loop: (cloneable) => {
+      let java_cloneable = adapt.to_java(cloneable);
+      for (let i = 0; i < 100000; i++) {
+        // java_cloneable.clone();
+        adapt.from_java(java_cloneable.clone());
+      }
+    },
   };
 
   timer.log("Isolated plugin");

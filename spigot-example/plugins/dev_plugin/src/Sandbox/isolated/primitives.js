@@ -2,6 +2,7 @@ let PlayerEntity = Java.type("org.bukkit.entity.Player");
 let ChatColor = Java.type("org.bukkit.ChatColor");
 
 let Map = Java.type("java.util.Map");
+let HashMap = Java.type("java.util.HashMap");
 let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
 
 let start_timer = label => {
@@ -59,12 +60,16 @@ let get_all_interfaces = function*(java_class) {
   }
 };
 
-let get_all_constructors = function*(object) {
+let get_all_constructors = function(object) {
+  let constructors = [];
   let constructor = object.constructor;
   while (constructor !== Function.prototype) {
-    yield constructor;
+    constructors.push(constructor);
+    // yield constructor;
     constructor = Object.getPrototypeOf(constructor);
+    // constructor = constructor.__proto__
   }
+  return constructors
 };
 
 let get_class = c => c.class || c;
@@ -133,6 +138,10 @@ let AllowedClasses = [
     get_locations: entity => [entity.getLocation()]
   },
 
+  // BukkitScheduler
+  { java_class: Java.type("org.bukkit.scheduler.BukkitScheduler") },
+  { java_class: Java.type("org.bukkit.scheduler.BukkitTask") },
+
   // TODO These things stick around, so need something to auto-cleanup
   // {
   //   java_class: Java.type("org.bukkit.boss.BossBar"),
@@ -186,12 +195,12 @@ let AllowedClasses = [
   },
   {
     java_class: Java.type("org.bukkit.Location"),
-    get_locations: location => [location],
+    // get_locations: location => [location],
     get_players: () => []
   },
   { java_class: Java.type("org.bukkit.World") }, // TODO Check location
   { java_class: Java.type("org.bukkit.Chunk") }, // TODO Check location
-  { java_class: Java.type("org.bukkit.block.Block") }, // TODO Check location
+  { java_class: Java.type("org.bukkit.block.Block"), get_locations: (block) => [block.getLocation()] }, // TODO Check location
   { java_class: Java.type("org.bukkit.Material") },
   { java_class: Java.type("org.bukkit.GameMode") },
   { java_class: Java.type("org.bukkit.block.data.Directional") },
@@ -267,8 +276,10 @@ export let make_adapters = filters => {
   // let adapt_timer = start_timer(` ${ChatColor.DARK_BLUE}ADAPT:${ChatColor.WHITE}`);
 
   let java_to_js_identity = new WeakIdentityHashMap();
+  let java_to_js_class = new HashMap();
   let js_to_java_object = new WeakMap();
   let js_to_java_class = new WeakMap();
+  let js_class_to_filters = new WeakMap();
 
   let create_java_method = name => {
     return function(...args) {
@@ -303,6 +314,33 @@ export let make_adapters = filters => {
     java_class: null
   });
 
+  let get_filters = (value) => {
+    let cached_filter = js_class_to_filters.get(value.constructor);
+    if (cached_filter != null) {
+      return cached_filter;
+    } else {
+      let all_get_locations = [];
+      let all_get_players = [];
+      for (let constructor of get_all_constructors(value)) {
+        let class_description = js_to_java_class.get(constructor);
+        if (class_description == null) {
+          // prettier-ignore
+          throw new Error(`No class description found for "${constructor.name}"`);
+        }
+        let { get_locations, get_players } = class_description;
+
+        all_get_locations.push(get_locations);
+        all_get_players.push(get_players);
+      }
+      let filters = {
+        get_locations: (java_value) => all_get_locations.map(get_locations => get_locations(java_value)).flat(),
+        get_players: (java_value) => all_get_players.map(get_players => get_players(java_value)).flat(),
+      };
+      js_class_to_filters.set(value.constructor, filters);
+      return filters;
+    }
+  }
+
   let adapted_classes = {};
   let adapt = {
     classes: adapted_classes,
@@ -310,11 +348,17 @@ export let make_adapters = filters => {
       // The value *is* a java class
       // I think the java classes are all fine to return,
       // as there is really no way to get a forbidden java class anyway
+      // if (value instanceof JavaObject) {
+      //   return;
+      // }
       if (js_to_java_class.has(value)) {
         return;
       }
 
+      // let { get_locations, get_players } = get_filters(value);
+
       let java_value = js_to_java_object.get(value);
+
       for (let constructor of get_all_constructors(value)) {
         let class_description = js_to_java_class.get(constructor);
         if (class_description == null) {
@@ -323,16 +367,22 @@ export let make_adapters = filters => {
         }
         let { get_locations, get_players, java_class } = class_description;
 
-        for (let location of get_locations(java_value)) {
-          if (!filters.location(location)) {
-            // prettier-ignore
-            throw new Error(`Object not in range of your plot (${location.toString()})`);
+        let locations = get_locations(java_value);
+        if (locations.length !== 0) {
+          for (let location of locations) {
+            if (!filters.location(location)) {
+              // prettier-ignore
+              throw new Error(`Object not in range of your plot (${location.toString()})`);
+            }
           }
         }
-        for (let player of get_players(java_value)) {
-          if (!filters.player(player)) {
-            // prettier-ignore
-            throw new Error(`Object contains a player not currently on your plot`);
+        let players = get_players(java_value);
+        if (players.length !== 0) {
+          for (let player of players) {
+            if (!filters.player(player)) {
+              // prettier-ignore
+              throw new Error(`Object contains a player not currently on your plot`);
+            }
           }
         }
       }
@@ -355,16 +405,22 @@ export let make_adapters = filters => {
     },
     // adapt_class: adapt_class,
     from_java: value => {
+      if (!Java.isJavaObject(value)) {
+        return value;
+      }
+
       let cached_version = java_to_js_identity.get(value);
       if (cached_version != null) {
         return cached_version;
       }
 
-      if (!Java.isJavaObject(value)) {
-        return value;
-      }
-
       let java_class = value.getClass();
+      let JavaAdapter_from_cache = java_to_js_class.get(java_class);
+      if (JavaAdapter_from_cache != null) {
+        let js_value = new JavaAdapter_from_cache(value);
+        java_to_js_identity.put(value, js_value);
+        return js_value;
+      }
 
       if (value instanceof Map) {
         let object = {};
@@ -422,8 +478,10 @@ export let make_adapters = filters => {
         console.log(`value:`, value);
         console.log(`java_class:`, java_class);
         // prettier-ignore
-        throw new Error(`No adapter found for java class "${java_class_names.join('", "')}"`);
+        throw new Error(`No adapter found for java class "${Array.from(java_class_names).map(x => x.getName()).join('", "')}"`);
       }
+
+      java_to_js_class.put(java_class, JavaAdapter);
 
       let js_value = new JavaAdapter(value);
       java_to_js_identity.put(value, js_value);
@@ -432,22 +490,26 @@ export let make_adapters = filters => {
     to_java: value => {
       if (Array.isArray(value)) {
         return Java.to(value.map(x => adapt.to_java(x)));
-      } else if (
+      }
+      else if (
         value == null ||
         typeof value === "number" ||
-        typeof value === "string"
+        typeof value === "string" ||
+        typeof value === "boolean"
       ) {
         return value;
-      } else {
-        if (value.type === "$enum") {
+      }
+      else if (value.type === "$enum") {
           return Java.type(value.class).valueOf(value.value);
+      } else {
+        let cached = js_to_java_object.get(value);
+        if (cached != null) {
+          adapt.validate(value);
+          return cached;
         } else {
-          if (js_to_java_object.get(value)) {
-            adapt.validate(value);
-            return js_to_java_object.get(value);
-          } else {
-            return value;
-          }
+          console.log(`value:`, value)
+          throw new Error(`No java value found (${JSON.stringify(value)})`);
+          return value;
         }
       }
     }
@@ -505,6 +567,7 @@ export let make_adapters = filters => {
       value: JavaAdapter,
       configurable: true
     });
+
     js_to_java_class.set(JavaAdapter, {
       get_locations,
       get_players,

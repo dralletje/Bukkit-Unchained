@@ -246,35 +246,13 @@ public class WorkerContext implements AutoCloseable {
 
     @FunctionalInterface
     public interface CompletelyGenericFunction {
-        Object apply(Object... args);
+      Object apply(Object... args);
 
-        default Runnable asRunnable() {
-          return () -> {
-            this.apply();
-          };
-        }
-
-        // default public <T> T[] concatenate(T[] a, T[] b) {
-        //   int aLen = a.length;
-        //   int bLen = b.length;
-        //
-        //   @SuppressWarnings("unchecked")
-        //   T[] c = (T[]) Array.newInstance(a.getClass().getComponentType(), aLen + bLen);
-        //   System.arraycopy(a, 0, c, 0, aLen);
-        //   System.arraycopy(b, 0, c, aLen, bLen);
-        //
-        //   return c;
-        // }
-        //
-        // default CompletelyGenericFunction bind(Object arg) {
-        //   CompletelyGenericFunction self = this;
-        //   return new CompletelyGenericFunction() {
-        //     public Object apply(Object... args) {
-        //       Object[] new_args = this.concatenate(new Object[]{ arg }, args);
-        //       return self.apply(args);
-        //     }
-        //   };
-        // }
+      default Runnable asRunnable() {
+        return () -> {
+          this.apply();
+        };
+      }
     }
 
     public Context createContext(ExposedContext exposed_context) {
