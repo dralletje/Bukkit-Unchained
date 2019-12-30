@@ -10,8 +10,6 @@ let start_region = plugin.buildconfig.define_key('start-region', 'region');
 let end_region = plugin.buildconfig.define_key('end-region', 'region');
 let fall_height = plugin.buildconfig.define_key('fall-height', 'location');
 
-// let fall_height = plugin.buildconfig.define_optional_key('fall-height', 'location');
-
 let location_is_fall = (location) => {
     return (
         location.getY() < fall_height.get().getY() ||
@@ -22,16 +20,32 @@ let location_is_fall = (location) => {
 let cooldown_players = {};
 let player_start_timers = {};
 
-let start_session = (player) => {
-    clearTimeout(cooldown_players[player.getName()] || 0);
-    player_start_timers[player.getName()] = null;
-    cooldown_players[player.getName()] = setTimeout(() => {
-        cooldown_players[player.getName()] = null;
+let delay = async (milliseconds, task_fn = () => {}) => {
+    return await new Promise((resolve) => {
+        let task = setTimeout(resolve, milliseconds);
+        task_fn(task);
+    })
+}
 
-        player.sendActionBar(`${ChatColor.GREEN}Go go go!!`);
-        setTimeout(() => {
-        }, 1000)
-    }, 1000);
+let start_session = async (player) => {
+    let no_fade = { fadeIn: 0, fadeOut: 0, stay: 100 };
+
+    if (cooldown_players[player.getName()]) {
+        clearTimeout(cooldown_players[player.getName()]);
+    }
+    player_start_timers[player.getName()] = null;
+
+    send_title(player, { title: chat.bold.yellow`3`, timing: no_fade });
+    await delay(700, (timer) => cooldown_players[player.getName()] = timer);
+
+    send_title(player, { title: chat.bold.yellow`2`, timing: no_fade });
+    await delay(700, (timer) => cooldown_players[player.getName()] = timer);
+
+    send_title(player, { title: chat.bold.yellow`1`, timing: no_fade });
+    await delay(700, (timer) => cooldown_players[player.getName()] = timer);
+
+    send_title(player, { title: chat.bold.green`GO`, timing: { fadeIn: 0, stay: 10, fadeOut: 5 } });
+    cooldown_players[player.getName()] = null;
 }
 
 plugin.events.onPlayerMove((event) => {
@@ -45,12 +59,12 @@ plugin.events.onPlayerMove((event) => {
             player_start_timers[name] = Date.now();
         }
         if (end_region.get().contains(to) && player_start_timers[name] != null) {
-            while (true) {}
 
             let time = (Date.now() - player_start_timers[name]) / 1000;
             player_start_timers[name] = null;
-            player.sendMessage(`Nice, you scored ${time.toFixed(3)}s`)
-            player.sendActionBar(`${ChatColor.WHITE}${time.toFixed(3)}`)
+            send_message(player, chat.green(`Nice, you scored ${time.toFixed(3)}s`));
+            send_message(player, chat.run_command('/respawn', chat.bold(chat.underline`[Click to respawn]`)));
+            send_action_bar(player, chat.green(chat.bold(time.toFixed(3))));
 
         }
     } catch (error) {
@@ -58,23 +72,20 @@ plugin.events.onPlayerMove((event) => {
     }
 
     if (cooldown_players[name]) {
-        if (
-            to.getX() !== from.getX() ||
-            to.getY() !== from.getY() ||
-            to.getZ() !== from.getZ()
-        ) {
-            // to.setX(0);
-            // to.setY(130);
-            // to.setZ(0);
-            event.setCancelled(true);
-        }
+        let new_to = from.clone();
+        new_to.setYaw(to.getYaw());
+        new_to.setPitch(to.getPitch());
+        event.setTo(new_to);
         return;
     }
 
     if (location_is_fall(to)) {
         event.setTo(spawn_position.get());
-        player.sendActionBar(`Too bad you fell, ${ChatColor.RED}preparing run...`);
+        send_action_bar(player, chat`Too bad you fell, ${chat.red`preparing run...`}`);
         start_session(player)
+        .catch(err => {
+            console.error('Start_session err', err);
+        })
     }
 });
 
@@ -83,10 +94,13 @@ setInterval(() => {
         if (player_start_timers[player.getName()]) {
             let start = player_start_timers[player.getName()];
             let time = ((Date.now() - start) / 1000) + (Math.random() / 50);
-            player.sendActionBar(`${ChatColor.WHITE}${time.toFixed(3)}`)
+
+            send_action_bar(player, chat.white`${time.toFixed(3)}`);
         }
     }
 }, 100);
+
+
 
 plugin.events.onEntityDamage(event => {
     event.setCancelled(true);
@@ -95,23 +109,20 @@ plugin.events.onFoodLevelChange(event => {
     event.setCancelled(true);
 })
 
+plugin.commands.registerCommand({
+    name: "respawn",
+    onCommand: (player, args) => {
+        let reset_location = spawn_position.get();
+        player.teleport(reset_location);
+    },
+});
+
 let GameMode = Java.type('org.bukkit.GameMode');
 plugin.events.onPlayerJoin(event => {
     let player = event.getPlayer();
 
-    console.log('Player:', player.getName());
-
-    console.log('#1');
-    console.log('#2');
-
-    // let bossbar = plugin.adapt(Polyglot.import('server')).createBossBar(
-    //     "Title",
-    //     plugin.classes['org.bukkit.boss.BarColor'].BLUE,
-    //     plugin.classes['org.bukkit.boss.BarStyle'].SEGMENTED_10,
-    //     plugin.classes['org.bukkit.boss.BarFlag'].CREATE_FOG,
-    // );
-    // bossbar.addPlayer(player)
-    // console.log(plugin.createNamespacedKey('bossbar').equals(plugin.createNamespacedKey('bossbar')));
+    delete cooldown_players[player.getName()];
+    delete player_start_timers[player.getName()];
 
     player.setGameMode(GameMode.CREATIVE);
     player.setAllowFlight(false);
@@ -120,10 +131,57 @@ plugin.events.onPlayerJoin(event => {
     if (player.getLocation().distance(reset_location) > 6) {
         player.teleport(reset_location);
     }
-    player.sendActionBar(`${ChatColor.GREEN}Welcome, now RUN!!`);
-    // start_session(player);
+
+    send_action_bar(player, chat.green`Welcome, now RUN!!`);
 });
 
-console.log('Erg vet!');
+let send_action_bar = (player, json) => {
+    plugin.send_packet(player, {
+        name: 'title',
+        params: {
+            action: 2, // 0 = actionbar
+            text: JSON.stringify(json),
+        }
+    });
+}
 
-// module.exports = { cool: 'cool' }
+let send_title = (player, { title, subtitle, timing }) => {
+    if (timing != null) {
+        plugin.send_packet(player, {
+            name: 'title',
+            params: {
+                action: 3, // 3 = times
+                fadeIn: timing.fadeIn || 0,
+                fadeOut: timing.fadeOut || 0,
+                stay: timing.stay || 3,
+            },
+        });
+    }
+    if (title != null) {
+        plugin.send_packet(player, {
+            name: 'title',
+            params: {
+                action: 0, // 0 = actionbar
+                text: JSON.stringify(title),
+            }
+        });
+    }
+    if (subtitle != null) {
+        plugin.send_packet(player, {
+            name: 'title',
+            params: {
+                action: 1, // 0 = actionbar
+                text: JSON.stringify(subtitle),
+            }
+        });
+    }
+}
+
+let send_message = (player, json) => {
+    plugin.send_packet(player, {
+        name: 'chat',
+        params: {
+            message: JSON.stringify(json),
+        }
+    });
+}
