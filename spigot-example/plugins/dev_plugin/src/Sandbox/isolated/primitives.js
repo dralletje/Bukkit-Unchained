@@ -79,10 +79,10 @@ let return_if_player = possible_player => {
 };
 
 let AllowedClasses = [
-  {java_class: { class: Java_type('com.comphenix.protocol.wrappers.WrappedBlockData'), static: Java_type('com.comphenix.protocol.wrappers.WrappedBlockData').static }},
-  {java_class: Java.type('net.minecraft.server.v1_15_R1.Block') },
-  { java_class: Java.type('net.minecraft.server.v1_15_R1.RegistryBlockID')},
-  { java_class: Java.type('net.minecraft.server.v1_15_R1.IBlockData')},
+  // {java_class: { class: Java_type('com.comphenix.protocol.wrappers.WrappedBlockData'), static: Java_type('com.comphenix.protocol.wrappers.WrappedBlockData').static }},
+  // {java_class: Java.type('net.minecraft.server.v1_15_R1.Block') },
+  // { java_class: Java.type('net.minecraft.server.v1_15_R1.RegistryBlockID')},
+  // { java_class: Java.type('net.minecraft.server.v1_15_R1.IBlockData')},
 
   { java_class: Java.type("java.lang.Class") },
   { java_class: Java.type("java.lang.Enum") },
@@ -298,17 +298,17 @@ export let make_adapters = filters => {
     };
   };
 
-  class JavaObject {
+  class JavaObjectWrapper {
     constructor(java_object) {
       js_to_java_object.set(this, java_object);
     }
   }
-  Object.defineProperty(JavaObject.prototype, "equals", {
+  Object.defineProperty(JavaObjectWrapper.prototype, "equals", {
     value: create_java_method("equals"),
     writable: true,
     configrable: true
   });
-  js_to_java_class.set(JavaObject, {
+  js_to_java_class.set(JavaObjectWrapper, {
     get_locations: () => [],
     get_players: () => [],
     java_class: null
@@ -348,7 +348,7 @@ export let make_adapters = filters => {
       // The value *is* a java class
       // I think the java classes are all fine to return,
       // as there is really no way to get a forbidden java class anyway
-      // if (value instanceof JavaObject) {
+      // if (value instanceof JavaObjectWrapper) {
       //   return;
       // }
       if (js_to_java_class.has(value)) {
@@ -525,7 +525,7 @@ export let make_adapters = filters => {
       return adapted_classes[java_class_name];
     }
 
-    let SuperClass = JavaObject;
+    let SuperClass = JavaObjectWrapper;
     let superclasses = java_get_prototype_chain(java_class);
     find_super_class: for (let possible_superclass of superclasses) {
       if (possible_superclass === java_class.class) continue;

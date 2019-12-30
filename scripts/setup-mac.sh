@@ -34,6 +34,7 @@ clear_terminal
 
 new_tab
 run_in_current_tab "cd ${PWD}/Bundler"
+run_in_current_tab "export MONGO_URL=mongodb://localhost:32768"
 run_with_title "BUNDLER" "npm start"
 
 sleep 2
@@ -41,6 +42,7 @@ clear_terminal
 
 new_tab
 run_in_current_tab "cd ${PWD}"
+run_in_current_tab "export MONGO_URL=mongodb://localhost:32768"
 run_with_title "MC SERVER" "npm run minecraft-server"
 
 sleep 2

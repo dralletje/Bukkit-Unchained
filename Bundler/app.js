@@ -5,7 +5,7 @@ let {MongoClient} = require("mongodb");
 
 let { compile } = require("./compile.js");
 
-let url = "mongodb://unchained:unchained@localhost:32768/admin";
+let url = process.env.MONGO_URL || "mongodb://unchained:unchained@localhost:32768/admin";
 
 let bukkit_websocket_url = process.env.BUKKIT_WEBSOCKET_URL || 'ws://localhost:8000';
 

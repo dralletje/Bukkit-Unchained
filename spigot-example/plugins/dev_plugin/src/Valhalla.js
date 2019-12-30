@@ -45,7 +45,7 @@ let ensure_mongo_for_plugin = ({ mongo_client }) => {
 }
 
 let plugin_runner = () => {
-  let mongo_url = get_mongo_url({
+  let mongo_url = MONGO_URL || get_mongo_url({
     user: "unchained",
     password: "unchained",
     host: "localhost:32768",
