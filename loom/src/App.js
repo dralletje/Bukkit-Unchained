@@ -1,11 +1,12 @@
 import React from "react";
 import useStayScrolled from "react-stay-scrolled";
+import { Router, Link } from "@reach/router";
+import { omit } from 'lodash';
 
 // import { RegionView } from './MinecraftRenderer.js';
 import "./App.css";
 import { Codeblock } from "./Code.js";
 import { Flex, SubtleButton } from "./Elements.js";
-import { Router, Link } from "@reach/router";
 
 let WindowEvent = ({ event_name, handler }) => {
   let current_handler = React.useRef(handler);
@@ -25,29 +26,6 @@ let WindowEvent = ({ event_name, handler }) => {
   }, [handler]);
 
   return null;
-};
-
-let useAction = () => {
-  let [loading, set_loading] = React.useState(false);
-  let [result, set_result] = React.useState(null);
-  let [error, set_error] = React.useState(null);
-
-  let do_action = async action => {
-    set_loading(true);
-    try {
-      let result = await action();
-      console.log(`result:`, result);
-      set_loading(false);
-      set_error(null);
-      set_result(result);
-    } catch (err) {
-      set_loading(false);
-      set_error(err);
-      set_result(null);
-    }
-  };
-
-  return [do_action, { result, loading, error }];
 };
 
 let scoped_storage = key => {
@@ -137,13 +115,7 @@ let FilesEditor = ({ value: files, onChange }) => {
     files["index.js"] ? "index.js" : files_array[0][0]
   );
 
-  console.log(`1. current_file:`, current_file)
-  console.log(`files[current_file]:`, files[current_file])
-
   current_file = files[current_file] != null ? current_file : files_array[0][0];
-
-  console.log(`Object.keys(files):`, Object.keys(files))
-  console.log(`2. current_file:`, current_file)
 
   return (
     <Flex column style={{ overflow: "hidden", flex: 1 }}>
@@ -454,7 +426,7 @@ let LoadEditor = ({ session_id, ...props }) => {
         });
         try {
           await new Promise((resolve, reject) => {
-            websocket_ref.current.emit("files", { files }, (error, value) =>
+            websocket_ref.current.emit("files", { files: omit(files) }, (error, value) =>
               error ? reject(error) : resolve(value)
             );
           });
