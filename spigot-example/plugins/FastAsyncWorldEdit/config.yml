@@ -1,15 +1,10 @@
 # These first 6 aren't configurable
-issues: "https://github.com/IntellectualSites/FastAsyncWorldEdit-1.13/issues"
-wiki: "https://github.com/IntellectualSites/FastAsyncWorldEdit-1.13/wiki"
-date: "24 Jan 2020 23:00:00 GMT"
-build: "https://ci.athion.net/job/FastAsyncWorldEdit-commanding-pipeline/13"
-commit: "https://github.com/IntellectualSites/FastAsyncWorldEdit-1.13/commit/f6102278"
-platform: "bukkit"
-# Options: cn, de, es, fr, it, nl, ru, tr
-# Create a PR to contribute a translation: https://github.com/IntellectualSites/FastAsyncWorldEdit-1.13/tree/master/worldedit-core/src/main/resources
-language: ''
-# @deprecated - use bstats config.yml
-metrics: true
+issues: "https://github.com/IntellectualSites/FastAsyncWorldEdit/issues"
+wiki: "https://github.com/IntellectualSites/FastAsyncWorldEdit/wiki"
+date: "24 May 2020 22:00:00 GMT"
+build: "https://ci.athion.net/job/FastAsyncWorldEdit-1.15/180"
+commit: "https://github.com/IntellectualSites/FastAsyncWorldEdit-1.13/commit/fffb59f3"
+platform: "Bukkit"
 # Set true to enable WorldEdit restrictions per region (e.g. PlotSquared or WorldGuard).
 # To be allowed to WorldEdit in a region, users need the appropriate
 # fawe.<plugin>  permission. See the Permissions page for supported region plugins.
@@ -73,10 +68,6 @@ web:
   #  - Downloads can be deleted by the user
   #  - Supports clipboard uploads, downloads and saves
   url: "https://empcraft.com/fawe/"
-  # The web interface for assets
-  #  - All schematics are organized and public
-  #  - Assets can be searched, selected and downloaded
-  assets: "https://empcraft.com/assetpack/"
 
 extent:
   # Don't bug console when these plugins slow down WorldEdit operations
@@ -93,7 +84,7 @@ experimental:
   #  - IMPROPER USE CAN CAUSE WORLD CORRUPTION!
   anvil-queue-mode: false
   # [SAFE] Dynamically increase the number of chunks rendered
-  #  - Requires Paper: ci.destroystokyo.com/job/Paper-1.13/
+  #  - Requires Paper
   #  - Set your server view distance to 1 (spigot.yml, server.properties)
   #  - Based on tps and player movement
   #  - Note: If entities become hidden, increase the server view distance to 3
@@ -105,9 +96,6 @@ experimental:
   # [SAFE] Keep entities that are positioned in non-air blocks when editing an area
   # Might cause client-side FPS lagg in some situations
   keep-entities-in-blocks: false
-  # [SAFE] Experimental scripting support for Java 9
-  #  - https://github.com/IntellectualSites/FastAsyncWorldEdit-1.13/wiki/JavaScript-API
-  modern-craftscripts: false
   # [SAFE] Experimental freebuild region restrictions
   #  - PERM: fawe.freebuild
   #  - PERM: fawe.freebuild.<plugin>
@@ -141,7 +129,7 @@ queue:
   # Increase or decrease queue intensity (ms) [-50,50]:
   #     0 = balance of performance / stability
   #     -10 = Allocate 10ms less for chunk placement
-  # Too high will can cause lag spikes (you might be okay with this)
+  # Too high can cause lag spikes (you might be okay with this)
   # Too low will result in slow edits
   extra-time-ms: 0
   # Loading the right amount of chunks beforehand can speed up operations
@@ -229,7 +217,7 @@ paths:
   # Multiple servers can use the same clipboards
   #  - Use a shared directory or NFS/Samba
   clipboard: "clipboard"
-  # Each player has their own sub directory for schematics
+  # Each player has his or her own sub directory for schematics
   per-player-schematics: true
   commands: "commands"
 

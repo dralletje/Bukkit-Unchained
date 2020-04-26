@@ -4,6 +4,7 @@ graal-bin
 .DS_Store
 
 *.jar
+*._jar
 spigot-example/graal_dumps
 spigot-example/logs
 spigot-example/world*

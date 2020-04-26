@@ -176,9 +176,10 @@ export let create_isolated_commands = ({ plugin, adapt }) => {
               // has_custom_suggestions: 1
             },
             extraNodeData: {
+              ...args,
               name: arg.name || "argument",
               parser: arg.parser,
-              properties: 2
+              properties: 2,
               // suggests: "minecraft:ask_server"
             },
             children: children_from_command_arguments(args)

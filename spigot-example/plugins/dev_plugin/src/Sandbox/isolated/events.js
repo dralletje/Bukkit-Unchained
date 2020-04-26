@@ -85,7 +85,7 @@ export let create_isolated_events = ({ plugin, adapt }) => {
       continue;
     }
 
-    isolated_events[`on${event_name}`] = async (handler) => {
+    isolated_events[`on${event_name}`] = async (handler, { priority = 'HIGHEST' } = {}) => {
       addListener(
         event => {
           // if (event.isCancelled && event.isCancelled()) {
@@ -114,7 +114,7 @@ export let create_isolated_events = ({ plugin, adapt }) => {
 
           // Plugin specific error handling
         },
-        { priority: "HIGHEST" }
+        { priority: priority }
       );
     };
   }

@@ -53,6 +53,7 @@ timings:
   hidden-config-entries:
   - database
   - settings.bungeecord-addresses
+  - settings.velocity-support.secret
   history-interval: 300
   history-length: 3600
 messages:
@@ -65,6 +66,12 @@ messages:
     flying-vehicle: Flying is not enabled on this server
 world-settings:
   default:
+    light-queue-size: 20
+    portal-create-radius: 16
+    zombie-villager-infection-chance: -1.0
+    seed-based-feature-search: true
+    iron-golems-can-spawn-in-air: false
+    tracker-update-distance: 1.0
     entities-target-with-follow-range: false
     fix-zero-tick-instant-grow-farms: true
     per-player-mob-spawns: false
@@ -144,6 +151,7 @@ world-settings:
       - stone
       - oak_planks
     game-mechanics:
+      nerf-pigmen-from-nether-portals: false
       disable-pillager-patrols: false
       disable-relative-projectile-velocity: false
       disable-chest-cat-detection: false
@@ -154,6 +162,14 @@ world-settings:
       disable-unloaded-chunk-enderpearl-exploit: true
       villages-load-chunks: false
       scan-for-legacy-ender-dragon: true
+      pillager-patrols:
+        spawn-chance: 0.2
+        spawn-delay:
+          per-player: false
+          ticks: 12000
+        start:
+          per-player: false
+          day: 5
     squid-spawn-height:
       maximum: 0.0
     max-growth-height:
