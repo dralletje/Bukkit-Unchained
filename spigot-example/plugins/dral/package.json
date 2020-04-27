@@ -15,6 +15,9 @@
       "warp": {
         "description": "Warp to a place"
       },
+      "setwarp": {
+        "description": "Set a warp"
+      },
       "jsrepl": {
         "description": "Execute JS"
       },
