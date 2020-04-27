@@ -57,6 +57,38 @@ module.exports = plugin => {
     }
   });
 
+  plugin.command("removewarp", {
+    onCommand: (sender, command, alias, [warp_name]) => {
+      if (warps[warp_name]) {
+        if (
+          warps[warp_name].player.toLowerCase() !==
+          sender.getName().toLowerCase()
+        ) {
+          sender.sendMessage(
+            command_error(
+              "/setwarp",
+              `Warp is owned by ${warps[warp_name].player}`
+            )
+          );
+          return;
+        }
+      }
+
+      delete warps[warp_name];
+
+      fs.writeFileSync("./warps.json", JSON.stringify(warps));
+
+      plugin.java.getServer().broadcastMessage(
+        command_success("/setwarp", `${sender.getName()} removed warp "${warp_name}"!`)
+      );
+    },
+    onTabComplete: (sender, command, alias, args) => {
+      let text = args[0];
+      return Object.keys(warps).filter(x => x.toLowerCase().startsWith(text.toLowerCase()));
+    }
+  });
+
+
   plugin.command("warp", {
     onCommand: (sender, command, alias, [warp_name]) => {
       let warp = warps[warp_name];
@@ -77,8 +109,8 @@ module.exports = plugin => {
       plugin.java.getServer().broadcastMessage(command_success("/warp", `${sender.getDisplayName()} warped to "${warp_name}"!`));
     },
     onTabComplete: (sender, command, alias, args) => {
-      // let result = onTabComplete(plugin, sender, args);
-      return Object.keys(warps);
+      let text = args[0];
+      return Object.keys(warps).filter(x => x.toLowerCase().startsWith(text.toLowerCase()));
     }
   });
 };
