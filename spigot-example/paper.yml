@@ -1,14 +1,14 @@
 # This is the main configuration file for Paper.
 # As you can see, there's tons to configure. Some options may impact gameplay, so use
 # with caution, and make sure you know what each option does before configuring.
-# 
+#
 # If you need help with the configuration or have any questions related to Paper,
 # join us in our Discord or IRC channel.
-# 
+#
 # Discord: https://paperdiscord.emc.gs
 # IRC: #paper @ irc.spi.gt ( http://irc.spi.gt/iris/?channels=paper )
-# Website: https://papermc.io/ 
-# Docs: https://paper.readthedocs.org/ 
+# Website: https://papermc.io/
+# Docs: https://paper.readthedocs.org/
 
 verbose: false
 config-version: 20
@@ -152,7 +152,7 @@ world-settings:
       - oak_planks
     game-mechanics:
       nerf-pigmen-from-nether-portals: false
-      disable-pillager-patrols: false
+      disable-pillager-patrols: true
       disable-relative-projectile-velocity: false
       disable-chest-cat-detection: false
       disable-end-credits: false
@@ -163,7 +163,7 @@ world-settings:
       villages-load-chunks: false
       scan-for-legacy-ender-dragon: true
       pillager-patrols:
-        spawn-chance: 0.2
+        spawn-chance: 0
         spawn-delay:
           per-player: false
           ticks: 12000

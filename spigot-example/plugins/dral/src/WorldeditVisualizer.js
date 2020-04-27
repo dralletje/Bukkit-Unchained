@@ -2,6 +2,7 @@ let { range } = require("lodash");
 
 let Packet = require("bukkit/Packet");
 
+let GameMode = Java.type("org.bukkit.GameMode");
 let Vector = Java.type("org.bukkit.util.Vector");
 let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
 
@@ -161,12 +162,13 @@ let send_box_for_player = ({ entity_ids, player, from, to }) => {
     .map(([from, to]) => get_line_points({ count: 1.3, from, to }))
     .flat();
 
-  Packet.send_packet(player, {
-    name: "entity_destroy",
-    params: {
-      entityIds: entity_ids
-    }
-  });
+    Packet.send_packet(player, {
+      name: "entity_destroy",
+      params: {
+        entityIds: entity_ids
+      }
+    });
+
 
   for (let [index, point] of Object.entries(points)) {
     let entity_id = entity_ids[index];
@@ -235,6 +237,19 @@ module.exports = plugin => {
   let player_region = new WeakIdentityHashMap();
 
   let draw_region_for_player = (player) => {
+    if (player.getGameMode() !== GameMode.CREATIVE) {
+      if (player_region.get(player)) {
+        Packet.send_packet(player, {
+          name: "entity_destroy",
+          params: {
+            entityIds: entity_ids
+          }
+        });
+      }
+      player_region.put(player, null);
+      return;
+    }
+
     // let location = event.getTo();
     // let block_location = location.getBlock().getLocation();
 
@@ -296,7 +311,9 @@ module.exports = plugin => {
     let player = event.getPlayer();
     let message = event.getMessage();
 
-    draw_region_for_player(player);
+    setTimeout(() => {
+      draw_region_for_player(player);
+    }, 200)
   });
 
   // let player_locations = new Map();
