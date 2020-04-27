@@ -11,7 +11,17 @@
   "license": "ISC",
   "bukkit": {
     "api-version": "1.13",
-    "commands": {}
+    "commands": {
+      "warp": {
+        "description": "Warp to a place"
+      },
+      "jsrepl": {
+        "description": "Execute JS"
+      },
+      ">": {
+        "description": "Execute JS"
+      }
+    }
   },
   "dependencies": {
     "lodash": "^4.17.11"
