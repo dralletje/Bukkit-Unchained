@@ -7,16 +7,24 @@ let plugin = new JavaPlugin();
 plugin.onEnable(() => {
   try {
     require("./WorldeditVisualizer.js")(plugin);
-  } catch (error) {}
+  } catch (error) {
+    console.log(`WORLDEDIT VISUALISER error.stack:`, error.stack)
+  }
   try {
     require("./jsrepl.js")(plugin);
-  } catch (error) {}
+  } catch (error) {
+    console.log(`JSREPL error.stack:`, error.stack)
+  }
   try {
     require("./warp.js")(plugin);
-  } catch (error) {}
+  } catch (error) {
+    console.log(`WARP error.stack:`, error.stack)
+  }
   try {
     require("./take.js")(plugin);
-  } catch (error) {}
+  } catch (error) {
+    console.log(`TAKE error.stack:`, error.stack)
+  }
 
 
   let VISIBLE_COLORS = [ChatColor.GREEN, ChatColor.AQUA, ChatColor.RED, ChatColor.LIGHT_PURPLE, ChatColor.YELLOW, ChatColor.DARK_GREEN, ChatColor.DARK_AQUA, ChatColor.DARK_RED, ChatColor.DARK_PURPLE, ChatColor.GOLD, ChatColor.BLUE];

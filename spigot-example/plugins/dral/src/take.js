@@ -1,7 +1,7 @@
 let ItemStack = Java.type('org.bukkit.ItemStack');
 
 module.exports = (plugin) => {
-  plugin.command("take", {
+  plugin.command("use", {
     onCommand: (sender, command, alias, args) => {
       let block = sender.getTargetBlock(20);
       console.log(`block:`, block)

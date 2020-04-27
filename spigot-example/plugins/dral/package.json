@@ -27,7 +27,7 @@
       ">": {
         "description": "Execute JS"
       },
-      "take": {
+      "use": {
         "description": "Put item you are looking at in your inventory"
       }
     }
