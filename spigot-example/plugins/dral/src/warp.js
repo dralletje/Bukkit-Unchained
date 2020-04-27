@@ -47,7 +47,7 @@ module.exports = plugin => {
 
       fs.writeFileSync("./warps.json", JSON.stringify(warps));
 
-      plugin.java.getServer().broadcastMessage​(
+      plugin.java.getServer().broadcastMessage(
         command_success("/setwarp", `${sender.getName()} created warp "${warp_name}"!`)
       );
     },
@@ -74,7 +74,7 @@ module.exports = plugin => {
         warp.pitch
       );
       sender.teleport(location);
-      plugin.java.getServer().broadcastMessage​(command_success("/warp", `${sender.getDisplayName()} warped to "${warp_name}"!`));
+      plugin.java.getServer().broadcastMessage(command_success("/warp", `${sender.getDisplayName()} warped to "${warp_name}"!`));
     },
     onTabComplete: (sender, command, alias, args) => {
       // let result = onTabComplete(plugin, sender, args);
