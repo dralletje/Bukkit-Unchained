@@ -36,7 +36,7 @@ module.exports = (plugin) => {
         sender.sendMessage(`No warp found :(`);
       }
 
-      let location = new Location(sender.getWorld(), warp.x, warp.y, warp.z, warp.yaw, warp.pitch;)
+      let location = new Location(sender.getWorld(), warp.x, warp.y, warp.z, warp.yaw, warp.pitch)
       sender.teleport(location)
     },
     onTabComplete: (sender, command, alias, args) => {
