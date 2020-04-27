@@ -1,16 +1,17 @@
+'use strict'
+
 const nbt = require('prismarine-nbt')
 const UUID = require('uuid-1345')
 // const zlib = require('zlib')
 
 module.exports = {
-  'UUID': [readUUID, writeUUID, 16],
-  'nbt': [readNbt, writeNbt, sizeOfNbt],
-  'optionalNbt': [readOptionalNbt, writeOptionalNbt, sizeOfOptionalNbt],
-  'compressedNbt': [readCompressedNbt, writeCompressedNbt, sizeOfCompressedNbt],
-  'restBuffer': [readRestBuffer, writeRestBuffer, sizeOfRestBuffer],
-  'entityMetadataLoop': [readEntityMetadata, writeEntityMetadata, sizeOfEntityMetadata]
+  UUID: [readUUID, writeUUID, 16],
+  nbt: [readNbt, writeNbt, sizeOfNbt],
+  optionalNbt: [readOptionalNbt, writeOptionalNbt, sizeOfOptionalNbt],
+  compressedNbt: [readCompressedNbt, writeCompressedNbt, sizeOfCompressedNbt],
+  restBuffer: [readRestBuffer, writeRestBuffer, sizeOfRestBuffer],
+  entityMetadataLoop: [readEntityMetadata, writeEntityMetadata, sizeOfEntityMetadata]
 }
-
 var PartialReadError = require('protodef').utils.PartialReadError
 
 function readUUID (buffer, offset) {
@@ -60,12 +61,13 @@ function sizeOfOptionalNbt (value) {
 
 // Length-prefixed compressed NBT, see differences: http://wiki.vg/index.php?title=Slot_Data&diff=6056&oldid=4753
 function readCompressedNbt (buffer, offset) {
-  throw new Error('no zlib');
-
   if (offset + 2 > buffer.length) { throw new PartialReadError() }
   const length = buffer.readInt16BE(offset)
   if (length === -1) return { size: 2 }
   if (offset + 2 + length > buffer.length) { throw new PartialReadError() }
+
+  console.log('WHAAAAATA readCompressedNbt');
+  throw new Error('no zlib');
 
   const compressedNbt = buffer.slice(offset + 2, offset + 2 + length)
 
@@ -79,12 +81,15 @@ function readCompressedNbt (buffer, offset) {
 }
 
 function writeCompressedNbt (value, buffer, offset) {
-  throw new Error('no zlib');
-
   if (value === undefined) {
     buffer.writeInt16BE(-1, offset)
     return offset + 2
   }
+
+  console.log('WHAAAAATA writeCompressedNbt');
+  throw new Error('no zlib');
+
+
   const nbtBuffer = Buffer.alloc(sizeOfNbt(value))
   nbt.proto.write(value, nbtBuffer, 0, 'nbt')
 
@@ -97,9 +102,11 @@ function writeCompressedNbt (value, buffer, offset) {
 }
 
 function sizeOfCompressedNbt (value) {
+  if (value === undefined) { return 2 }
+
+  console.log('WHAAAAATA sizeOfCompressedNbt');
   throw new Error('no zlib');
 
-  if (value === undefined) { return 2 }
 
   const nbtBuffer = Buffer.alloc(sizeOfNbt(value, 'nbt'))
   nbt.proto.write(value, nbtBuffer, 0, 'nbt')

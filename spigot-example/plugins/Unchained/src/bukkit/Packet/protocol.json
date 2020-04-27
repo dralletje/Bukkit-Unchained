@@ -99,7 +99,7 @@
               }
             ]
           ],
-          "14": [
+          "11": [
             "container",
             [
               {
@@ -174,7 +174,7 @@
       {
         "compareTo": "$compareTo",
         "fields": {
-          "0": "i8",
+          "0": "u8",
           "1": "varint",
           "2": "f32",
           "3": "string",
@@ -852,10 +852,6 @@
             {
               "name": "velocityZ",
               "type": "i16"
-            },
-            {
-              "name": "metadata",
-              "type": "entityMetadata"
             }
           ]
         ],
@@ -2100,6 +2096,25 @@
               "type": "nbt"
             },
             {
+              "name": "biomes",
+              "type": [
+                "switch",
+                {
+                  "compareTo": "groundUp",
+                  "fields": {
+                    "false": "void",
+                    "true": [
+                      "array",
+                      {
+                        "count": 1024,
+                        "type": "i32"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
               "name": "chunkData",
               "type": [
                 "buffer",
@@ -2154,15 +2169,15 @@
             },
             {
               "name": "x",
-              "type": "f32"
+              "type": "f64"
             },
             {
               "name": "y",
-              "type": "f32"
+              "type": "f64"
             },
             {
               "name": "z",
-              "type": "f32"
+              "type": "f64"
             },
             {
               "name": "offsetX",
@@ -2244,6 +2259,10 @@
               "type": "i32"
             },
             {
+              "name": "hashedSeed",
+              "type": "i64"
+            },
+            {
               "name": "maxPlayers",
               "type": "u8"
             },
@@ -2257,6 +2276,10 @@
             },
             {
               "name": "reducedDebugInfo",
+              "type": "bool"
+            },
+            {
+              "name": "enableRespawnScreen",
               "type": "bool"
             }
           ]
@@ -2945,6 +2968,10 @@
             {
               "name": "dimension",
               "type": "i32"
+            },
+            {
+              "name": "hashedSeed",
+              "type": "i64"
             },
             {
               "name": "gamemode",

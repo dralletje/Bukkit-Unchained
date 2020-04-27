@@ -11,6 +11,7 @@
     "watch-javascript": "cd spigot-example/plugins/Unchained && npm run watch",
     "watch-dev-plugin": "cd spigot-example/plugins/dev_plugin && npm run watch",
     "watch-portals-plugin": "cd spigot-example/plugins/portals && npm run watch",
+    "watch-dral-plugin": "cd spigot-example/plugins/dral && npm run watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

@@ -10,8 +10,8 @@
   "author": "Michiel Dral <m.c.dral@gmail.com>",
   "license": "ISC",
   "bukkit": {
-    "enable": true,
-    "api-version": "1.14.4",
+    "enable": false,
+    "api-version": "1.15.2",
     "commands": {
       "jsrepl": {
         "description": "Execute inline javascript"

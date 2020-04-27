@@ -5,6 +5,7 @@ let ChatColor = Java.type('org.bukkit.ChatColor');
 let plugin = new JavaPlugin();
 
 plugin.onEnable(() => {
+  require("./WorldeditVisualizer.js")(plugin);
 
   let VISIBLE_COLORS = [ChatColor.GREEN, ChatColor.AQUA, ChatColor.RED, ChatColor.LIGHT_PURPLE, ChatColor.YELLOW, ChatColor.DARK_GREEN, ChatColor.DARK_AQUA, ChatColor.DARK_RED, ChatColor.DARK_PURPLE, ChatColor.GOLD, ChatColor.BLUE];
   let player_color = function(player) {
