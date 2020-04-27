@@ -18,6 +18,9 @@
       "setwarp": {
         "description": "Set a warp"
       },
+      "removewarp": {
+        "description": "Remove a warp"
+      },
       "jsrepl": {
         "description": "Execute JS"
       },
