@@ -26,6 +26,9 @@
       },
       ">": {
         "description": "Execute JS"
+      },
+      "take": {
+        "description": "Put item you are looking at in your inventory"
       }
     }
   },

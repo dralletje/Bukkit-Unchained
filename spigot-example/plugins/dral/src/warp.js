@@ -88,7 +88,6 @@ module.exports = plugin => {
     }
   });
 
-
   plugin.command("warp", {
     onCommand: (sender, command, alias, [warp_name]) => {
       let warp = warps[warp_name];

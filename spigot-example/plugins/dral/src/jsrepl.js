@@ -194,7 +194,7 @@ let repl = (plugin, player, code) => {
     self: player,
     events: plugin.events,
     exports: player_env.exports,
-    require: module.require,
+    // require: module.require,
     module: module,
     __dirname: '/',
     __filename: '/repl.js',
