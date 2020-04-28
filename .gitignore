@@ -17,3 +17,5 @@ node_modules
 *.bd
 spigot-example/plugins/FastAsyncWorldEdit/history/*
 spigot-example/plugins/FastAsyncWorldEdit/**/message.yml
+
+warps.json
