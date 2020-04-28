@@ -2,6 +2,7 @@ let { range } = require("lodash");
 
 let Packet = require("bukkit/Packet");
 
+let Material = Java.type("org.bukkit.Material");
 let GameMode = Java.type("org.bukkit.GameMode");
 let Vector = Java.type("org.bukkit.util.Vector");
 let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
@@ -34,10 +35,13 @@ let send_dust = ({ player, location, color = rgb(1, 0, 0), scale = 1 }) => {
   });
 };
 
-let MAX_ENTITIES = 200;
+let MAX_ENTITIES = 20;
 let get_line_points = ({ count, from: from_location, to: to_location }) => {
   let item_count = Math.ceil(
-    Math.min(MAX_ENTITIES, from_location.distance(to_location) * count)
+    Math.max(
+      Math.min(MAX_ENTITIES, from_location.distance(to_location) * count),
+      2
+    )
   );
   let diff_vector = from_location
     .clone()
@@ -48,7 +52,7 @@ let get_line_points = ({ count, from: from_location, to: to_location }) => {
   return range(0, item_count + 1).map(i => {
     let next_point_relative = diff_vector.clone().multiply(i);
     let location = to_location.clone().add(next_point_relative);
-    return location;
+    return { pitch: 0, yaw: 0, location};
   });
 };
 
@@ -159,7 +163,7 @@ let cube_lines = (from, to) => {
 let send_box_for_player = ({ entity_ids, player, from, to }) => {
   let lines = cube_lines(from, to);
   let points = lines
-    .map(([from, to]) => get_line_points({ count: 1.3, from, to }))
+    .map(([from, to]) => get_line_points({ count: 1, from, to }))
     .flat();
 
     Packet.send_packet(player, {
@@ -170,31 +174,50 @@ let send_box_for_player = ({ entity_ids, player, from, to }) => {
     });
 
 
-  for (let [index, point] of Object.entries(points)) {
+  for (let [index, { location: point, yaw, pitch }] of Object.entries(points)) {
     let entity_id = entity_ids[index];
     if (entity_id == null) {
       throw new Error(`No entity id found for '${index}'`);
     }
     let entity_id_string = String(entity_id).padStart(8, "0");
+
     Packet.send_packet(player, {
       name: "spawn_entity",
       params: {
         entityId: entity_id,
         objectUUID: `${entity_id_string}-e89b-12d3-a456-426655440000`,
-        type: 64,
-        // type: 42,
+        // type: 64,
+        // type: 42, // Minecart
+        // type: 38, // leash_knot
+        type: 71, // snowball
+        // type: 35,
+        // type: 40, // llama spit
+        // type: 2, // Arrow
         x: point.getX(),
         y: point.getY(),
         z: point.getZ(),
         velocityX: 0,
         velocityY: 0,
         velocityZ: 0,
-        pitch: 0,
-        yaw: 0
+        pitch: pitch,
+        yaw: yaw
       }
     });
 
-    // Glowing seems to not be working anymore
+    Packet.send_packet(player, {
+      name: "entity_metadata",
+      params: {
+        entityId: entity_id,
+        metadata: [
+          {
+            key: 5,
+            type: 7,
+            value: true
+          }
+        ]
+      }
+    });
+
     Packet.send_packet(player, {
       name: "entity_metadata",
       params: {
@@ -206,6 +229,29 @@ let send_box_for_player = ({ entity_ids, player, from, to }) => {
             value: 0x40 // Glowing
           }
         ]
+      }
+    });
+
+    Packet.send_packet(player, {
+      name: "entity_velocity",
+      params: {
+        entityId: entity_id,
+        velocityX: 0,
+        velocityY: 0,
+        velocityZ: 0,
+      }
+    })
+
+    Packet.send_packet(player, {
+      name: "entity_teleport",
+      params: {
+        entityId: entity_id,
+        x: point.getX(),
+        y: point.getY(),
+        z: point.getZ(),
+        yaw: yaw,
+        pitch: pitch,
+        onGround: false,
       }
     });
   }
@@ -237,7 +283,7 @@ module.exports = plugin => {
   let player_region = new WeakIdentityHashMap();
 
   let draw_region_for_player = (player) => {
-    if (player.getGameMode() !== GameMode.CREATIVE) {
+    if (player.getGameMode() !== GameMode.CREATIVE || player.getInventory().getItemInMainHand().getType() !== Material.WOODEN_AXE) {
       if (player_region.get(player)) {
         Packet.send_packet(player, {
           name: "entity_destroy",
@@ -309,12 +355,16 @@ module.exports = plugin => {
   });
   plugin.events.PlayerCommandPreprocess(async event => {
     let player = event.getPlayer();
-    let message = event.getMessage();
-
     setTimeout(() => {
       draw_region_for_player(player);
     }, 200)
   });
+  plugin.events.PlayerItemHeld(async event => {
+    let player = event.getPlayer();
+    setTimeout(() => {
+      draw_region_for_player(player);
+    }, 200)
+  })
 
   // let player_locations = new Map();
   // setInterval(() => {

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "minecraft-server": "cd spigot-example && ../graal-bin/bin/java -Dgraal.LogFile=graallog.log -jar minecraft-server.jar",
+    "minecraft-server": "cd spigot-example && ../graal-bin/bin/java -Dgraal.LogFile=graallog.log -jar minecraft-server.jar nogui",
     "loom": "cd loom && npm start",
     "bundler": "cd Bundler && npm start",
     "compile-java": "cd Unchained && ./gradlew build && mv ./build/libs/Unchained-1.0.jar ../spigot-example/plugins/Unchained.jar",
