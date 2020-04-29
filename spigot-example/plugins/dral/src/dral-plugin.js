@@ -21,6 +21,11 @@ plugin.onEnable(() => {
     console.log(`WARP error.stack:`, error.stack)
   }
   try {
+    require("./spectate.js")(plugin);
+  } catch (error) {
+    console.log(`SPECTATE error.stack:`, error.stack)
+  }
+  try {
     require("./take.js")(plugin);
   } catch (error) {
     console.log(`TAKE error.stack:`, error.stack)

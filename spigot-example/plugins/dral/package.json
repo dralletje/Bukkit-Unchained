@@ -29,6 +29,12 @@
       },
       "use": {
         "description": "Put item you are looking at in your inventory"
+      },
+      "spectate": {
+        "description": "Spectate a player"
+      },
+      "killanimals": {
+        "description": "Kill animals (and other entities) 10 blocks around you"
       }
     }
   },

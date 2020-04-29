@@ -314,12 +314,12 @@ module.exports = plugin => {
 
     let region = selection.getRegion();
     let region_immutable = {
-      getMaximumY: region.getMaximumY(),
-      getMaximumX: region.getMaximumX(),
-      getMaximumZ: region.getMaximumZ(),
-      getMinimumY: region.getMinimumY(),
-      getMinimumX: region.getMinimumX(),
-      getMinimumZ: region.getMinimumZ(),
+      getMaximumY: region.getMaximumPoint().getY(),
+      getMaximumX: region.getMaximumPoint().getX(),
+      getMaximumZ: region.getMaximumPoint().getZ(),
+      getMinimumY: region.getMinimumPoint().getY(),
+      getMinimumX: region.getMinimumPoint().getX(),
+      getMinimumZ: region.getMinimumPoint().getZ(),
 
     }
     if (player_region.get(player)) {
