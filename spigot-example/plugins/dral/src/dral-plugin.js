@@ -30,6 +30,16 @@ plugin.onEnable(() => {
   } catch (error) {
     console.log(`TAKE error.stack:`, error.stack)
   }
+  try {
+    require("./infinitedispenser.js")(plugin);
+  } catch (error) {
+    console.log(`INFINITE error.stack:`, error.stack)
+  }
+  try {
+    require("./chillin.js")(plugin);
+  } catch (error) {
+    console.log(`CHILLIN error.stack:`, error.stack)
+  }
 
 
   let VISIBLE_COLORS = [ChatColor.GREEN, ChatColor.AQUA, ChatColor.RED, ChatColor.LIGHT_PURPLE, ChatColor.YELLOW, ChatColor.DARK_GREEN, ChatColor.DARK_AQUA, ChatColor.DARK_RED, ChatColor.DARK_PURPLE, ChatColor.GOLD, ChatColor.BLUE];

@@ -41,6 +41,18 @@
       },
       "redo": {
         "description": "Redo"
+      },
+      "_tp": {
+        "description": "Teleport"
+      },
+      "_teleport": {
+        "description": "Teleport"
+      },
+      "infinite": {
+        "description": "Turn your item into an infinite supply"
+      },
+      "time": {
+        "description": "Time"
       }
     }
   },
