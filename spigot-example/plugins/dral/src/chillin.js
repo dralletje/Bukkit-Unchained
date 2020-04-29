@@ -9,7 +9,7 @@ module.exports = (plugin) => {
     let block = event.getClickedBlock()
     let item = event.getItem()
 
-    if (item != null) {
+    if (item != null || block == null) {
       return;
     }
     if (event.getHand() !== EquipmentSlot.HAND) {

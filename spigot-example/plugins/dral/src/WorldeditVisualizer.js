@@ -52,7 +52,7 @@ let get_line_points = ({ count, from: from_location, to: to_location }) => {
   return range(0, item_count + 1).map(i => {
     let next_point_relative = diff_vector.clone().multiply(i);
     let location = to_location.clone().add(next_point_relative);
-    return { pitch: 0, yaw: 0, location};
+    return location
   });
 };
 
@@ -161,100 +161,172 @@ let cube_lines = (from, to) => {
 };
 
 let send_box_for_player = ({ entity_ids, player, from, to }) => {
-  let lines = cube_lines(from, to);
-  let points = lines
-    .map(([from, to]) => get_line_points({ count: 1, from, to }))
-    .flat();
+  let lines = cube_lines(from, to).map(([from, to]) =>
+    get_line_points({ count: 1, from, to })
+  );
 
-    Packet.send_packet(player, {
-      name: "entity_destroy",
-      params: {
-        entityIds: entity_ids
-      }
-    });
-
-
-  for (let [index, { location: point, yaw, pitch }] of Object.entries(points)) {
-    let entity_id = entity_ids[index];
-    if (entity_id == null) {
-      throw new Error(`No entity id found for '${index}'`);
+  Packet.send_packet(player, {
+    name: "entity_destroy",
+    params: {
+      entityIds: entity_ids
     }
-    let entity_id_string = String(entity_id).padStart(8, "0");
+  });
+
+  let colors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+
+  let entity_index = -1;
+  let line_index = - 1
+  for (let line of lines) {
+    line_index = line_index + 1;
+
+    let team_name = `wevis-${line_index}`;
 
     Packet.send_packet(player, {
-      name: "spawn_entity",
+      name: "teams",
       params: {
-        entityId: entity_id,
-        objectUUID: `${entity_id_string}-e89b-12d3-a456-426655440000`,
-        // type: 64,
-        // type: 42, // Minecart
-        // type: 38, // leash_knot
-        type: 71, // snowball
-        // type: 35,
-        // type: 40, // llama spit
-        // type: 2, // Arrow
-        x: point.getX(),
-        y: point.getY(),
-        z: point.getZ(),
-        velocityX: 0,
-        velocityY: 0,
-        velocityZ: 0,
-        pitch: pitch,
-        yaw: yaw
+        team: team_name,
+        mode: 1
+      }
+    });
+    Packet.send_packet(player, {
+      name: "teams",
+      params: {
+        team: team_name,
+        mode: 0,
+        name: '{"text":"red"}',
+        friendlyFire: 0,
+        nameTagVisibility: "never",
+        collisionRule: "never",
+        formatting: colors[line_index],
+        prefix: ``,
+        suffix: ``,
+        players: entity_ids.slice(entity_index + 1, entity_index + 1 + line.length).map(
+          x => `${String(x).padStart(8, "0")}-e89b-12d3-a456-426655440000`
+        )
       }
     });
 
-    Packet.send_packet(player, {
-      name: "entity_metadata",
-      params: {
-        entityId: entity_id,
-        metadata: [
-          {
-            key: 5,
-            type: 7,
-            value: true
-          }
-        ]
-      }
-    });
+    let yaw = 0;
+    let pitch = 0;
 
-    Packet.send_packet(player, {
-      name: "entity_metadata",
-      params: {
-        entityId: entity_id,
-        metadata: [
-          {
-            key: 0,
-            type: 0,
-            value: 0x40 // Glowing
-          }
-        ]
-      }
-    });
+    for (let point of line) {
+      entity_index = entity_index + 1;
 
-    Packet.send_packet(player, {
-      name: "entity_velocity",
-      params: {
-        entityId: entity_id,
-        velocityX: 0,
-        velocityY: 0,
-        velocityZ: 0,
+      let entity_id = entity_ids[entity_index];
+      if (entity_id == null) {
+        throw new Error(`No entity id found for '${entity_index}'`);
       }
-    })
 
-    Packet.send_packet(player, {
-      name: "entity_teleport",
-      params: {
-        entityId: entity_id,
-        x: point.getX(),
-        y: point.getY(),
-        z: point.getZ(),
-        yaw: yaw,
-        pitch: pitch,
-        onGround: false,
-      }
-    });
+      let entity_id_string = String(entity_id).padStart(8, "0");
+
+      Packet.send_packet(player, {
+        name: "spawn_entity",
+        params: {
+          entityId: entity_id,
+          objectUUID: `${entity_id_string}-e89b-12d3-a456-426655440000`,
+          // type: 64,
+          // type: 42, // Minecart
+          // type: 38, // leash_knot
+          type: 71, // snowball
+          // type: 35,
+          // type: 40, // llama spit
+          // type: 2, // Arrow
+          x: point.getX(),
+          y: point.getY(),
+          z: point.getZ(),
+          velocityX: 0,
+          velocityY: 0,
+          velocityZ: 0,
+          pitch: pitch,
+          yaw: yaw
+        }
+      });
+
+      Packet.send_packet(player, {
+        name: "entity_metadata",
+        params: {
+          entityId: entity_id,
+          metadata: [
+            {
+              key: 5,
+              type: 7,
+              value: true
+            }
+          ]
+        }
+      });
+
+      Packet.send_packet(player, {
+        name: "entity_metadata",
+        params: {
+          entityId: entity_id,
+          metadata: [
+            {
+              key: 0,
+              type: 0,
+              value: 0x40 // Glowing
+            }
+          ]
+        }
+      });
+
+      Packet.send_packet(player, {
+        name: "entity_velocity",
+        params: {
+          entityId: entity_id,
+          velocityX: 0,
+          velocityY: 0,
+          velocityZ: 0
+        }
+      });
+
+      Packet.send_packet(player, {
+        name: "entity_teleport",
+        params: {
+          entityId: entity_id,
+          x: point.getX(),
+          y: point.getY(),
+          z: point.getZ(),
+          yaw: yaw,
+          pitch: pitch,
+          onGround: false
+        }
+      });
+    }
   }
+
+  Packet.send_packet(player, {
+    name: "teams",
+    params: {
+      team: 'white',
+      mode: 1
+    }
+  });
+  let white_entities = [];
+  let next_entity_index = 0;
+  for (let line of lines) {
+    white_entities.push(entity_ids[next_entity_index]);
+    white_entities.push(entity_ids[next_entity_index + line.length - 1]);
+    next_entity_index = next_entity_index + line.length;
+  }
+  Packet.send_packet(player, {
+    name: "teams",
+    params: {
+      team: 'white',
+      mode: 0,
+      name: '{"text":"red"}',
+      friendlyFire: 0,
+      nameTagVisibility: "never",
+      collisionRule: "never",
+      formatting: 15,
+      prefix: ``,
+      suffix: ``,
+      players: white_entities.map(
+        x => `${String(x).padStart(8, "0")}-e89b-12d3-a456-426655440000`
+      )
+    }
+  });
+
 };
 
 // prettier-ignore
@@ -282,8 +354,14 @@ module.exports = plugin => {
 
   let player_region = new WeakIdentityHashMap();
 
-  let draw_region_for_player = (player) => {
-    if (player.getGameMode() !== GameMode.CREATIVE || player.getInventory().getItemInMainHand().getType() !== Material.WOODEN_AXE) {
+  let draw_region_for_player = player => {
+    if (
+      player.getGameMode() !== GameMode.CREATIVE ||
+      player
+        .getInventory()
+        .getItemInMainHand()
+        .getType() !== Material.WOODEN_AXE
+    ) {
       if (player_region.get(player)) {
         Packet.send_packet(player, {
           name: "entity_destroy",
@@ -319,9 +397,8 @@ module.exports = plugin => {
       getMaximumZ: region.getMaximumPoint().getZ(),
       getMinimumY: region.getMinimumPoint().getY(),
       getMinimumX: region.getMinimumPoint().getX(),
-      getMinimumZ: region.getMinimumPoint().getZ(),
-
-    }
+      getMinimumZ: region.getMinimumPoint().getZ()
+    };
     if (player_region.get(player)) {
       let cached_region = player_region.get(player);
 
@@ -348,7 +425,7 @@ module.exports = plugin => {
       from: bukkit_adapter.adapt(player.getLocation().getWorld(), from),
       to: _to.add(new Vector(1, 1, 1))
     });
-  }
+  };
   plugin.events.PlayerInteract(async event => {
     let player = event.getPlayer();
     draw_region_for_player(player);
@@ -357,14 +434,14 @@ module.exports = plugin => {
     let player = event.getPlayer();
     setTimeout(() => {
       draw_region_for_player(player);
-    }, 200)
+    }, 200);
   });
   plugin.events.PlayerItemHeld(async event => {
     let player = event.getPlayer();
     setTimeout(() => {
       draw_region_for_player(player);
-    }, 200)
-  })
+    }, 200);
+  });
 
   // let player_locations = new Map();
   // setInterval(() => {

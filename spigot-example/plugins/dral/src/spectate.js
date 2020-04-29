@@ -156,7 +156,6 @@ module.exports = (plugin) => {
   plugin.command("spectate", {
     onCommand: (sender, command, alias, [person_to_spectate]) => {
       if (!person_to_spectate) {
-        sender.
         sender.chat('/minecraft:gamemode creative');
       } else {
         sender.chat(`/minecraft:gamemode spectator`);
@@ -165,4 +164,9 @@ module.exports = (plugin) => {
     },
     onTabComplete: autocomplete_players,
   });
+  plugin.events.PlayerToggleSneak((event) => {
+    if (event.getPlayer().getSpectatorTarget()) {
+      event.getPlayer().chat('/minecraft:gamemode creative');
+    }
+  })
 }
