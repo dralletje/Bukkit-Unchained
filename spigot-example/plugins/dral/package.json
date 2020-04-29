@@ -35,6 +35,12 @@
       },
       "killanimals": {
         "description": "Kill animals (and other entities) 10 blocks around you"
+      },
+      "undo": {
+        "description": "Undo"
+      },
+      "redo": {
+        "description": "Redo"
       }
     }
   },

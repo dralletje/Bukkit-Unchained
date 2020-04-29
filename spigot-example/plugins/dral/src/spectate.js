@@ -21,4 +21,17 @@ module.exports = (plugin) => {
       sender.chat('/minecraft:kill @e[distance=1..10]')
     },
   });
+
+  // TODO Add custom seconds/minutes argument
+  plugin.command("undo", {
+    onCommand: (sender, command, alias) => {
+      sender.chat('/coreprotect:co rollback time: 30s radius: 9 user: @p')
+    },
+  });
+
+  plugin.command("redo", {
+    onCommand: (sender, command, alias) => {
+      sender.chat('/coreprotect:co restore time: 10s radius: 9 user: @p')
+    },
+  });
 }
