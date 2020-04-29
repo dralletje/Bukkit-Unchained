@@ -14,29 +14,24 @@ let TeleportCause = Java.type('org.bukkit.event.player.PlayerTeleportEvent.Telep
 
 module.exports = (plugin) => {
   let autocomplete_players = (sender, command, alias, args) => {
-    let value = args[0];
+    let value = args[0].toLowerCase();
     let players = plugin.java.getServer().getOnlinePlayers();
     // TODO fuzzy filter by player name
-    return Java.from(players).map(x => x.getName())
+    return Java.from(players).map(x => x.getName()).filter(x => x.toLowerCase().startsWith(value));
   }
-
-  plugin.command("killanimals", {
-    onCommand: (sender, command, alias) => {
-      sender.chat('/minecraft:kill @e[distance=1..10]')
-      sender.sendMessage(command_success('/killanimals'), )
-    },
-  });
 
   // TODO Add custom seconds/minutes argument
   plugin.command("undo", {
     onCommand: (sender, command, alias) => {
       sender.chat(`/coreprotect:co rollback time: 30s radius: 9 user: ${sender.getName()}`)
+      sender.sendMessage(command_success('/undo', 'Undid your changes!'));
     },
   });
 
   plugin.command("redo", {
     onCommand: (sender, command, alias) => {
       sender.chat(`/coreprotect:co restore time: 60s radius: 9 user: ${sender.getName()}`);
+      sender.sendMessage(command_success('/redo', 'Redid your changes!'));
     },
   });
 
@@ -153,20 +148,23 @@ module.exports = (plugin) => {
     }
   })
 
+  let GameMode = Java.type('org.bukkit.GameMode')
   plugin.command("spectate", {
     onCommand: (sender, command, alias, [person_to_spectate]) => {
       if (!person_to_spectate) {
-        sender.chat('/minecraft:gamemode creative');
+        sender.setGameMode(GameMode.CREATIVE)
       } else {
-        sender.chat(`/minecraft:gamemode spectator`);
-        sender.chat(`/minecraft:spectate ${person_to_spectate}`);
+        let other_player = plugin.java.getServer().getPlayer(person_to_spectate);
+        sender.setGameMode(GameMode.SPECTATOR)
+        sender.setSpectatorTarget(other_player)
       }
     },
     onTabComplete: autocomplete_players,
   });
   plugin.events.PlayerToggleSneak((event) => {
     if (event.getPlayer().getSpectatorTarget()) {
-      event.getPlayer().chat('/minecraft:gamemode creative');
+      event.getPlayer().setGameMode(GameMode.CREATIVE)
+
     }
   })
 }
