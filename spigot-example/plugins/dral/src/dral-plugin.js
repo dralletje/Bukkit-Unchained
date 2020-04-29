@@ -11,6 +11,11 @@ plugin.onEnable(() => {
     console.log(`WORLDEDIT VISUALISER error.stack:`, error.stack)
   }
   try {
+    require("./smite.js")(plugin);
+  } catch (error) {
+    console.log(`SMITE error.stack:`, error.stack)
+  }
+  try {
     require("./jsrepl.js")(plugin);
   } catch (error) {
     console.log(`JSREPL error.stack:`, error.stack)

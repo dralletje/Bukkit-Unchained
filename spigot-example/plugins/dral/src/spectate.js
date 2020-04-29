@@ -6,7 +6,11 @@ let command_success = (command, message) => {
 let command_info = (command, message) => {
   return `${ChatColor.AQUA}${command}: ${ChatColor.RESET}${ChatColor.GRAY}${message}`;
 };
+let command_error = (command, message) => {
+  return `${ChatColor.RED}${command}: ${ChatColor.RESET}${ChatColor.GRAY}${message}`;
+};
 
+let TeleportCause = Java.type('org.bukkit.event.player.PlayerTeleportEvent.TeleportCause');
 
 module.exports = (plugin) => {
   let autocomplete_players = (sender, command, alias, args) => {
@@ -15,18 +19,6 @@ module.exports = (plugin) => {
     // TODO fuzzy filter by player name
     return Java.from(players).map(x => x.getName())
   }
-
-  plugin.command("spectate", {
-    onCommand: (sender, command, alias, [person_to_spectate]) => {
-      if (!person_to_spectate) {
-        sender.chat('/minecraft:gamemode creative');
-      } else {
-        sender.chat(`/minecraft:gamemode spectator`);
-        sender.chat(`/minecraft:spectate ${person_to_spectate}`);
-      }
-    },
-    onTabComplete: autocomplete_players,
-  });
 
   plugin.command("killanimals", {
     onCommand: (sender, command, alias) => {
@@ -38,13 +30,13 @@ module.exports = (plugin) => {
   // TODO Add custom seconds/minutes argument
   plugin.command("undo", {
     onCommand: (sender, command, alias) => {
-      sender.chat('/coreprotect:co rollback time: 30s radius: 9 user: @p')
+      sender.chat(`/coreprotect:co rollback time: 30s radius: 9 user: ${sender.getName()}`)
     },
   });
 
   plugin.command("redo", {
     onCommand: (sender, command, alias) => {
-      sender.chat('/coreprotect:co restore time: 60s radius: 9 user: @p');
+      sender.chat(`/coreprotect:co restore time: 60s radius: 9 user: ${sender.getName()}`);
     },
   });
 
@@ -120,6 +112,25 @@ module.exports = (plugin) => {
     }
   })
 
+  let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
+  let last_locations = new WeakIdentityHashMap();
+  let BACK_CAUSES = [TeleportCause.COMMAND, TeleportCause.SPECTATE, TeleportCause.UNKNOWN]
+  plugin.events.PlayerTeleport(event => {
+    let cause = event.getCause();
+    if (BACK_CAUSES.includes(cause)) {
+      let locations = last_locations.get(event.getPlayer()) || [];
+      last_locations.put(event.getPlayer(), [event.getFrom(), ...locations])
+    }
+    // if (cause === TeleportCause.PLUGIN) {
+    //   console.log('Teleport caused by plugin');
+    // }
+  });
+  plugin.events.PlayerRespawn(event => {
+    let player = event.getPlayer();
+    let locations = last_locations.get(player) || [];
+    last_locations.put(player, [player.getLocation(), ...locations])
+  })
+
   // let tp_command = {
   //   onTabComplete: autocomplete_players,
   //   onCommand: (sender, command, alias, [to_player]) => {
@@ -129,4 +140,29 @@ module.exports = (plugin) => {
   // }
   // plugin.command("tp", tp_command);
   // plugin.command("teleport", tp_command);
+  plugin.command("back", {
+    onCommand: (sender, command, alias, [times = 1]) => {
+      let [last_location, ...locations] = (last_locations.get(sender) || []).slice(times - 1);
+      if (last_location) {
+        sender.teleport(last_location, TeleportCause.PLUGIN);
+        last_locations.put(sender, locations);
+        sender.sendMessage(command_success('/back', `Aaaand we're back`));
+      } else {
+        sender.sendMessage(command_error('/back', `No previous teleport location found`));
+      }
+    }
+  })
+
+  plugin.command("spectate", {
+    onCommand: (sender, command, alias, [person_to_spectate]) => {
+      if (!person_to_spectate) {
+        sender.
+        sender.chat('/minecraft:gamemode creative');
+      } else {
+        sender.chat(`/minecraft:gamemode spectator`);
+        sender.chat(`/minecraft:spectate ${person_to_spectate}`);
+      }
+    },
+    onTabComplete: autocomplete_players,
+  });
 }

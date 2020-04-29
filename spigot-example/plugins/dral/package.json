@@ -53,6 +53,12 @@
       },
       "time": {
         "description": "Time"
+      },
+      "back": {
+        "description": "back"
+      },
+      "power-of-the-gods": {
+        "description": "Smite"
       }
     }
   },

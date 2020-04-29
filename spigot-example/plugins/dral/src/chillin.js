@@ -15,7 +15,7 @@ module.exports = (plugin) => {
     if (event.getHand() !== EquipmentSlot.HAND) {
       return;
     }
-    if (block.getType() !== Material.RAIL) {
+    if (block.getType() !== Material.RAIL && block.getType() !== Material.POWERED_RAIL) {
       return;
     }
 
