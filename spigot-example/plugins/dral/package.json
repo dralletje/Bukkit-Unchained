@@ -15,6 +15,9 @@
       "me": {
         "description": "Fun in chat"
       },
+      "reop": {
+        "description": "Toggle OPness on and off"
+      },
       "warp": {
         "description": "Warp to a place"
       },
