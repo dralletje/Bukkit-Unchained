@@ -63,13 +63,15 @@ plugin.onEnable(() => {
     return VISIBLE_COLORS[player.getDisplayName().charCodeAt(0) % VISIBLE_COLORS.length];
   }
 
-  plugin.command('me', {
-    onCommand: (sender, command, alias, args) => {
-      let message = args.join(' ');
-      let colored_message = ChatColor.translateAlternateColorCodes("&", message);
-      plugin.java.getServer().broadcastMessage(chat.flat(chat.gray`* ${sender.getDisplayName()} ${colored_message}`))
-    }
-  })
+  try {
+    plugin.command('me', {
+      onCommand: (sender, command, alias, args) => {
+        let message = args.join(' ');
+        let colored_message = ChatColor.translateAlternateColorCodes("&", message);
+        plugin.java.getServer().broadcastMessage(chat.flat(chat.gray`* ${sender.getDisplayName()} ${colored_message}`))
+      }
+    })
+  } catch (err) {}
 
   plugin.events.PlayerJoin((event) => {
     let player = event.getPlayer();
