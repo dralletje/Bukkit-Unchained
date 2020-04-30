@@ -2,6 +2,7 @@ let fs = require("fs");
 
 let Location = Java.type("org.bukkit.Location");
 let ChatColor = Java.type("org.bukkit.ChatColor");
+let TeleportCause = Java.type('org.bukkit.event.player.PlayerTeleportEvent.TeleportCause');
 
 let command_error = (command, error) => {
   return `${ChatColor.DARK_RED}${command}: ${ChatColor.RESET}${ChatColor.RED}${error}`;
@@ -104,7 +105,7 @@ module.exports = plugin => {
         warp.yaw,
         warp.pitch
       );
-      sender.teleport(location);
+      sender.teleport(location, TeleportCause.COMMAND);
       plugin.java.getServer().broadcastMessage(command_success("/warp", `${sender.getDisplayName()} warped to "${warp_name}"!`));
     },
     onTabComplete: (sender, command, alias, args) => {

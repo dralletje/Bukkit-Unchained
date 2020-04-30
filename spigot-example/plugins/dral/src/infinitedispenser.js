@@ -1,12 +1,12 @@
 let Material = Java.type("org.bukkit.Material");
+let ItemStack = Java.type("org.bukkit.inventory.ItemStack");
+let ItemFlag = Java.type("org.bukkit.inventory.ItemFlag");
+let Enchantment = Java.type("org.bukkit.enchantments.Enchantment");
 
 module.exports = (plugin) => {
-  let plugin_item = ({ material, title, description, active }) => {
-    let ItemStack = Java.type("org.bukkit.inventory.ItemStack");
-    let ItemFlag = Java.type("org.bukkit.inventory.ItemFlag");
-    let Enchantment = Java.type("org.bukkit.enchantments.Enchantment");
+  let plugin_item = ({ itemstack: uncloned_itemstack, title, description, active }) => {
 
-    let itemstack = new ItemStack(material);
+    let itemstack = uncloned_itemstack.clone();
     let itemmeta = itemstack.getItemMeta();
 
     itemmeta.setDisplayName(title);
@@ -27,27 +27,38 @@ module.exports = (plugin) => {
     return itemstack;
   };
 
-  let portal_tool = (material) => {
-    let tool = plugin_item({
-      material: material,
-      title: `Infinite ${material}`,
-      description: ["In a dispenser this will never run out"],
-      active: true
-    });
-    return tool;
-  };
-
   plugin.command("infinite", {
     onCommand: (sender) => {
       let item = sender.getInventory().getItemInMainHand();
-      console.log(`item:`, item);
       if (item == null) {
         return;
       }
-      let infinite_item = portal_tool(item.getType())
+      
+      let infinite_item = plugin_item({
+        itemstack: item,
+        title: `Infinite ${item.getType().toString().replace(/_/g, ' ').toLowerCase()}`,
+        description: ["In a dispenser this will never run out"],
+        active: true
+      })
       sender.getInventory().setItemInMainHand(infinite_item);
     }
   });
+
+  // plugin.command("nameitem", {
+  //   onCommand: (sender) => {
+  //     let item = sender.getInventory().getItemInMainHand();
+  //     if (item == null) {
+  //       return;
+  //     }
+  //     let infinite_item = plugin_item({
+  //       itemstack: item,
+  //       title: `Infinite ${item.getType().toString().replace(/_/g, ' ').toLowerCase()}`,
+  //       description: ["In a dispenser this will never run out"],
+  //       active: true
+  //     })
+  //     sender.getInventory().setItemInMainHand(infinite_item);
+  //   }
+  // });
 
   plugin.events.BlockDispense(async (event) => {
     let block = event.getBlock().getState();
@@ -61,6 +72,12 @@ module.exports = (plugin) => {
       console.log('Not infinte:', item_title)
       return;
     }
+
+    // let new_item = item.clone();
+    // let new_item_meta = item_meta.clone();
+    // new_item_meta.setDisplayName(item_title.replace(/$Infinite /, ''));
+    // new_item.setItemMeta(new_item_meta)
+    // event.setItem(new_item);
 
     // let new_items = Java.from(dispenser_inventory.getStorageContents()).map(() => item.clone());
     // dispenser_inventory.setStorageContents(new_items);

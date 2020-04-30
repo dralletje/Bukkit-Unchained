@@ -12,6 +12,9 @@
   "bukkit": {
     "api-version": "1.13",
     "commands": {
+      "me": {
+        "description": "Fun in chat"
+      },
       "warp": {
         "description": "Warp to a place"
       },

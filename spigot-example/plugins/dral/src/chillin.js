@@ -2,6 +2,7 @@ let Material = Java.type('org.bukkit.Material');
 let EquipmentSlot = Java.type('org.bukkit.inventory.EquipmentSlot');
 
 let Minecart = Java.type('org.bukkit.entity.Minecart');
+let BlockAction = Java.type("org.bukkit.event.block.Action");
 
 module.exports = (plugin) => {
   plugin.events.PlayerInteract(async event => {
@@ -11,6 +12,11 @@ module.exports = (plugin) => {
 
     if (item != null || block == null) {
       return;
+    }
+
+
+    if (event.getAction() !== BlockAction.RIGHT_CLICK_BLOCK) {
+      return
     }
     if (event.getHand() !== EquipmentSlot.HAND) {
       return;

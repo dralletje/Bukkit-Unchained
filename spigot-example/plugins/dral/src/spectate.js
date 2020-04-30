@@ -1,24 +1,24 @@
+import { broadcast_action, command_success, command_error, command_info } from "./chat.js";
+
 let ChatColor = Java.type('org.bukkit.ChatColor');
 
-let command_success = (command, message) => {
-  return `${ChatColor.DARK_GREEN}${command}: ${ChatColor.RESET}${ChatColor.GRAY}${message}`;
-};
-let command_info = (command, message) => {
-  return `${ChatColor.AQUA}${command}: ${ChatColor.RESET}${ChatColor.GRAY}${message}`;
-};
-let command_error = (command, message) => {
-  return `${ChatColor.RED}${command}: ${ChatColor.RESET}${ChatColor.GRAY}${message}`;
-};
-
-let TeleportCause = Java.type('org.bukkit.event.player.PlayerTeleportEvent.TeleportCause');
-
-module.exports = (plugin) => {
+export let SpectatePlugin = (plugin) => {
   let autocomplete_players = (sender, command, alias, args) => {
     let value = args[0].toLowerCase();
     let players = plugin.java.getServer().getOnlinePlayers();
     // TODO fuzzy filter by player name
     return Java.from(players).map(x => x.getName()).filter(x => x.toLowerCase().startsWith(value));
   }
+
+  plugin.command("reop", {
+    onCommand: (sender, command, alias) => {
+      sender.setOp(false);
+      setTimeout(() => {
+        sender.setOp(true);
+      }, 200)
+      sender.sendMessage(command_success('/reop', 'Toggled you back to OP!'));
+    },
+  });
 
   // TODO Add custom seconds/minutes argument
   plugin.command("undo", {
@@ -88,12 +88,14 @@ module.exports = (plugin) => {
       if (time === 'reset') {
         sender.resetPlayerTime();
         sender.sendMessage(success(`Your time is in sync with the server again`));
+        broadcast_action(plugin, sender, `aligned their time with the server time`);
         return;
       }
 
       let ticks = parse_time(time)
       sender.setPlayerTime(ticks, false);
       sender.sendMessage(success(`Set your personal time to ${ChatColor.WHITE}${time_to_string(ticks)}`));
+      broadcast_action(plugin, sender, `set their personal time to ${ChatColor.WHITE}${time_to_string(ticks)}`);
     },
     onTabComplete: (sender, command, alias, args) => {
       if (args.length !== 1) {
@@ -107,56 +109,16 @@ module.exports = (plugin) => {
     }
   })
 
-  let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
-  let last_locations = new WeakIdentityHashMap();
-  let BACK_CAUSES = [TeleportCause.COMMAND, TeleportCause.SPECTATE, TeleportCause.UNKNOWN]
-  plugin.events.PlayerTeleport(event => {
-    let cause = event.getCause();
-    if (BACK_CAUSES.includes(cause)) {
-      let locations = last_locations.get(event.getPlayer()) || [];
-      last_locations.put(event.getPlayer(), [event.getFrom(), ...locations])
-    }
-    // if (cause === TeleportCause.PLUGIN) {
-    //   console.log('Teleport caused by plugin');
-    // }
-  });
-  plugin.events.PlayerRespawn(event => {
-    let player = event.getPlayer();
-    let locations = last_locations.get(player) || [];
-    last_locations.put(player, [player.getLocation(), ...locations])
-  })
-
-  // let tp_command = {
-  //   onTabComplete: autocomplete_players,
-  //   onCommand: (sender, command, alias, [to_player]) => {
-  //     console.log(`alias:`, alias)
-  //     sender.chat('/coreprotect:co restore time: 10s radius: 9 user: @p')
-  //   },
-  // }
-  // plugin.command("tp", tp_command);
-  // plugin.command("teleport", tp_command);
-  plugin.command("back", {
-    onCommand: (sender, command, alias, [times = 1]) => {
-      let [last_location, ...locations] = (last_locations.get(sender) || []).slice(times - 1);
-      if (last_location) {
-        sender.teleport(last_location, TeleportCause.PLUGIN);
-        last_locations.put(sender, locations);
-        sender.sendMessage(command_success('/back', `Aaaand we're back`));
-      } else {
-        sender.sendMessage(command_error('/back', `No previous teleport location found`));
-      }
-    }
-  })
-
   let GameMode = Java.type('org.bukkit.GameMode')
   plugin.command("spectate", {
     onCommand: (sender, command, alias, [person_to_spectate]) => {
       if (!person_to_spectate) {
-        sender.setGameMode(GameMode.CREATIVE)
+        sender.setGameMode(GameMode.SPECTATOR)
       } else {
         let other_player = plugin.java.getServer().getPlayer(person_to_spectate);
         sender.setGameMode(GameMode.SPECTATOR)
         sender.setSpectatorTarget(other_player)
+        broadcast_action(plugin, sender, `is now spectating ${other_player.getDisplayName()}`);
       }
     },
     onTabComplete: autocomplete_players,
@@ -164,7 +126,18 @@ module.exports = (plugin) => {
   plugin.events.PlayerToggleSneak((event) => {
     if (event.getPlayer().getSpectatorTarget()) {
       event.getPlayer().setGameMode(GameMode.CREATIVE)
-
     }
   })
+
+  plugin.events.PlayerCommandPreprocess(async event => {
+    let player = event.getPlayer();
+
+    let spectators = Java.from(plugin.java.getServer().getOnlinePlayers());
+    let message = `${player.getDisplayName()} ${ChatColor.GRAY}used ${ChatColor.WHITE}${event.getMessage()}`;
+    for (let spectator of spectators) {
+      if (player.getSpectatorTarget() === player) {
+        spectator.sendMessage(command_info('/spectate', message))
+      }
+    }
+  });
 }
