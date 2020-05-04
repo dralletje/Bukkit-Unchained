@@ -1,5 +1,6 @@
 let _ = require("lodash");
-let { Worker } = require('worker_threads');
+let { Worker } = require("worker_threads");
+let { chat } = require("./chat.js");
 
 let UUID = Java.type("java.util.UUID");
 
@@ -18,25 +19,19 @@ let NamespacedKey = Java.type("org.bukkit.NamespacedKey");
 // https://minecraft-heads.com/scripts/api.php
 // https://freshcoal.com/api.php
 
-
-
 let fetch = async (url, options = {}) => {
-  let worker = new Worker(
-    `${global.plugin.java.getDataFolder()}/fetch.js`,
-    {
-      workerData: {
-        url: url,
-        ...options,
-      },
-      stdout: true,
-      stderr: true
-    }
-  );
+  let worker = new Worker(`${global.plugin.java.getDataFolder()}/fetch.js`, {
+    workerData: {
+      url: url,
+      ...options
+    },
+    stdout: true,
+    stderr: true
+  });
 
   worker.on("exit", () => {
     console.log(`Worker exit "${url}"`);
   });
-
 
   let result = await new Promise((resolve, reject) => {
     worker.on("message", message => {
@@ -45,7 +40,7 @@ let fetch = async (url, options = {}) => {
       }
       // TODO Errors
     });
-  })
+  });
 
   return {
     text: async () => result,
@@ -117,7 +112,9 @@ let FRESHCOAL_CATEGORIES = [
         "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGQ1NDI3YTgzNTQwYTA4YTNmYTJlNjU1YzI5NjRhMDcyNDM1MTQ1ODRhNzFlYzM1ZDZiOWUxODRkZmJlMzE4In19fQ=="
     },
     fetch: () =>
-      fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=misc`)
+      fetch_minecraft_heads(
+        `https://minecraft-heads.com/scripts/api.php?cat=miscellaneous`
+      )
   },
   {
     title: "Alphabet",
@@ -135,18 +132,18 @@ let FRESHCOAL_CATEGORIES = [
       )
   },
   {
-    title: "Interior",
-    slug: "interior",
+    title: "Decorations",
+    slug: "decoration",
     icon: {
       name: "Stack of Books",
       skullowner: "d93fd71a-94fa-479b-8d8e-8bfb601a8df2",
-      category: "interior",
+      category: "decoration",
       value:
         "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjQ5MzkzNjU0NGNhMjkxYjlmYzc5Mjg2NjNhZTI3NjNlMTgzNTc1NmFhMWIzOTUyZjk2NWQ1MjVjMzkzN2I1ZCJ9fX0="
     },
     fetch: () =>
-      fetch_freshcoal_category(
-        `https://freshcoal.com/mainapi.php?query=interior`
+      fetch_minecraft_heads(
+        `https://minecraft-heads.com/scripts/api.php?cat=decoration`
       )
   },
   {
@@ -175,47 +172,48 @@ let FRESHCOAL_CATEGORIES = [
     fetch: () =>
       fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=blocks`)
   },
-  {
-    title: "Games",
-    slug: "games",
-    icon: {
-      name: "Pokemon",
-      skullowner: "04be8421-c832-4cf8-82e5-9b88d8",
-      category: "games",
-      value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDQzZDRiN2FjMjRhMWQ2NTBkZGY3M2JkMTQwZjQ5ZmMxMmQyNzM2ZmMxNGE4ZGMyNWMwZjNmMjlkODVmOGYifX19"
-    },
-    fetch: () =>
-      fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=games`)
-  },
+  // {
+  //   title: "Games",
+  //   slug: "games",
+  //   icon: {
+  //     name: "Pokemon",
+  //     skullowner: "04be8421-c832-4cf8-82e5-9b88d8",
+  //     category: "games",
+  //     value:
+  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDQzZDRiN2FjMjRhMWQ2NTBkZGY3M2JkMTQwZjQ5ZmMxMmQyNzM2ZmMxNGE4ZGMyNWMwZjNmMjlkODVmOGYifX19"
+  //   },
+  //   fetch: () =>
+  //     fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=games`)
+  // },
   {
     title: "Animals",
     slug: "mobs",
     icon: {
-      name: "Tortoise",
-      skullowner: "ef56c7a3-a5e7-4a7f-9786-a4b6273a591d",
+      name: "Steampunk Fox",
+      skullowner: "f146e5d3-6194-4047-8c9a-17c8640b1601",
       category: "mobs",
       value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTJlNTQ4NDA4YWI3NWQ3ZGY4ZTZkNWQyNDQ2ZDkwYjZlYzYyYWE0ZjdmZWI3OTMwZDFlZTcxZWVmZGRmNjE4OSJ9fX0="
-    },
-    fetch: () =>
-      fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=mobs`)
-  },
-  {
-    title: "Characters",
-    slug: "characters",
-    icon: {
-      name: "Zelda",
-      skullowner: "63b2a003-04da-450b-b07a-de6906f8f677",
-      category: "characters",
-      value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGFhMDU5NjZkYmIzOWY3ODBlN2VhNjNhMjk1NjBkOGViNDhlMGMyNDk3YTgxOGE4OTU2NGE1YTE0YTMzZWYifX19"
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2Q4NTZhNWM0MGU4ZTcyMDY0ZmQ5YmVmOGVjOTBhODZlZTEzMGE0ZGE0YmVlYWJkYmRiNjM0YjcyMmJjYjBiYSJ9fX0="
     },
     fetch: () =>
       fetch_minecraft_heads(
-        `https://minecraft-heads.com/scripts/api.php?cat=humanoid`
+        `https://minecraft-heads.com/scripts/api.php?cat=animals`
       )
   }
+  // {   title: "Characters",
+  //   slug: "characters",
+  //   icon: {
+  //     name: "Zelda",
+  //     skullowner: "63b2a003-04da-450b-b07a-de6906f8f677",
+  //     category: "characters",
+  //     value:
+  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGFhMDU5NjZkYmIzOWY3ODBlN2VhNjNhMjk1NjBkOGViNDhlMGMyNDk3YTgxOGE4OTU2NGE1YTE0YTMzZWYifX19"
+  //   },
+  //   fetch: () =>
+  //     fetch_minecraft_heads(
+  //       `https://minecraft-heads.com/scripts/api.php?cat=humanoid`
+  //     )
+  // }
   // { title: "Pokemon", slug: "pokemon", icon: {} },
 ];
 
@@ -259,15 +257,13 @@ let create_itemstack = (material, { name, lore, data }) => {
 
 let JavaString = Java.type("java.lang.String");
 let StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
-let Base64 = Java.type('java.util.Base64');
-let atob = (base64) => {
+let Base64 = Java.type("java.util.Base64");
+let atob = base64 => {
   let decoder = Base64.getDecoder();
-  let bytes = decoder.decode(base64)
+  let bytes = decoder.decode(base64);
   return new JavaString(bytes, StandardCharsets.UTF_8);
-}
-let btoa = (string) => {
-
-}
+};
+let btoa = string => {};
 
 export let head_plugin = async (plugin, { defineCommand }) => {
   // let heads = [
@@ -321,7 +317,11 @@ export let head_plugin = async (plugin, { defineCommand }) => {
     let stack = new ItemStack(Material.PLAYER_HEAD);
     let meta = stack.getItemMeta();
 
-    let profile = Bukkit.createProfile(typeof skull.skullowner === 'string' ? UUID.fromString(skull.skullowner) : skull.skullowner);
+    let profile = Bukkit.createProfile(
+      typeof skull.skullowner === "string"
+        ? UUID.fromString(skull.skullowner)
+        : skull.skullowner
+    );
     profile.setProperty(new ProfileProperty("textures", skull.value));
     meta.setPlayerProfile(profile);
 
@@ -376,61 +376,81 @@ export let head_plugin = async (plugin, { defineCommand }) => {
   let category_key = new NamespacedKey(plugin.java, "head-category");
   let page_key = new NamespacedKey(plugin.java, "head-page");
   defineCommand("heads", {
-    onCommand: async ({sender, args: [search], UserError, reply_success}) => {
+    onCommand: async ({
+      sender,
+      args: [search],
+      UserError,
+      reply_success,
+      broadcast_action
+    }) => {
       if (search != null) {
-        let old_minecraft_heads_url_regex = /^https:\/\/minecraft-heads\.com\/player-heads/
-        let minecraft_heads_url_regex = /^https?:\/\/minecraft-heads\.com\/custom-heads\/(.*)$/
+        let old_minecraft_heads_url_regex = /^https:\/\/minecraft-heads\.com\/player-heads/;
+        let minecraft_heads_url_regex = /^https?:\/\/minecraft-heads\.com\/(custom-heads|custom)\/(.*)$/;
 
         if (old_minecraft_heads_url_regex.test(search)) {
-          throw new UserError(`This url is from the "Player Heads" section of minecraft-heads.com, these are not stable. Use one from the "Custom Heads" section please.`);
+          throw new UserError(
+            `This url is from the "Player Heads" section of minecraft-heads.com, these are not stable. Use one from the "Custom Heads" section please.`
+          );
         }
 
         if (minecraft_heads_url_regex.test(search)) {
           let response = await fetch(search);
           let text = await response.text();
-          let give_regex = /{display:{Name:"{\\"text\\":\\"([^"]*)\\"}"},SkullOwner:{Id:([^ ]*),Properties:{textures:\[{Value:"([^ ]*)"}\]}}}/
+          let give_regex = /{display:{Name:"{\\"text\\":\\"([^"]*)\\"}"},SkullOwner:{Id:([^ ]*),Properties:{textures:\[{Value:"([^ ]*)"}\]}}}/;
 
           let give_match = text.match(give_regex);
           if (give_match == null) {
-            throw new UserError(`Couldn't find a minecraft head on the page you linked`);
+            throw new UserError(
+              `Couldn't find a minecraft head on the page you linked`
+            );
           }
           let [_match, name, _uuid, value] = give_match;
 
-          sender.getInventory().addItem(create_skull_itemstack({
-            name: name,
-            skullowner: sender.getUniqueId(),
-            value: value,
-          }));
+          sender.getInventory().addItem(
+            create_skull_itemstack({
+              name: name,
+              skullowner: sender.getUniqueId(),
+              value: value
+            })
+          );
           reply_success(`Here's a ${name} for you!`);
-          return
+          broadcast_action(chat`took a ${chat.white(name)}`);
+          return;
         }
 
         try {
-          let result = atob(search);
-          let obfuscated = "Unknown Object".split('').map(x => {
-            let color = Math.random() > 0.7 ? ChatColor.GRAY : ChatColor.MAGIC;
-            return `${color}${x}`;
-          }).join('')
+          let result = JSON.parse(atob(search));
+          let obfuscated = "Unknown Object"
+            .split("")
+            .map(x => {
+              let color =
+                Math.random() > 0.7 ? ChatColor.GRAY : ChatColor.MAGIC;
+              return `${color}${x}`;
+            })
+            .join("");
 
-          sender.getInventory().addItem(create_skull_itemstack({
-            name: `${ChatColor.GRAY}${obfuscated}`,
-            skullowner: sender.getUniqueId(),
-            value: search,
-          }));
+          sender.getInventory().addItem(
+            create_skull_itemstack({
+              name: `${ChatColor.GRAY}${obfuscated}`,
+              skullowner: sender.getUniqueId(),
+              value: search
+            })
+          );
           reply_success(`Here's an ${obfuscated} for you!`);
           return;
-        } catch(error) {
-          console.log(`error.stack:`, error.stack)
+        } catch (error) {
+          console.log(`error.stack:`, error.stack);
         }
 
-        throw new UserError('No idea what you want to do')
+        throw new UserError("No idea what you want to do");
         return;
       }
 
+      let lines = Math.ceil(FRESHCOAL_CATEGORIES.length / 9)
+
       let mask_inventory = Bukkit.createInventory(
         HeadsCategories_InventoryHolder,
-        // FRESHCOAL_CATEGORIES.length,
-        18,
+        lines * 9,
         "Select a category"
       );
 

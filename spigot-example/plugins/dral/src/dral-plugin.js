@@ -133,12 +133,15 @@ plugin.onEnable(() => {
     ChatColor.BLUE
   ];
   let player_color = function(player) {
-    let number = _.sum(
-      player
-        .getName()
-        .split("")
-        .map(x => x.charCodeAt(0))
-    );
+    // let number = _.sum(
+    //   player
+    //     .getName()
+    //     .split("")
+    //     .map(x => x.charCodeAt(0))
+    // );
+    let number = Math.abs(player
+        .getUniqueId().getLeastSignificantBits())
+        console.log(`number:`, number)
     return VISIBLE_COLORS[number % VISIBLE_COLORS.length];
   };
 
@@ -169,7 +172,7 @@ plugin.onEnable(() => {
     event.setJoinMessage(
       `${ChatColor.WHITE}> ${player.getDisplayName()} ${ChatColor.RESET}${
         ChatColor.WHITE
-      } joined the server`
+      }joined the server`
     );
   });
 
