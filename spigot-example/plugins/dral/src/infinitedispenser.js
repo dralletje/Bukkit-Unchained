@@ -33,7 +33,7 @@ module.exports = (plugin) => {
       if (item == null) {
         return;
       }
-      
+
       let infinite_item = plugin_item({
         itemstack: item,
         title: `Infinite ${item.getType().toString().replace(/_/g, ' ').toLowerCase()}`,

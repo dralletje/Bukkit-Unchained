@@ -34,6 +34,8 @@ module.exports = (plugin) => {
   });
 
   plugin.events.VehicleExit(async event => {
-    event.getVehicle().remove()
+    if (event.getVehicle() instanceof Minecart) {
+      event.getVehicle().remove()
+    }
   })
 }

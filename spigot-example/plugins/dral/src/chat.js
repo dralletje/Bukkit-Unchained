@@ -1,4 +1,5 @@
 import chat from "./chatchatchat.js";
+import Packet from "bukkit/Packet";
 
 export { chat };
 
@@ -17,7 +18,7 @@ export let broadcast_action = (plugin, sender, message) => {
   for (let player of players) {
     // if (player !== sender) {
 
-      player.sendMessage(chat.flat(chat.gray(`* ${sender.getDisplayName()} ${message}`)));
+      chat.send_message(player, chat.gray(`* ${sender.getDisplayName()} ${message}`));
     // }
   }
 }

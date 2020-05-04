@@ -2,7 +2,7 @@ import { command_success, command_error } from "./chat.js";
 
 let TeleportCause = Java.type('org.bukkit.event.player.PlayerTeleportEvent.TeleportCause');
 
-export let TeleportPlugin = (plugin) => {
+export let TeleportPlugin = (plugin, { defineCommand }) => {
   let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
   let last_locations = new WeakIdentityHashMap();
   let BACK_CAUSES = [
@@ -15,7 +15,6 @@ export let TeleportPlugin = (plugin) => {
     let cause = event.getCause();
     if (BACK_CAUSES.includes(cause)) {
       let locations = last_locations.get(event.getPlayer()) || [];
-      console.log('ADDING:', locations.length + 1)
       last_locations.put(event.getPlayer(), [event.getFrom(), ...locations])
     }
   });
@@ -34,8 +33,8 @@ export let TeleportPlugin = (plugin) => {
   // }
   // plugin.command("tp", tp_command);
   // plugin.command("teleport", tp_command);
-  plugin.command("back", {
-    onCommand: (sender, command, alias, [times = 1]) => {
+  defineCommand("back", {
+    onCommand: ({sender, args: [times = 1], reply_success, broadcast_action, UserError }) => {
       let my_last_locations = last_locations.get(sender) || [];
       console.log(`last_locations.length:`, my_last_locations.length)
       let [last_location, ...locations] = my_last_locations.slice(times - 1);
@@ -43,9 +42,10 @@ export let TeleportPlugin = (plugin) => {
       if (last_location) {
         sender.teleport(last_location, TeleportCause.UNKNOWN);
         last_locations.put(sender, locations);
-        sender.sendMessage(command_success('/back', `Aaaand we're back`));
+        reply_success(`Aaaand we're back`);
+        broadcast_action(`teleported back`)
       } else {
-        sender.sendMessage(command_error('/back', `No previous teleport location found`));
+        throw new UserError(`No previous teleport location found`)
       }
     }
   })

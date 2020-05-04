@@ -65,6 +65,9 @@
       },
       "power-of-the-gods": {
         "description": "Smite"
+      },
+      "heads": {
+        "description": "Give head"
       }
     }
   },

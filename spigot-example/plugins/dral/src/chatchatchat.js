@@ -1,74 +1,135 @@
-let ChatColor = Java.type('net.md_5.bungee.api.ChatColor');
-let ClickEvent = Java.type('net.md_5.bungee.api.chat.ClickEvent');
-let ComponentBuilder = Java.type('net.md_5.bungee.api.chat.ComponentBuilder');
-let HoverEvent = Java.type('net.md_5.bungee.api.chat.HoverEvent');
+import Packet from "bukkit/Packet";
+
+let ChatColor = Java.type("net.md_5.bungee.api.ChatColor");
+
+// let ComponentBuilder = Java.type('net.md_5.bungee.api.chat.ComponentBuilder');
+// let ClickEvent = Java.type('net.md_5.bungee.api.chat.ClickEvent');
+// let HoverEvent = Java.type('net.md_5.bungee.api.chat.HoverEvent');
 
 // NOTE: SHOW_ENTITY is completely useless
 
-export let chat = (strings, ...components) => {
-  let builder = new ComponentBuilder("");
+let componentize = value => {
+  if (typeof value === "string") {
+    return { text: value };
+  } else {
+    return value;
+  }
+};
+
+let chat = (strings, ...components) => {
+  if (!Array.isArray(strings)) {
+    return componentize(strings);
+  }
+
+  let extra = [];
 
   for (let string of strings) {
-    console.log(`string:`, string)
-    builder.reset().append(string, ComponentBuilder.FormatRetention.NONE);
+    extra.push(componentize(string));
 
     let component = components.shift();
-    console.log(`component:`, component)
     if (component != null) {
-      builder.reset().append(component, ComponentBuilder.FormatRetention.NONE);
+      extra.push(componentize(component));
     }
   }
 
-  return builder.create();
-}
+  return {
+    text: "",
+    extra: extra
+  };
+};
 
-let get_builder = (components) => {
-  if (typeof components === 'string') {
-    return new ComponentBuilder(components);
-  } else {
-    let builder = new ComponentBuilder("")
-    for (let component of components) {
-      builder.reset().append(component, ComponentBuilder.FormatRetention.NONE);
-    }
-    return builder;
+chat.open_url = (url, component) => {
+  return {
+    text: "",
+    clickEvent: { action: "open_url", value: url },
+    extra: [component]
+  };
+};
+
+chat.run_command = (command, component) => {
+  return {
+    text: "",
+    clickEvent: { action: "run_command", value: command },
+    extra: [component]
+  };
+};
+
+chat.show_text = (text, component) => {
+  return {
+    text: "",
+    hoverEvent: { action: "show_text", value: text },
+    extra: [component]
+  };
+};
+
+let text_styles = [
+  ChatColor.BOLD,
+  ChatColor.UNDERLINE,
+  ChatColor.STRIKETHROUGH,
+  ChatColor.ITALIC,
+  ChatColor.OBFUSCATED
+];
+
+let apply_styles = (styles, component, ...possible_actual_components) => {
+  if (
+    Array.isArray(component) &&
+    Array.from(component).every(x => typeof x === "string")
+  ) {
+    // This should trigger when we use this color as a template function
+    return apply_styles(styles, chat(component, ...possible_actual_components));
   }
-}
 
-chat.open_url = (url, components) => {
-  let builder = get_builder(components);
-  builder.event(new ClickEvent(ClickEvent.Action.OPEN_URL, url))
-  return builder.create();
-}
+  let result = {
+    text: "",
+    extra: [component]
+  };
 
-chat.run_command = (url, components) => {
-  let builder = get_builder(components);
-  builder.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, url))
-  return builder.create();
-}
-
-chat.show_text = (text, components) => {
-  let builder = get_builder(components);
-  builder.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, get_builder(text).create()))
-  return builder.create();
-}
-
-chat.flat = (components) => {
-  let text = Java.from(components).map(x => x.toLegacyText()).join('');
-  return text;
-}
-
-for (let color of ChatColor.values()) {
-  let color_name = color.getName().toLowerCase();
-  chat[color_name] = (components, ...possible_actual_components) => {
-    if (Array.isArray(components) && Array.from(components).every(x => typeof x === 'string')) {
-      // This should trigger when we use this color as a template function
-      return chat[color_name](chat(components, ...possible_actual_components));
+  // Actually apply the styles after this
+  for (let style of styles) {
+    if (text_styles.includes(style)) {
+      result[style.getName()] = true;
+    } else {
+      result.color = style.getName();
     }
-
-    let builder = get_builder(components);
-    builder.color(color)
-    return builder.create();
   }
-}
+  return result;
+};
+
+let add_style_selectors = (receiver, styles = []) => {
+  for (let style of ChatColor.values()) {
+    let style_name = style.getName().toLowerCase();
+
+    Object.defineProperty(receiver, style_name, {
+      get: () => {
+        let apply = (...components) =>
+          apply_styles([...styles, style], ...components);
+        add_style_selectors(apply, [...styles, style]);
+        return apply;
+      }
+    });
+  }
+};
+
+add_style_selectors(chat);
+
+chat.send_message = (player, json) => {
+  Packet.send_packet(player, {
+    name: "chat",
+    params: {
+      message: typeof json === 'string' ? { text: json } : JSON.stringify(json)
+    }
+  });
+};
+chat.broadcast = (server, json) => {
+  let string = typeof json === 'string' ? { text: json } : JSON.stringify(json);
+  for (let player of server.getOnlinePlayers()) {
+    Packet.send_packet(player, {
+      name: "chat",
+      params: {
+        message: string,
+      }
+    });
+  }
+};
 
 export default chat;
