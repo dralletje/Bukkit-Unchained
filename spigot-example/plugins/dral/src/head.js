@@ -257,6 +257,18 @@ let create_itemstack = (material, { name, lore, data }) => {
   return stack;
 };
 
+let JavaString = Java.type("java.lang.String");
+let StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
+let Base64 = Java.type('java.util.Base64');
+let atob = (base64) => {
+  let decoder = Base64.getDecoder();
+  let bytes = decoder.decode(base64)
+  return new JavaString(bytes, StandardCharsets.UTF_8);
+}
+let btoa = (string) => {
+
+}
+
 export let head_plugin = async (plugin, { defineCommand }) => {
   // let heads = [
   //   {
@@ -376,28 +388,42 @@ export let head_plugin = async (plugin, { defineCommand }) => {
         if (minecraft_heads_url_regex.test(search)) {
           let response = await fetch(search);
           let text = await response.text();
-          console.log(`text:`, text);
           let give_regex = /{display:{Name:"{\\"text\\":\\"([^"]*)\\"}"},SkullOwner:{Id:([^ ]*),Properties:{textures:\[{Value:"([^ ]*)"}\]}}}/
 
           let give_match = text.match(give_regex);
-          console.log(`give_match:`, give_match)
           if (give_match == null) {
             throw new UserError(`Couldn't find a minecraft head on the page you linked`);
           }
           let [_match, name, _uuid, value] = give_match;
-
-          console.log(`name:`, name)
-          console.log(`value:`, value)
 
           sender.getInventory().addItem(create_skull_itemstack({
             name: name,
             skullowner: sender.getUniqueId(),
             value: value,
           }));
-          reply_success(`Here's a ${name} for you!`)
-        } else {
-          throw new UserError('No idea what you want to do')
+          reply_success(`Here's a ${name} for you!`);
+          return
         }
+
+        try {
+          let result = atob(search);
+          let obfuscated = "Unknown Object".split('').map(x => {
+            let color = Math.random() > 0.7 ? ChatColor.GRAY : ChatColor.MAGIC;
+            return `${color}${x}`;
+          }).join('')
+
+          sender.getInventory().addItem(create_skull_itemstack({
+            name: `${ChatColor.GRAY}${obfuscated}`,
+            skullowner: sender.getUniqueId(),
+            value: search,
+          }));
+          reply_success(`Here's an ${obfuscated} for you!`);
+          return;
+        } catch(error) {
+          console.log(`error.stack:`, error.stack)
+        }
+
+        throw new UserError('No idea what you want to do')
         return;
       }
 

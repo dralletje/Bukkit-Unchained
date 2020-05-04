@@ -19,3 +19,4 @@ spigot-example/plugins/FastAsyncWorldEdit/history/*
 spigot-example/plugins/FastAsyncWorldEdit/**/message.yml
 
 warps.json
+ALL_HEADS.json
