@@ -1,5 +1,3 @@
-let Material = Java.type("org.bukkit.Material");
-let ItemStack = Java.type("org.bukkit.inventory.ItemStack");
 let ItemFlag = Java.type("org.bukkit.inventory.ItemFlag");
 let Enchantment = Java.type("org.bukkit.enchantments.Enchantment");
 
@@ -72,7 +70,7 @@ module.exports = (plugin) => {
       console.log('Not infinte:', item_title)
       return;
     }
-
+    
     // let new_item = item.clone();
     // let new_item_meta = item_meta.clone();
     // new_item_meta.setDisplayName(item_title.replace(/$Infinite /, ''));

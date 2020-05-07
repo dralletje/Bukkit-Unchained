@@ -134,7 +134,7 @@ export let SpectatePlugin = (plugin, { defineCommand }) => {
 
   let GameMode = Java.type("org.bukkit.GameMode");
   defineCommand("spectate", {
-    onCommand: ({ sender, args: [person_to_spectate], broadcast }) => {
+    onCommand: ({ sender, args: [person_to_spectate], broadcast_action }) => {
       if (!person_to_spectate) {
         sender.setGameMode(GameMode.SPECTATOR);
       } else {
@@ -143,7 +143,7 @@ export let SpectatePlugin = (plugin, { defineCommand }) => {
           .getPlayer(person_to_spectate);
         sender.setGameMode(GameMode.SPECTATOR);
         sender.setSpectatorTarget(other_player);
-        broadcast(`is now spectating ${other_player.getDisplayName()}`);
+        broadcast_action(`is now spectating ${other_player.getDisplayName()}`);
       }
     },
     onTabComplete: autocomplete_players

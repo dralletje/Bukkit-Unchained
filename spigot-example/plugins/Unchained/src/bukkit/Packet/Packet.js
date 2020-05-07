@@ -1,4 +1,4 @@
-let { ref } = require('worker_threads');
+let { ref, java_fn } = require('worker_threads');
 let { once } = require('lodash');
 
 // prettier-ignore
@@ -71,7 +71,7 @@ let Packet = {
     let protocolManager = ProtocolLibrary.static.getProtocolManager();
 
     let MyPacketAdapter = Java.extend(PacketAdapter, {
-      onPacketReceiving(event) {
+      onPacketReceiving: java_fn((event) => {
         handler({
           getData() {
             let wirepacket = WirePacket.static.fromPacket(event.getPacket());
@@ -84,7 +84,7 @@ let Packet = {
           setCancelled: event.setCancelled,
           getPlayer: event.getPlayer,
         });
-      }
+      }),
     });
     let packet_adapter = new MyPacketAdapter(
       Polyglot.import('plugin'),

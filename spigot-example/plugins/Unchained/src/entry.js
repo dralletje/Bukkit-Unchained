@@ -39,6 +39,7 @@
   global.process = require('./builtins/process.js');
   global.console = require("./builtins/console.js");
   Object.assign(global, require("./builtins/timers.js"));
+  Object.assign(global, require("./builtins/base64.js"));
 
   let path = require("path");
   let { Module } = require("./builtins/require.js");

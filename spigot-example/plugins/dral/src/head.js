@@ -1,6 +1,7 @@
 let _ = require("lodash");
 let { Worker } = require("worker_threads");
 let { chat } = require("./chat.js");
+let Packet = require("bukkit/Packet");
 
 let UUID = Java.type("java.util.UUID");
 
@@ -8,7 +9,6 @@ let ItemStack = Java.type("org.bukkit.inventory.ItemStack");
 let Material = Java.type("org.bukkit.Material");
 let ChatColor = Java.type("org.bukkit.ChatColor");
 let ItemFlag = Java.type("org.bukkit.inventory.ItemFlag");
-let Enchantment = Java.type("org.bukkit.enchantments.Enchantment");
 // prettier-ignore
 let ProfileProperty = Java.type("com.destroystokyo.paper.profile.ProfileProperty");
 let InventoryHolder = Java.type("org.bukkit.inventory.InventoryHolder");
@@ -54,26 +54,15 @@ let fetch_minecraft_heads = async url => {
   return json.map(head => ({
     name: head.name,
     value: head.value,
-    skullowner: head.uuid
+    skullowner: head.uuid,
+    tags: (head.tags || "").split(/ *, */g),
+    tags_search: (head.tags || "").split(/ *, */g).map(x => x.toLowerCase())
   }));
 };
 
 let NULL_ITEM = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
 
 let FRESHCOAL_CATEGORIES = [
-  {
-    title: "Food",
-    slug: "food",
-    icon: {
-      name: "Nutella",
-      skullowner: "014df015-7eba-4ad0-a0e0-83164b7a45f2",
-      category: "food",
-      value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTE1ZGNiMmRhMDJjZjczNDgyOWUxZTI3M2UzMDI1NjE3ZDgwNzE1MTZmOTUzMjUxYjUyNTQ1ZGE4ZDNlOGRiOCJ9fX0="
-    },
-    fetch: () =>
-      fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=food`)
-  },
   // {
   //   title: "Food",
   //   slug: "food",
@@ -84,53 +73,54 @@ let FRESHCOAL_CATEGORIES = [
   //     value:
   //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTE1ZGNiMmRhMDJjZjczNDgyOWUxZTI3M2UzMDI1NjE3ZDgwNzE1MTZmOTUzMjUxYjUyNTQ1ZGE4ZDNlOGRiOCJ9fX0="
   //   },
-  //   fetch: () => fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=food`),
+  //   fetch: () =>
+  //     fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=food`)
   // },
-  {
-    title: "Devices",
-    slug: "devices",
-    icon: {
-      name: "Monitor",
-      skullowner: "6522a7fd-3649-4d2c-a6b4-3c24e5",
-      category: "devices",
-      value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTVjMjkyYTI0ZjU0YTdhNDM3ODUyNjY1NTJkYmE3YTE4NGY5YzUwZTBkOTRiMzM3ZDhkM2U3NmU5ZTljY2U3In19fQ=="
-    },
-    fetch: () =>
-      fetch_freshcoal_category(
-        `https://freshcoal.com/mainapi.php?query=devices`
-      )
-  },
-  {
-    title: "Misc",
-    slug: "misc",
-    icon: {
-      name: "Lava Bucket",
-      skullowner: "511af44d-67f6-44e7-a3c2-64d844",
-      category: "misc",
-      value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGQ1NDI3YTgzNTQwYTA4YTNmYTJlNjU1YzI5NjRhMDcyNDM1MTQ1ODRhNzFlYzM1ZDZiOWUxODRkZmJlMzE4In19fQ=="
-    },
-    fetch: () =>
-      fetch_minecraft_heads(
-        `https://minecraft-heads.com/scripts/api.php?cat=miscellaneous`
-      )
-  },
-  {
-    title: "Alphabet",
-    slug: "alphabet",
-    icon: {
-      name: "A",
-      skullowner: "e8e10bc5-b94e-4378-a54c-ac71a6",
-      category: "alphabet",
-      value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTY3ZDgxM2FlN2ZmZTViZTk1MWE0ZjQxZjJhYTYxOWE1ZTM4OTRlODVlYTVkNDk4NmY4NDk0OWM2M2Q3NjcyZSJ9fX0="
-    },
-    fetch: () =>
-      fetch_freshcoal_category(
-        `https://freshcoal.com/mainapi.php?query=alphabet`
-      )
-  },
+  // {
+  //   title: "Devices",
+  //   slug: "devices",
+  //   icon: {
+  //     name: "Monitor",
+  //     skullowner: "6522a7fd-3649-4d2c-a6b4-3c24e5",
+  //     category: "devices",
+  //     value:
+  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTVjMjkyYTI0ZjU0YTdhNDM3ODUyNjY1NTJkYmE3YTE4NGY5YzUwZTBkOTRiMzM3ZDhkM2U3NmU5ZTljY2U3In19fQ=="
+  //   },
+  //   fetch: () =>
+  //     fetch_freshcoal_category(
+  //       `https://freshcoal.com/mainapi.php?query=devices`
+  //     )
+  // },
+  // {
+  //   title: "Misc",
+  //   slug: "misc",
+  //   icon: {
+  //     name: "Lava Bucket",
+  //     skullowner: "511af44d-67f6-44e7-a3c2-64d844",
+  //     category: "misc",
+  //     value:
+  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGQ1NDI3YTgzNTQwYTA4YTNmYTJlNjU1YzI5NjRhMDcyNDM1MTQ1ODRhNzFlYzM1ZDZiOWUxODRkZmJlMzE4In19fQ=="
+  //   },
+  //   fetch: () =>
+  //     fetch_minecraft_heads(
+  //       `https://minecraft-heads.com/scripts/api.php?cat=miscellaneous`
+  //     )
+  // },
+  // {
+  //   title: "Alphabet",
+  //   slug: "alphabet",
+  //   icon: {
+  //     name: "A",
+  //     skullowner: "e8e10bc5-b94e-4378-a54c-ac71a6",
+  //     category: "alphabet",
+  //     value:
+  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTY3ZDgxM2FlN2ZmZTViZTk1MWE0ZjQxZjJhYTYxOWE1ZTM4OTRlODVlYTVkNDk4NmY4NDk0OWM2M2Q3NjcyZSJ9fX0="
+  //   },
+  //   fetch: () =>
+  //     fetch_freshcoal_category(
+  //       `https://freshcoal.com/mainapi.php?query=alphabet`
+  //     )
+  // },
   {
     title: "Decorations",
     slug: "decoration",
@@ -143,78 +133,50 @@ let FRESHCOAL_CATEGORIES = [
     },
     fetch: () =>
       fetch_minecraft_heads(
-        `https://minecraft-heads.com/scripts/api.php?cat=decoration`
-      )
-  },
-  {
-    title: "Colors",
-    slug: "color",
-    icon: {
-      name: "Magenta",
-      skullowner: "309c9299-c87a-4b3f-9472-b5df45",
-      category: "color",
-      value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTEzM2ZhNTJkZDc0ZDcxMWU1Mzc0N2RhOTYzYjhhZGVjZjkyZGI5NDZiZTExM2I1NmMzOGIzZGMyNzBlZWIzIn19fQ=="
-    },
-    fetch: () =>
-      fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=color`)
-  },
-  {
-    title: "Blocks",
-    slug: "blocks",
-    icon: {
-      name: "Grass",
-      skullowner: "fe02ba7c-6fb4-458d-af7d-85a72a",
-      category: "blocks",
-      value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzQ5YzYzYmM1MDg3MjMzMjhhMTllNTk3ZjQwODYyZDI3YWQ1YzFkNTQ1NjYzYWMyNDQ2NjU4MmY1NjhkOSJ9fX0="
-    },
-    fetch: () =>
-      fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=blocks`)
-  },
-  // {
-  //   title: "Games",
-  //   slug: "games",
-  //   icon: {
-  //     name: "Pokemon",
-  //     skullowner: "04be8421-c832-4cf8-82e5-9b88d8",
-  //     category: "games",
-  //     value:
-  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDQzZDRiN2FjMjRhMWQ2NTBkZGY3M2JkMTQwZjQ5ZmMxMmQyNzM2ZmMxNGE4ZGMyNWMwZjNmMjlkODVmOGYifX19"
-  //   },
-  //   fetch: () =>
-  //     fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=games`)
-  // },
-  {
-    title: "Animals",
-    slug: "mobs",
-    icon: {
-      name: "Steampunk Fox",
-      skullowner: "f146e5d3-6194-4047-8c9a-17c8640b1601",
-      category: "mobs",
-      value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2Q4NTZhNWM0MGU4ZTcyMDY0ZmQ5YmVmOGVjOTBhODZlZTEzMGE0ZGE0YmVlYWJkYmRiNjM0YjcyMmJjYjBiYSJ9fX0="
-    },
-    fetch: () =>
-      fetch_minecraft_heads(
-        `https://minecraft-heads.com/scripts/api.php?cat=animals`
+        `https://minecraft-heads.com/scripts/api.php?cat=decoration&tags=true`
       )
   }
-  // {   title: "Characters",
-  //   slug: "characters",
+  // {
+  //   title: "Colors",
+  //   slug: "color",
   //   icon: {
-  //     name: "Zelda",
-  //     skullowner: "63b2a003-04da-450b-b07a-de6906f8f677",
-  //     category: "characters",
+  //     name: "Magenta",
+  //     skullowner: "309c9299-c87a-4b3f-9472-b5df45",
+  //     category: "color",
   //     value:
-  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGFhMDU5NjZkYmIzOWY3ODBlN2VhNjNhMjk1NjBkOGViNDhlMGMyNDk3YTgxOGE4OTU2NGE1YTE0YTMzZWYifX19"
+  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTEzM2ZhNTJkZDc0ZDcxMWU1Mzc0N2RhOTYzYjhhZGVjZjkyZGI5NDZiZTExM2I1NmMzOGIzZGMyNzBlZWIzIn19fQ=="
+  //   },
+  //   fetch: () =>
+  //     fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=color`)
+  // },
+  // {
+  //   title: "Blocks",
+  //   slug: "blocks",
+  //   icon: {
+  //     name: "Grass",
+  //     skullowner: "fe02ba7c-6fb4-458d-af7d-85a72a",
+  //     category: "blocks",
+  //     value:
+  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzQ5YzYzYmM1MDg3MjMzMjhhMTllNTk3ZjQwODYyZDI3YWQ1YzFkNTQ1NjYzYWMyNDQ2NjU4MmY1NjhkOSJ9fX0="
+  //   },
+  //   fetch: () =>
+  //     fetch_freshcoal_category(`https://freshcoal.com/mainapi.php?query=blocks`)
+  // },
+  // {
+  //   title: "Animals",
+  //   slug: "mobs",
+  //   icon: {
+  //     name: "Steampunk Fox",
+  //     skullowner: "f146e5d3-6194-4047-8c9a-17c8640b1601",
+  //     category: "mobs",
+  //     value:
+  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2Q4NTZhNWM0MGU4ZTcyMDY0ZmQ5YmVmOGVjOTBhODZlZTEzMGE0ZGE0YmVlYWJkYmRiNjM0YjcyMmJjYjBiYSJ9fX0="
   //   },
   //   fetch: () =>
   //     fetch_minecraft_heads(
-  //       `https://minecraft-heads.com/scripts/api.php?cat=humanoid`
+  //       `https://minecraft-heads.com/scripts/api.php?cat=animals`
   //     )
   // }
-  // { title: "Pokemon", slug: "pokemon", icon: {} },
 ];
 
 let fetch_freshcoal_category = async url => {
@@ -235,7 +197,7 @@ let create_itemstack = (material, { name, lore, data }) => {
     meta.setDisplayName(name);
   }
   if (lore) {
-    meta.setLora(lore);
+    meta.setLore(lore);
   }
 
   if (data) {
@@ -255,62 +217,7 @@ let create_itemstack = (material, { name, lore, data }) => {
   return stack;
 };
 
-let JavaString = Java.type("java.lang.String");
-let StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
-let Base64 = Java.type("java.util.Base64");
-let atob = base64 => {
-  let decoder = Base64.getDecoder();
-  let bytes = decoder.decode(base64);
-  return new JavaString(bytes, StandardCharsets.UTF_8);
-};
-let btoa = string => {};
-
 export let head_plugin = async (plugin, { defineCommand }) => {
-  // let heads = [
-  //   {
-  //     name: "Nutella",
-  //     skullowner: "014df015-7eba-4ad0-a0e0-83164b7a45f2",
-  //     value:
-  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTE1ZGNiMmRhMDJjZjczNDgyOWUxZTI3M2UzMDI1NjE3ZDgwNzE1MTZmOTUzMjUxYjUyNTQ1ZGE4ZDNlOGRiOCJ9fX0=",
-  //     category: "food"
-  //   },
-  //   {
-  //     name: "Vegemite",
-  //     skullowner: "3fd44f85-9f07-4a4e-9854-ee57476ce1b8",
-  //     value:
-  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWU4ODkwODc0YTMwNjZmNDI2ZTY2ZTM3NDM4ZjQ1YWIyOWE1YmYyNTgyZGI3M2NiNGNmZjY5NTRhNTc4ZWYifX19",
-  //     category: "food"
-  //   },
-  //   {
-  //     name: "Bread",
-  //     skullowner: "a75e3f60-2242-4429-8ece-bcde7753b064",
-  //     value:
-  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjM0ODdkNDU3ZjkwNjJkNzg3YTNlNmNlMWM0NjY0YmY3NDAyZWM2N2RkMTExMjU2ZjE5YjM4Y2U0ZjY3MCJ9fX0=",
-  //     category: "food"
-  //   },
-  //   {
-  //     name: "Cheese",
-  //     skullowner: "9c919b83-f3fe-456f-a824-7d1d08cc8bd2",
-  //     value:
-  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTU1ZDYxMWE4NzhlODIxMjMxNzQ5YjI5NjU3MDhjYWQ5NDI2NTA2NzJkYjA5ZTI2ODQ3YTg4ZTJmYWMyOTQ2In19fQ==",
-  //     category: "food"
-  //   },
-  //   {
-  //     name: "Strawberry Jam",
-  //     skullowner: "adc3ea73-5b42-4fea-a237-4a72b52dd72b",
-  //     value:
-  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzBiOGI1ODg5ZWUxYzYzODhkYzZjMmM1ZGJkNzBiNjk4NGFlZmU1NDMxOWEwOTVlNjRkYjc2MzgwOTdiODIxIn19fQ==",
-  //     category: "food"
-  //   },
-  //   {
-  //     name: "Pancakes",
-  //     skullowner: "78f0c232-7d83-4987-9e34-e15f421ceef9",
-  //     value:
-  //       "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzQ3ZjRmNWE3NGM2NjkxMjgwY2Q4MGU3MTQ4YjQ5YjJjZTE3ZGNmNjRmZDU1MzY4NjI3ZjVkOTJhOTc2YTZhOCJ9fX0=",
-  //     category: "food"
-  //   }
-  // ];
-
   // Party from https://gist.github.com/TheLexoPlexx/ed8afd446c0cfda151640cd0f5ccca00 ,
   // though PaperMC has the necessary methods exposed
   let create_skull_itemstack = skull => {
@@ -348,9 +255,6 @@ export let head_plugin = async (plugin, { defineCommand }) => {
   let heads = [];
   for (let category of FRESHCOAL_CATEGORIES) {
     try {
-      // let category_heads = await fetch_freshcoal_category(
-      //   `https://freshcoal.com/mainapi.php?query=${category.slug}`
-      // );
       let category_heads = await category.fetch();
       console.log(
         `${ChatColor.DARK_RED}${category.slug}: ${ChatColor.WHITE}${category_heads.length}`
@@ -383,6 +287,17 @@ export let head_plugin = async (plugin, { defineCommand }) => {
       reply_success,
       broadcast_action
     }) => {
+      Packet.send_packet(sender, {
+        name: "open_window",
+        params: {
+          windowId: 255,
+          inventoryType: 7,
+          windowTitle: JSON.stringify(chat`Heads search`)
+        }
+      });
+      populate_search_inventory({ player: sender, search: "" });
+      return;
+
       if (search != null) {
         let old_minecraft_heads_url_regex = /^https:\/\/minecraft-heads\.com\/player-heads/;
         let minecraft_heads_url_regex = /^https?:\/\/minecraft-heads\.com\/(custom-heads|custom)\/(.*)$/;
@@ -443,10 +358,9 @@ export let head_plugin = async (plugin, { defineCommand }) => {
         }
 
         throw new UserError("No idea what you want to do");
-        return;
       }
 
-      let lines = Math.ceil(FRESHCOAL_CATEGORIES.length / 9)
+      let lines = Math.ceil(FRESHCOAL_CATEGORIES.length / 9);
 
       let mask_inventory = Bukkit.createInventory(
         HeadsCategories_InventoryHolder,
@@ -465,6 +379,174 @@ export let head_plugin = async (plugin, { defineCommand }) => {
       );
 
       sender.openInventory(mask_inventory);
+    }
+  });
+
+  let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
+  let open_inventories = new WeakIdentityHashMap();
+
+  let populate_search_inventory = ({ player, search = "", page = 0 }) => {
+    // let open_inventory = open_inventories.get(player);
+    //
+    // if (open_inventory && open_inventory.search === search) {
+    //   return;
+    // }
+    //
+    // open_inventories.put(player, { search });
+
+    // 0 - Input 1 (Needs to have an item for textinput to be typeable)
+    // 1 - Input 2
+    // 2 - Output
+    // 3–29 - Large inventory (part of player env)
+    // 30–38 - Player hotbar
+
+    let screen_size = 29 - 3 - 2; // Two spaces for next/previous page buttons
+
+    let nbt = {
+      root: obj => ({ type: "compound", name: "SOMETHING", value: obj }),
+      compound: obj => ({ type: "compound", value: obj }),
+      string: value => ({ type: "string", value }),
+      boolean: value => ({ type: "boolean", value }),
+      list: (container, value) => ({
+        type: "list",
+        value: container(value)
+      }),
+      chat: (...args) => nbt.string(JSON.stringify(chat(...args)))
+    };
+
+    let found_heads = [];
+    for (let head of heads) {
+      if (found_heads.length > screen_size * (page + 1)) break;
+      if (
+        head.tags_search.some(x => x.includes(search)) ||
+        head.name.includes(search)
+      ) {
+        found_heads.push(head);
+      }
+    }
+
+    console.log(`page * screen_size:`, page * screen_size)
+    console.log(`(page + 1) * screen_size:`, (page + 1) * screen_size)
+    let page_heads = found_heads.slice(
+      page * screen_size,
+      (page + 1) * screen_size + 1,
+    );
+
+    let head_items = [
+      ...page_heads.map(head => {
+        return {
+          present: true,
+          itemId: 771,
+          itemCount: 1,
+          nbtData: nbt.root({
+            SkullOwner: nbt.compound({
+              Id: nbt.string(head.skullowner),
+              Name: nbt.string("michieldral"),
+              Properties: nbt.compound({
+                textures: nbt.list(nbt.compound, [
+                  { Value: nbt.string(head.value) }
+                ])
+              })
+            }),
+            display: nbt.compound({
+              Name: nbt.chat(head.name),
+              Lore: nbt.list(nbt.string, [
+                JSON.stringify(chat`${head.tags.join(", ")}`)
+              ])
+            })
+          })
+        };
+      }),
+      ..._.range(page_heads, screen_size + 1).map(() => ({ present: false }))
+    ];
+
+    Packet.send_packet(player, {
+      name: "window_items",
+      params: {
+        windowId: 255,
+        items: [
+          ..._.range(3).map(x => ({
+            present: true,
+            itemId: 1,
+            itemCount: 1,
+            nbtData: nbt.root({
+              display: nbt.compound({
+                Name: nbt.chat``
+              })
+            })
+          })),
+          ...head_items.slice(0, 9 * 2),
+          {
+            present: true,
+            itemId: 331,
+            itemCount: 1,
+            nbtData: nbt.root({
+              display: nbt.compound({
+                Name: nbt.chat`Previous page`
+              })
+            })
+          },
+          ...head_items.slice(9 * 2, 9 * 2 + 7),
+          {
+            present: true,
+            itemId: 343,
+            itemCount: 1,
+            nbtData: nbt.root({
+              display: nbt.compound({
+                Name: nbt.chat`Next page`
+              })
+            })
+          },
+
+        ]
+      }
+    });
+  };
+
+  Packet.addIncomingPacketListener(Packet.fromClient.ITEM_NAME, event => {
+    let player = event.getPlayer();
+    let {
+      params: { name }
+    } = event.getData();
+    populate_search_inventory({ player, search: name });
+  });
+  Packet.addIncomingPacketListener(Packet.fromClient.WINDOW_CLICK, event => {
+    let player = event.getPlayer();
+    let {
+      params: { windowId, ...params }
+    } = event.getData();
+
+
+    if (windowId !== 255) {
+      return;
+    }
+
+
+    console.log(`params:`, params)
+    event.setCancelled(true)
+
+    Packet.send_packet(player, {
+      name: "transaction",
+      params: {
+        windowId: 255,
+        action: 0,
+        accepted: false,
+      },
+    });
+
+    // console.log(`params:`, params)
+    //
+    // populate_search_inventory({ player, search: name });
+  });
+  Packet.addIncomingPacketListener(Packet.fromClient.CLOSE_WINDOW, event => {
+    let player = event.getPlayer();
+    let {
+      params: { windowId }
+    } = event.getData();
+
+    if (windowId === 255) {
+      event.setCancelled(true);
+      // TODO Resend actual inventory
     }
   });
 

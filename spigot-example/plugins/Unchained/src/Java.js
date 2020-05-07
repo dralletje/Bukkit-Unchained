@@ -4,9 +4,9 @@ export let Reflection = {
     field.setAccessible(true);
     return field.get(instance);
   },
-  get_private_method: (instance, method_name) => {
-    let method = instance.getClass().getDeclaredMethod(method_name);
+  get_private_method: (instance, method_name, ...args) => {
+    let method = instance.getClass().getDeclaredMethod(method_name, ...args);
     method.setAccessible(true);
-    return () => method.invoke(instance);
+    return (...args) => method.invoke(instance, ...args);
   }
 }
