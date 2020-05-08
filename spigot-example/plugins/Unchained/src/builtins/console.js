@@ -45,18 +45,19 @@ let create_pretty_console = (key) => {
 }
 
 let timers = {};
+let now = performance ? performance.now : Date.now;
 module.exports = {
   trace: (message) => {
     console.log(message);
     console.log((new Error()).stack);
   },
   time: (message) => {
-    timers[message] = performance.now();
+    timers[message] = now();
   },
   timeLog: console.timeLog,
   timeEnd: (message) => {
     if (timers[message]) {
-      console.log(message, performance.now() - timers[message])
+      console.log(message, now() - timers[message])
       timers[message] = null;
     }
   },
