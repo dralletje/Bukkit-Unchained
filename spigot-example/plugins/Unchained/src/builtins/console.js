@@ -45,7 +45,7 @@ let create_pretty_console = (key) => {
 }
 
 let timers = {};
-let now = performance ? performance.now : Date.now;
+let now = global.performance ? global.performance.now : Date.now;
 module.exports = {
   trace: (message) => {
     console.log(message);
