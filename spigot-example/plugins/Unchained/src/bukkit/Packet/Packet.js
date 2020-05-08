@@ -46,7 +46,7 @@ let Packet = {
     return proto;
   }),
 
-  send_packet: (player, { name, params }) => {
+  send_packet: (player, { name, params, debug }) => {
     let proto = Packet.to_client_protocol();
     let protocol_manager = ProtocolLibrary.static.getProtocolManager();
 
@@ -54,14 +54,24 @@ let Packet = {
       throw new Error(`Should set a .name prop with the packet name`);
     }
 
+    if (debug) {
+      console.time(`Wrapping packet "${name}:"`)
+    }
     let packet_raw = proto.createPacketBuffer("packet", {
       name: name,
       params: params
     });
     let packet_id = packet_raw[0];
     let packet_data = new Int8Array(packet_raw.slice(1));
+    if (debug) {
+      console.timeEnd(`Wrapping packet "${name}:"`)
+      console.time(`Sending packet "${name}:"`)
+    }
     let wirepacket = new WirePacket(packet_id, packet_data);
     protocol_manager.sendWirePacket(player, wirepacket);
+    if (debug) {
+      console.timeEnd(`Sending packet "${name}:"`)
+    }
   },
 
   fromServer: PacketType.Play.Server,

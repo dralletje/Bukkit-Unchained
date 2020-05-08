@@ -2,6 +2,7 @@ let _ = require("lodash");
 let { Worker } = require("worker_threads");
 let { chat } = require("./chat.js");
 let Packet = require("bukkit/Packet");
+let fs = require('fs');
 
 let UUID = Java.type("java.util.UUID");
 
@@ -48,6 +49,27 @@ let fetch = async (url, options = {}) => {
   };
 };
 
+let dev_plugin_data_path = Polyglot.import('plugin').getDataFolder()
+  .toPath()
+  .toString();
+
+let ALL_HEADS = JSON.parse(fs.readFileSync(`${dev_plugin_data_path}/minecraft-heads-backup/ALL_HEADS.json`).toString())
+// let all_tags = ALL_HEADS.flatMap(head =>
+//   (head.tags || "").split(/ *, */g).map(x => x.toLowerCase())
+// );
+let all_heads = ALL_HEADS.filter(x => x.name && x.value).map(head => {
+  return {
+    name: head.name,
+    value: head.value,
+    skullowner: head.uuid,
+    tags: (head.tags || "").split(/ *, */g),
+    tags_search: [
+      ...(head.tags || "").split(/ *, */g).map(x => x.toLowerCase()),
+      head.name.toLowerCase()
+    ]
+  };
+});
+
 let fetch_minecraft_heads = async url => {
   let response = await fetch(url);
   let json = await response.json();
@@ -56,11 +78,32 @@ let fetch_minecraft_heads = async url => {
     value: head.value,
     skullowner: head.uuid,
     tags: (head.tags || "").split(/ *, */g),
-    tags_search: (head.tags || "").split(/ *, */g).map(x => x.toLowerCase())
+    tags_search: [
+      ...(head.tags || "").split(/ *, */g).map(x => x.toLowerCase()),
+      head.name.toLowerCase()
+    ]
   }));
 };
 
 let NULL_ITEM = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+
+let unpack_nbt = data => {
+  if (data == null) return null;
+  let { type, value } = data;
+  if (typeof value === "number") {
+    return value;
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  if (type === "compound") {
+    return _.mapValues(value, unpack_nbt);
+  }
+  if (type === "list") {
+    return value.value.map(x => unpack_nbt({ type: value.type, value: x }));
+  }
+  throw new Error(`Type = ${type}`);
+};
 
 let FRESHCOAL_CATEGORIES = [
   // {
@@ -252,23 +295,24 @@ export let head_plugin = async (plugin, { defineCommand }) => {
   };
 
   console.log(`${ChatColor.DARK_GREEN}Fetching all categories...`);
-  let heads = [];
-  for (let category of FRESHCOAL_CATEGORIES) {
-    try {
-      let category_heads = await category.fetch();
-      console.log(
-        `${ChatColor.DARK_RED}${category.slug}: ${ChatColor.WHITE}${category_heads.length}`
-      );
-      for (let head of category_heads) {
-        heads.push({
-          ...head,
-          category: category.slug
-        });
-      }
-    } catch (error) {
-      console.log(`error:`, category.slug, error);
-    }
-  }
+  // let heads = [];
+  // for (let category of FRESHCOAL_CATEGORIES) {
+  //   try {
+  //     let category_heads = await category.fetch();
+  //     console.log(
+  //       `${ChatColor.DARK_RED}${category.slug}: ${ChatColor.WHITE}${category_heads.length}`
+  //     );
+  //     for (let head of category_heads) {
+  //       heads.push({
+  //         ...head,
+  //         category: category.slug
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.log(`error:`, category.slug, error);
+  //   }
+  // }
+  let heads = all_heads;
   console.log(`${ChatColor.GREEN}Fetched all categories!`);
 
   let Heads_InventoryHolder = new (Java.extend(InventoryHolder, {}))();
@@ -276,6 +320,8 @@ export let head_plugin = async (plugin, { defineCommand }) => {
     InventoryHolder,
     {}
   ))();
+
+  let FURNACE_WINDOW_ID = 100;
 
   let category_key = new NamespacedKey(plugin.java, "head-category");
   let page_key = new NamespacedKey(plugin.java, "head-page");
@@ -290,12 +336,12 @@ export let head_plugin = async (plugin, { defineCommand }) => {
       Packet.send_packet(sender, {
         name: "open_window",
         params: {
-          windowId: 255,
+          windowId: FURNACE_WINDOW_ID,
           inventoryType: 7,
           windowTitle: JSON.stringify(chat`Heads search`)
         }
       });
-      populate_search_inventory({ player: sender, search: "" });
+      debounced_search_per_player({ player: sender, search: "" });
       return;
 
       if (search != null) {
@@ -382,41 +428,49 @@ export let head_plugin = async (plugin, { defineCommand }) => {
     }
   });
 
+  let nbt = {
+    root: obj => ({ type: "compound", name: "", value: obj }),
+    compound: obj => ({ type: "compound", value: obj }),
+    string: value => ({ type: "string", value }),
+    integer: value => ({ type: "int", value }),
+    long: value => ({ type: "long", value }),
+    boolean: value => ({ type: "boolean", value }),
+    list: (container, value) => ({
+      type: "list",
+      value: container(value)
+    }),
+    chat: (...args) => nbt.string(JSON.stringify(chat(...args)))
+  };
+
   let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
-  let open_inventories = new WeakIdentityHashMap();
+  class JavaWeakMap {
+    constructor() {
+      this.java_map = new WeakIdentityHashMap();
+    }
+    clear() {
+      return this.java_map.clear();
+    }
+    delete(key) {
+      return this.java_map.remove(key);
+    }
+    get(key) {
+      return this.java_map.get(key);
+    }
+    has(key) {
+      return this.java_map.containsKey(key);
+    }
+    set(key, value) {
+      return this.java_map.put(key, value);
+    }
+  }
+  let open_inventories = new JavaWeakMap();
 
-  let populate_search_inventory = ({ player, search = "", page = 0 }) => {
-    // let open_inventory = open_inventories.get(player);
-    //
-    // if (open_inventory && open_inventory.search === search) {
-    //   return;
-    // }
-    //
-    // open_inventories.put(player, { search });
-
-    // 0 - Input 1 (Needs to have an item for textinput to be typeable)
-    // 1 - Input 2
-    // 2 - Output
-    // 3–29 - Large inventory (part of player env)
-    // 30–38 - Player hotbar
-
-    let screen_size = 29 - 3 - 2; // Two spaces for next/previous page buttons
-
-    let nbt = {
-      root: obj => ({ type: "compound", name: "SOMETHING", value: obj }),
-      compound: obj => ({ type: "compound", value: obj }),
-      string: value => ({ type: "string", value }),
-      boolean: value => ({ type: "boolean", value }),
-      list: (container, value) => ({
-        type: "list",
-        value: container(value)
-      }),
-      chat: (...args) => nbt.string(JSON.stringify(chat(...args)))
-    };
-
+  let screen_size = 29 - 3 - 2; // Two spaces for next/previous page buttons
+  let search_heads = ({ page, search }) => {
+    console.time(`Search for "${search}" on page ${page}:`)
     let found_heads = [];
     for (let head of heads) {
-      if (found_heads.length > screen_size * (page + 1)) break;
+      if (found_heads.length > screen_size * (page + 1) + 1) break;
       if (
         head.tags_search.some(x => x.includes(search)) ||
         head.name.includes(search)
@@ -424,14 +478,38 @@ export let head_plugin = async (plugin, { defineCommand }) => {
         found_heads.push(head);
       }
     }
+    console.timeEnd(`Search for "${search}" on page ${page}:`)
+    return found_heads;
+  };
 
-    console.log(`page * screen_size:`, page * screen_size)
-    console.log(`(page + 1) * screen_size:`, (page + 1) * screen_size)
+  let populate_search_inventory = ({ player, search = "", page = 0 }) => {
+    let open_inventory = open_inventories.get(player);
+
+    let is_same_inventory =
+      open_inventory &&
+      open_inventory.search === search &&
+      open_inventory.page === page;
+
+    // 0 - Input 1 (Needs to have an item for textinput to be typeable)
+    // 1 - Input 2
+    // 2 - Output
+    // 3–29 - Large inventory (part of player env)
+    // 30–38 - Player hotbar
+
+    let found_heads = is_same_inventory
+      ? open_inventory.heads
+      : search_heads({ search, page });
     let page_heads = found_heads.slice(
       page * screen_size,
-      (page + 1) * screen_size + 1,
+      (page + 1) * screen_size + 1
     );
 
+    let has_previous_page = page > 0;
+    let has_next_page = found_heads.length > (page + 1) * screen_size + 1;
+
+    open_inventories.set(player, { ...open_inventory, search: search, page, heads: found_heads });
+
+    console.time('Generating inventory packet')
     let head_items = [
       ...page_heads.map(head => {
         return {
@@ -439,9 +517,14 @@ export let head_plugin = async (plugin, { defineCommand }) => {
           itemId: 771,
           itemCount: 1,
           nbtData: nbt.root({
+            Dral_Skullinfo: nbt.compound({
+              value: nbt.string(head.value),
+              skullowner: nbt.string(head.skullowner),
+              name: nbt.string(head.name),
+            }),
             SkullOwner: nbt.compound({
               Id: nbt.string(head.skullowner),
-              Name: nbt.string("michieldral"),
+              Name: nbt.string(player.getName()),
               Properties: nbt.compound({
                 textures: nbt.list(nbt.compound, [
                   { Value: nbt.string(head.value) }
@@ -450,9 +533,10 @@ export let head_plugin = async (plugin, { defineCommand }) => {
             }),
             display: nbt.compound({
               Name: nbt.chat(head.name),
-              Lore: nbt.list(nbt.string, [
-                JSON.stringify(chat`${head.tags.join(", ")}`)
-              ])
+              Lore: nbt.list(
+                nbt.string,
+                head.tags.map(x => JSON.stringify(chat`${x}`))
+              )
             })
           })
         };
@@ -461,9 +545,10 @@ export let head_plugin = async (plugin, { defineCommand }) => {
     ];
 
     Packet.send_packet(player, {
+      debug: true,
       name: "window_items",
       params: {
-        windowId: 255,
+        windowId: FURNACE_WINDOW_ID,
         items: [
           ..._.range(3).map(x => ({
             present: true,
@@ -476,31 +561,78 @@ export let head_plugin = async (plugin, { defineCommand }) => {
             })
           })),
           ...head_items.slice(0, 9 * 2),
-          {
-            present: true,
-            itemId: 331,
-            itemCount: 1,
-            nbtData: nbt.root({
-              display: nbt.compound({
-                Name: nbt.chat`Previous page`
-              })
-            })
-          },
+          has_previous_page
+            ? {
+                present: true,
+                itemId: 526,
+                itemCount: 1,
+                nbtData: nbt.root({
+                  display: nbt.compound({
+                    Name: nbt.chat`Previous page`
+                  }),
+                  clickAction: nbt.compound({
+                    page: nbt.integer(page - 1),
+                    search: nbt.string(search)
+                  })
+                })
+              }
+            : {
+                present: true,
+                itemId: 360,
+                itemCount: 1,
+                nbtData: nbt.root({
+                  display: nbt.compound({
+                    Name: nbt.chat`No previous page`
+                  }),
+                  clickAction: nbt.compound({
+                    page: nbt.integer(page),
+                    search: nbt.string(search)
+                  })
+                })
+              },
           ...head_items.slice(9 * 2, 9 * 2 + 7),
-          {
-            present: true,
-            itemId: 343,
-            itemCount: 1,
-            nbtData: nbt.root({
-              display: nbt.compound({
-                Name: nbt.chat`Next page`
-              })
-            })
-          },
-
+          has_next_page
+            ? {
+                present: true,
+                itemId: 526,
+                itemCount: 1,
+                nbtData: nbt.root({
+                  display: nbt.compound({
+                    Name: nbt.chat`Next page`
+                  }),
+                  clickAction: nbt.compound({
+                    page: nbt.integer(page + 1),
+                    search: nbt.string(search)
+                  })
+                })
+              }
+            : {
+                present: true,
+                itemId: 360,
+                itemCount: 1,
+                nbtData: nbt.root({
+                  display: nbt.compound({
+                    Name: nbt.chat`No next page`
+                  }),
+                  clickAction: nbt.compound({
+                    page: nbt.integer(page),
+                    search: nbt.string(search)
+                  })
+                })
+              }
         ]
       }
     });
+    console.timeEnd('Generating inventory packet')
+  };
+
+  _.memoize.Cache = JavaWeakMap;
+  let debounced_search_per_player_map = _.memoize(player => {
+    return _.debounce(populate_search_inventory, 500);
+  });
+  let debounced_search_per_player = options => {
+    let fn = debounced_search_per_player_map(options.player);
+    fn(options);
   };
 
   Packet.addIncomingPacketListener(Packet.fromClient.ITEM_NAME, event => {
@@ -508,45 +640,108 @@ export let head_plugin = async (plugin, { defineCommand }) => {
     let {
       params: { name }
     } = event.getData();
-    populate_search_inventory({ player, search: name });
+    debounced_search_per_player({ player, search: name.toLowerCase() });
   });
   Packet.addIncomingPacketListener(Packet.fromClient.WINDOW_CLICK, event => {
     let player = event.getPlayer();
     let {
-      params: { windowId, ...params }
+      params: { windowId, action, item, ...params }
     } = event.getData();
 
-
-    if (windowId !== 255) {
+    let open_inventory = open_inventories.get(player);
+    if (windowId !== FURNACE_WINDOW_ID) {
       return;
     }
+    if (open_inventory == null) {
+      console.warn('Window ID was FURNACE_WINDOW_ID but no open inventory for player');
+      return;
+    }
+    event.setCancelled(true);
 
+    let is_in_head_inventory = 3 <= params.slot && params.slot <= 29;
+    let item_nbt = unpack_nbt(item.nbtData);
 
-    console.log(`params:`, params)
-    event.setCancelled(true)
+    // Normal click
+    if (is_in_head_inventory) {
+      if (item_nbt && item_nbt.clickAction) {
+        let { page, search } = item_nbt && item_nbt.clickAction;
 
-    Packet.send_packet(player, {
-      name: "transaction",
-      params: {
-        windowId: 255,
-        action: 0,
-        accepted: false,
-      },
-    });
-
-    // console.log(`params:`, params)
-    //
-    // populate_search_inventory({ player, search: name });
+        Packet.send_packet(player, {
+          name: "transaction",
+          params: {
+            windowId: FURNACE_WINDOW_ID,
+            action: action,
+            accepted: false
+          }
+        });
+        Packet.send_packet(player, {
+          name: "set_slot",
+          params: {
+            windowId: -1,
+            slot: -1,
+            item: { present: false }
+          }
+        });
+        populate_search_inventory({ player, search: search, page: page });
+      } else {
+        console.log(`params:`, params)
+        if (params.mode === 0) {
+          // NOTE should always be a player head 🤔
+          let skullitem = create_skull_itemstack(item_nbt.Dral_Skullinfo)
+          open_inventory.current_item = skullitem;
+          open_inventories.set(player, open_inventory);
+        }
+        else if (params.mode === 1) {
+          // player.getInventory.
+          // TODO Add item to inventory
+        }
+        Packet.send_packet(player, {
+          name: "transaction",
+          params: {
+            windowId: FURNACE_WINDOW_ID,
+            action: action,
+            accepted: true
+          }
+        });
+        populate_search_inventory({
+          player,
+          search: open_inventory.search,
+          page: open_inventory.page
+        });
+      }
+    } else {
+      if (params.slot > 29) {
+        // HOTBAR
+        let item_to_set = open_inventory.current_item;
+        open_inventory.current_item = player.getInventory().getItem(params.slot - 30);
+        player.getInventory().setItem(params.slot - 30, item_to_set);
+      } else {
+        Packet.send_packet(player, {
+          name: "transaction",
+          params: {
+            windowId: FURNACE_WINDOW_ID,
+            action: action,
+            accepted: true
+          }
+        });
+        populate_search_inventory({
+          player,
+          search: open_inventory.search,
+          page: open_inventory.page
+        });
+      }
+    }
   });
+
   Packet.addIncomingPacketListener(Packet.fromClient.CLOSE_WINDOW, event => {
     let player = event.getPlayer();
     let {
       params: { windowId }
     } = event.getData();
 
-    if (windowId === 255) {
+    if (windowId === FURNACE_WINDOW_ID) {
       event.setCancelled(true);
-      // TODO Resend actual inventory
+      player.updateInventory();
     }
   });
 
