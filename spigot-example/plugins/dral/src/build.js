@@ -1,4 +1,4 @@
-import { range, chunk } from "lodash";
+import { range, chunk, clamp } from "lodash";
 
 let ItemFrame = Java.type("org.bukkit.entity.ItemFrame");
 let MineCart = Java.type("org.bukkit.entity.Minecart");
@@ -139,6 +139,11 @@ export let BuildPlugin = (plugin, extra) => {
     }
   });
 
+  plugin.events.FoodLevelChange((event) => {
+    event.setCancelled(true);
+    event.getEntity().setFoodLevel(20);
+  });
+
   let plugin_item = ({ material, title, description, active }) => {
     let ItemStack = Java.type("org.bukkit.inventory.ItemStack");
     let ItemFlag = Java.type("org.bukkit.inventory.ItemFlag");
@@ -194,10 +199,10 @@ export let BuildPlugin = (plugin, extra) => {
       params: {
         entityId: entity_id,
         objectUUID: `${entity_id_string}-e89b-12d3-a456-426655440000`,
-        type: 64,
+        // type: 64,
         // type: 42, // Minecart
         // type: 38, // leash_knot
-        // type: 71, // snowball
+        type: 71, // snowball
         // type: 35,
         // type: 40, // llama spit
         // type: 2, // Arrow
@@ -219,6 +224,20 @@ export let BuildPlugin = (plugin, extra) => {
         velocityX: 0,
         velocityY: 0,
         velocityZ: 0,
+      },
+    });
+
+    Packet.send_packet(player, {
+      name: "entity_metadata",
+      params: {
+        entityId: entity_id,
+        metadata: [
+          {
+            key: 5,
+            type: 7,
+            value: true,
+          },
+        ],
       },
     });
 
@@ -266,7 +285,10 @@ export let BuildPlugin = (plugin, extra) => {
     if (event.getHand() !== EquipmentSlot.HAND) {
       return;
     }
-    if (event.getAction() !== BlockAction.RIGHT_CLICK_AIR) {
+    if (
+      event.getAction() !== BlockAction.RIGHT_CLICK_AIR &&
+      event.getAction() !== BlockAction.RIGHT_CLICK_BLOCK
+    ) {
       return;
     }
 
@@ -274,7 +296,7 @@ export let BuildPlugin = (plugin, extra) => {
       .getLocation()
       .clone()
       .add(new Vector(0, 0.5, 0));
-    let target_block = player.getTargetBlockExact(100);
+    let target_block = player.getTargetBlockExact(200);
     if (target_block == null) {
       return;
     }
@@ -297,7 +319,7 @@ export let BuildPlugin = (plugin, extra) => {
     let dx = Math.floor(full_distance) / 2;
     let direction = distance_vector.multiply(1 / dx);
     for (let x of range(0, dx)) {
-      let loc = source_location.clone().add(direction.clone().multiply(x));
+      let loc = hooked_location.clone().add(direction.clone().multiply(-x));
       spawn_snowball({
         entity_id: entity_ids[x],
         player: player,
@@ -306,16 +328,35 @@ export let BuildPlugin = (plugin, extra) => {
       snow_balls.push({
         id: entity_ids[x],
         distance: loc.distance(hooked_location),
+        location: {
+          x: loc.getX(),
+          y: loc.getY(),
+          z: loc.getZ(),
+        },
       });
     }
 
     let this_hook = Symbol("current hook");
+    console.log("OVERWRITE");
     player_hooks.set(player, this_hook);
 
     await new Promise((resolve) => setTimeout(resolve, 100));
+    let initial_jump_source_location = player
+      .getLocation()
+      .clone()
+      .add(new Vector(0, 0.5, 0));
+    let initial_jump_direction = hooked_location
+      .toVector()
+      .subtract(initial_jump_source_location.toVector())
+      .normalize();
+
+    player.setVelocity(
+      player.getVelocity().add(initial_jump_direction.multiply(1))
+    );
+
     let last_source_location = null;
     let times_without_movement = 0;
-    console.log("Ajjj");
+
     while (player_hooks.get(player) === this_hook) {
       let source_location = player
         .getLocation()
@@ -336,28 +377,88 @@ export let BuildPlugin = (plugin, extra) => {
       }
 
       let distance = hooked_location.distance(source_location);
-      if (distance < 4) {
+      let speed = 1;
+
+      let difference = hooked_location
+        .toVector()
+        .subtract(source_location.toVector());
+      let direction = difference.clone().normalize();
+      let velocity = direction.clone().multiply(0.5);
+      let max_speed = direction.clone().multiply(1.5);
+      let player_velocity = player.getVelocity();
+
+      let new_velocty = (player_dx, acceleration_dx, max_speed) => {
+        return player_dx + (max_speed - player_dx) * 0.2;
+      };
+
+      if (distance <= 3) {
+        player.setVelocity(
+          Vector.getMaximum(
+            player.getVelocity().add(max_speed.multiply(0.5)),
+            max_speed
+          )
+        );
         console.log("hmmkay");
         break;
       }
-      let speed = 2;
+      player.setVelocity(
+        new Vector(
+          new_velocty(
+            player_velocity.getX(),
+            velocity.getX(),
+            max_speed.getX()
+          ),
+          new_velocty(
+            player_velocity.getY(),
+            velocity.getY(),
+            max_speed.getY() * 1.5
+          ),
+          new_velocty(player_velocity.getZ(), velocity.getZ(), max_speed.getZ())
+        )
+      );
 
-      let velocity = hooked_location
-        .toVector()
-        .subtract(source_location.toVector())
-        .normalize()
-        .multiply(speed);
+      {
+        Packet.send_packet(player, {
+          name: "entity_destroy",
+          params: {
+            entityIds: snow_balls
+              .filter((x) => x.distance > distance - 2)
+              .map((x) => x.id),
+          },
+        });
 
-      player.setVelocity(velocity);
-
-      Packet.send_packet(player, {
-        name: "entity_destroy",
-        params: {
-          entityIds: snow_balls
-            .filter((x) => x.distance > distance - 5)
-            .map((x) => x.id),
-        },
-      });
+        let dx = Math.floor(difference.length()) / 2;
+        let direction = difference.multiply(1 / dx);
+        for (let x of range(0, dx)) {
+          if (snow_balls[x] == null) continue;
+          let loc = hooked_location.clone().add(direction.clone().multiply(-x));
+          let thing = {
+            // (currentX * 32 - prevX * 32) * 128
+            dX:
+              clamp(loc.getX() - snow_balls[x].location.x, -8, 8) * (32 * 128),
+            dY:
+              clamp(loc.getY() - snow_balls[x].location.y, -8, 8) * (32 * 128),
+            dZ:
+              clamp(loc.getZ() - snow_balls[x].location.z, -8, 8) * (32 * 128),
+          };
+          // console.log(`thing:`, thing);
+          Packet.send_packet(player, {
+            name: "rel_entity_move",
+            params: {
+              entityId: snow_balls[x].id,
+              dX: thing.dX,
+              dY: thing.dY,
+              dZ: thing.dZ,
+              onGround: false,
+            },
+          });
+          snow_balls[x].location = {
+            x: loc.getX(),
+            y: loc.getY(),
+            z: loc.getZ(),
+          };
+        }
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
