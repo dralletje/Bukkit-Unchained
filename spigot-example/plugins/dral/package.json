@@ -21,8 +21,14 @@
       "warp": {
         "description": "Warp to a place"
       },
+      "grappling": {
+        "description": "Get a grappling hook to swing between buildings"
+      },
       "setwarp": {
         "description": "Set a warp"
+      },
+      "larp": {
+        "description": "LARP"
       },
       "removewarp": {
         "description": "Remove a warp"
@@ -68,6 +74,15 @@
       },
       "heads": {
         "description": "Give head"
+      },
+      "adventure": {
+        "description": "Put yourself in adventure mode"
+      },
+      "creative": {
+        "description": "Put yourself in creative mode"
+      },
+      "survival": {
+        "description": "Put yourself in survival mode"
       }
     }
   },

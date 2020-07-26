@@ -4,7 +4,7 @@ let {
   chat,
   command_success,
   command_info,
-  command_error
+  command_error,
 } = require("./chat.js");
 
 let ChatColor = Java.type("org.bukkit.ChatColor");
@@ -21,13 +21,13 @@ plugin.onEnable(() => {
   let defineCommand = (name, { onCommand, ...args }) => {
     plugin.command(name, {
       onCommand: (sender, command, alias, args) => {
-        let reply_info = message => {
+        let reply_info = (message) => {
           chat.send_message(sender, command_success(`/${alias}`, message));
         };
-        let reply_success = message => {
+        let reply_success = (message) => {
           chat.send_message(sender, command_success(`/${alias}`, message));
         };
-        let broadcast_action = message => {
+        let broadcast_action = (message) => {
           for (let player of server.getOnlinePlayers()) {
             // if (player !== sender) {
             chat.send_message(
@@ -47,7 +47,7 @@ plugin.onEnable(() => {
             reply_info,
             reply_success,
             UserError,
-            broadcast_action
+            broadcast_action,
           });
         } catch (error) {
           if (error instanceof UserError) {
@@ -57,7 +57,7 @@ plugin.onEnable(() => {
           }
         }
       },
-      ...args
+      ...args,
     });
   };
 
@@ -85,7 +85,7 @@ plugin.onEnable(() => {
   }
   require("./head.js")
     .head_plugin(plugin, extra)
-    .then(error => {
+    .then((error) => {
       console.log(`HEAD error.stack:`, error.stack);
     });
   try {
@@ -93,6 +93,13 @@ plugin.onEnable(() => {
   } catch (error) {
     console.log(`TELEPORT error.stack:`, error.stack);
   }
+
+  try {
+    require("./build.js").BuildPlugin(plugin, extra);
+  } catch (error) {
+    console.log(`BUILD error.stack:`, error.stack);
+  }
+
   try {
     require("./spectate.js").SpectatePlugin(plugin, extra);
   } catch (error) {
@@ -130,18 +137,17 @@ plugin.onEnable(() => {
     ChatColor.DARK_RED,
     ChatColor.DARK_PURPLE,
     ChatColor.GOLD,
-    ChatColor.BLUE
+    ChatColor.BLUE,
   ];
-  let player_color = function(player) {
+  let player_color = function (player) {
     // let number = _.sum(
     //   player
     //     .getName()
     //     .split("")
     //     .map(x => x.charCodeAt(0))
     // );
-    let number = Math.abs(player
-        .getUniqueId().getLeastSignificantBits())
-        console.log(`number:`, number)
+    let number = Math.abs(player.getUniqueId().getLeastSignificantBits());
+    console.log(`number:`, number);
     return VISIBLE_COLORS[number % VISIBLE_COLORS.length];
   };
 
@@ -158,11 +164,11 @@ plugin.onEnable(() => {
           server,
           chat.italic.gray`* ${sender.getDisplayName()} ${colored_message}`
         );
-      }
+      },
     });
   } catch (err) {}
 
-  plugin.events.PlayerJoin(event => {
+  plugin.events.PlayerJoin((event) => {
     let player = event.getPlayer();
     player.setDisplayName(
       player_color(player) +
@@ -176,7 +182,7 @@ plugin.onEnable(() => {
     );
   });
 
-  plugin.events.PlayerQuit(event => {
+  plugin.events.PlayerQuit((event) => {
     let player = event.getPlayer();
     event.setQuitMessage(
       `${ChatColor.WHITE}> ${player.getDisplayName()} ${ChatColor.RESET}${
@@ -185,7 +191,7 @@ plugin.onEnable(() => {
     );
   });
 
-  plugin.events.PlayerChat(event => {
+  plugin.events.PlayerChat((event) => {
     event.setMessage(event.getMessage());
     let message = ChatColor.translateAlternateColorCodes(
       "&",
