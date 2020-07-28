@@ -74,6 +74,12 @@ plugin.onEnable(() => {
     console.log(`SMITE error.stack:`, error.stack);
   }
   try {
+    require("./worldedit-brushes.js").default(plugin, extra);
+  } catch (error) {
+    console.log(`error:`, error)
+    console.log(`Worldedit Brushes error.stack:`, error.stack);
+  }
+  try {
     require("./jsrepl.js")(plugin, extra);
   } catch (error) {
     console.log(`JSREPL error.stack:`, error.stack);
