@@ -56,23 +56,6 @@ let get_line_points = ({ count, from: from_location, to: to_location }) => {
   });
 };
 
-let cube_points = (from, to) => {
-  let x_diff = to.getX() - from.getX();
-  let y_diff = to.getY() - from.getY();
-  let z_diff = to.getZ() - from.getZ();
-
-  return [
-    from.clone().add(new Vector(0, 0, 0)), // from
-    from.clone().add(new Vector(x_diff, 0, 0)),
-    from.clone().add(new Vector(x_diff, 0, z_diff)),
-    from.clone().add(new Vector(0, 0, z_diff)),
-    from.clone().add(new Vector(0, y_diff, 0)),
-    from.clone().add(new Vector(x_diff, y_diff, 0)),
-    from.clone().add(new Vector(x_diff, y_diff, z_diff)),
-    from.clone().add(new Vector(0, y_diff, z_diff)) // to
-  ];
-};
-
 let cube_lines = (from, to) => {
   let simple_lines = [
     // front_bottom_right

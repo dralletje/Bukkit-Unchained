@@ -158,11 +158,10 @@ export let SpectatePlugin = (plugin, { defineCommand }) => {
     let player = event.getPlayer();
 
     let spectators = Java.from(plugin.java.getServer().getOnlinePlayers());
-    let message = `${player.getDisplayName()} ${ChatColor.GRAY}used ${
-      ChatColor.WHITE
-    }${event.getMessage()}`;
+    // prettier-ignore
+    let message = `${player.getDisplayName()} ${ChatColor.GRAY}used ${ChatColor.WHITE}${event.getMessage()}`;
     for (let spectator of spectators) {
-      if (player.getSpectatorTarget() === player) {
+      if (spectator.getSpectatorTarget() === player) {
         chat.send_message(spectator, command_info("/spectate", message));
       }
     }
