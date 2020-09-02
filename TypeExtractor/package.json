@@ -1,0 +1,25 @@
+{
+  "name": "typeextractor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "../graal-bin/bin/node --inspect --jvm --polyglot --vm.cp=$(gradle classpath -q) ./src/TypeExtractor.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spring-guides/gs-gradle.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/spring-guides/gs-gradle/issues"
+  },
+  "homepage": "https://github.com/spring-guides/gs-gradle#readme",
+  "dependencies": {
+    "cli-highlight": "^2.1.4",
+    "glob": "^7.1.6",
+    "prettier": "^2.0.5"
+  }
+}
