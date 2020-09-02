@@ -5,6 +5,7 @@ let MineCart = Java.type("org.bukkit.entity.Minecart");
 let Boat = Java.type("org.bukkit.entity.Boat");
 let Material = Java.type("org.bukkit.Material");
 let GameMode = Java.type("org.bukkit.GameMode");
+let Location = Java.type("org.bukkit.Location");
 let Player = Java.type("org.bukkit.entity.Player");
 let EntityDamageEvent = Java.type("org.bukkit.event.entity.EntityDamageEvent");
 let CreatureSpawnEvent = Java.type(
@@ -14,27 +15,9 @@ let Vector = Java.type("org.bukkit.util.Vector");
 let EquipmentSlot = Java.type("org.bukkit.inventory.EquipmentSlot");
 let Packet = require("bukkit/Packet");
 
-let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
-class JavaWeakMap {
-  constructor() {
-    this.java_map = new WeakIdentityHashMap();
-  }
-  clear() {
-    return this.java_map.clear();
-  }
-  delete(key) {
-    return this.java_map.remove(key);
-  }
-  get(key) {
-    return this.java_map.get(key);
-  }
-  has(key) {
-    return this.java_map.containsKey(key);
-  }
-  set(key, value) {
-    return this.java_map.put(key, value);
-  }
-}
+let { JavaWeakMap } = require("./JavaWeakMap");
+
+console.log(`JavaWeakMap:`, JavaWeakMap);
 
 let is_adventure = (player) => player.getGameMode() === GameMode.ADVENTURE;
 
@@ -130,14 +113,21 @@ export let BuildPlugin = (plugin, extra) => {
     }
   });
 
-  plugin.events.CreatureSpawn((event) => {
-    if (
-      event.getSpawnReason &&
-      event.getSpawnReason() === CreatureSpawnEvent.SpawnReason.NATURAL
-    ) {
-      event.setCancelled(true);
+  let SpawnReason = Java.type(
+    "org.bukkit.event.entity.CreatureSpawnEvent$SpawnReason"
+  );
+  plugin.events.CreatureSpawn(
+    /** @param {org$bukkit$event$entity$CreatureSpawnEvent} event */ (
+      event
+    ) => {
+      if (
+        event.getSpawnReason &&
+        event.getSpawnReason() === SpawnReason.NATURAL
+      ) {
+        event.setCancelled(true);
+      }
     }
-  });
+  );
 
   plugin.events.FoodLevelChange((event) => {
     event.setCancelled(true);

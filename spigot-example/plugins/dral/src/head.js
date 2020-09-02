@@ -1,10 +1,10 @@
 let _ = require("lodash");
 let { Worker } = require("worker_threads");
 let Packet = require("bukkit/Packet");
-let fs = require('fs');
+let fs = require("fs");
 
 let { chat } = require("./chat.js");
-let {nbt, unpack_nbt} = require('./_nbt.js');
+let { nbt, unpack_nbt } = require("./_nbt.js");
 
 let UUID = Java.type("java.util.UUID");
 
@@ -26,10 +26,10 @@ let fetch = async (url, options = {}) => {
   let worker = new Worker(`${global.plugin.java.getDataFolder()}/fetch.js`, {
     workerData: {
       url: url,
-      ...options
+      ...options,
     },
     stdout: true,
-    stderr: true
+    stderr: true,
   });
 
   worker.on("exit", () => {
@@ -37,7 +37,7 @@ let fetch = async (url, options = {}) => {
   });
 
   let result = await new Promise((resolve, reject) => {
-    worker.on("message", message => {
+    worker.on("message", (message) => {
       if (message.type === "result_text") {
         resolve(message.result);
       }
@@ -47,43 +47,50 @@ let fetch = async (url, options = {}) => {
 
   return {
     text: async () => result,
-    json: async () => JSON.parse(result)
+    json: async () => JSON.parse(result),
   };
 };
 
-let dev_plugin_data_path = Polyglot.import('plugin').getDataFolder()
+let dev_plugin_data_path = Polyglot.import("plugin")
+  .getDataFolder()
   .toPath()
   .toString();
 
-let ALL_HEADS = JSON.parse(fs.readFileSync(`${dev_plugin_data_path}/minecraft-heads-backup/ALL_HEADS.json`).toString())
+let ALL_HEADS = JSON.parse(
+  fs
+    .readFileSync(
+      `${dev_plugin_data_path}/minecraft-heads-backup/ALL_HEADS.json`
+    )
+    .toString()
+);
 // let all_tags = ALL_HEADS.flatMap(head =>
 //   (head.tags || "").split(/ *, */g).map(x => x.toLowerCase())
 // );
-let all_heads = ALL_HEADS.filter(x => x.name && x.value).map(head => {
+let all_heads = ALL_HEADS.filter((x) => x.name && x.value).map((head) => {
   return {
     name: head.name,
     value: head.value,
     skullowner: head.uuid,
     tags: (head.tags || "").split(/ *, */g),
     tags_search: [
-      ...(head.tags || "").split(/ *, */g).map(x => x.toLowerCase()),
-      head.name.toLowerCase()
-    ]
+      ...(head.tags || "").split(/ *, */g).map((x) => x.toLowerCase()),
+      head.name.toLowerCase(),
+    ],
   };
 });
 
-let fetch_minecraft_heads = async url => {
+let fetch_minecraft_heads = async (url) => {
   let response = await fetch(url);
   let json = await response.json();
-  return json.map(head => ({
+  return json.map((head) => ({
     name: head.name,
     value: head.value,
     skullowner: head.uuid,
     tags: (head.tags || "").split(/ *, */g),
     tags_search: [
-      ...(head.tags || "").split(/ *, */g).map(x => x.toLowerCase()),
-      head.name.toLowerCase()
-    ]
+      ...(head.tags || "").split(/ *, */g).map((x) => x.toLowerCase()),
+      head.name.toLowerCase(),
+    ],
   }));
 };
 
@@ -156,13 +163,13 @@ let FRESHCOAL_CATEGORIES = [
       skullowner: "d93fd71a-94fa-479b-8d8e-8bfb601a8df2",
       category: "decoration",
       value:
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjQ5MzkzNjU0NGNhMjkxYjlmYzc5Mjg2NjNhZTI3NjNlMTgzNTc1NmFhMWIzOTUyZjk2NWQ1MjVjMzkzN2I1ZCJ9fX0="
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjQ5MzkzNjU0NGNhMjkxYjlmYzc5Mjg2NjNhZTI3NjNlMTgzNTc1NmFhMWIzOTUyZjk2NWQ1MjVjMzkzN2I1ZCJ9fX0=",
     },
     fetch: () =>
       fetch_minecraft_heads(
         `https://minecraft-heads.com/scripts/api.php?cat=decoration&tags=true`
-      )
-  }
+      ),
+  },
   // {
   //   title: "Colors",
   //   slug: "color",
@@ -206,7 +213,7 @@ let FRESHCOAL_CATEGORIES = [
   // }
 ];
 
-let fetch_freshcoal_category = async url => {
+let fetch_freshcoal_category = async (url) => {
   let response = await fetch(url);
   let text = await response.text();
 
@@ -216,7 +223,7 @@ let fetch_freshcoal_category = async url => {
   return JSON.parse(json);
 };
 
-let create_itemstack = (material, { name, lore, data }) => {
+let create_itemstack = (material, { name = "", lore = "", data = [] }) => {
   let stack = new ItemStack(material);
   let meta = stack.getItemMeta();
 
@@ -247,7 +254,7 @@ let create_itemstack = (material, { name, lore, data }) => {
 export let head_plugin = async (plugin, { defineCommand }) => {
   // Party from https://gist.github.com/TheLexoPlexx/ed8afd446c0cfda151640cd0f5ccca00 ,
   // though PaperMC has the necessary methods exposed
-  let create_skull_itemstack = skull => {
+  let create_skull_itemstack = (skull) => {
     let stack = new ItemStack(Material.PLAYER_HEAD);
     let meta = stack.getItemMeta();
 
@@ -315,15 +322,15 @@ export let head_plugin = async (plugin, { defineCommand }) => {
       args: [search],
       UserError,
       reply_success,
-      broadcast_action
+      broadcast_action,
     }) => {
       Packet.send_packet(sender, {
         name: "open_window",
         params: {
           windowId: FURNACE_WINDOW_ID,
           inventoryType: 7,
-          windowTitle: JSON.stringify(chat`Heads search`)
-        }
+          windowTitle: JSON.stringify(chat`Heads search`),
+        },
       });
       debounced_search_per_player({ player: sender, search: "" });
       return;
@@ -355,7 +362,7 @@ export let head_plugin = async (plugin, { defineCommand }) => {
             create_skull_itemstack({
               name: name,
               skullowner: sender.getUniqueId(),
-              value: value
+              value: value,
             })
           );
           reply_success(`Here's a ${name} for you!`);
@@ -367,7 +374,7 @@ export let head_plugin = async (plugin, { defineCommand }) => {
           let result = JSON.parse(atob(search));
           let obfuscated = "Unknown Object"
             .split("")
-            .map(x => {
+            .map((x) => {
               let color =
                 Math.random() > 0.7 ? ChatColor.GRAY : ChatColor.MAGIC;
               return `${color}${x}`;
@@ -378,7 +385,7 @@ export let head_plugin = async (plugin, { defineCommand }) => {
             create_skull_itemstack({
               name: `${ChatColor.GRAY}${obfuscated}`,
               skullowner: sender.getUniqueId(),
-              value: search
+              value: search,
             })
           );
           reply_success(`Here's an ${obfuscated} for you!`);
@@ -409,46 +416,26 @@ export let head_plugin = async (plugin, { defineCommand }) => {
       );
 
       sender.openInventory(mask_inventory);
-    }
+    },
   });
 
-  let WeakIdentityHashMap = Java_type("eu.dral.unchained.WeakIdentityHashMap");
-  class JavaWeakMap {
-    constructor() {
-      this.java_map = new WeakIdentityHashMap();
-    }
-    clear() {
-      return this.java_map.clear();
-    }
-    delete(key) {
-      return this.java_map.remove(key);
-    }
-    get(key) {
-      return this.java_map.get(key);
-    }
-    has(key) {
-      return this.java_map.containsKey(key);
-    }
-    set(key, value) {
-      return this.java_map.put(key, value);
-    }
-  }
+  let { JavaWeakMap } = require("./JavaWeakMap");
   let open_inventories = new JavaWeakMap();
 
   let screen_size = 29 - 3 - 2; // Two spaces for next/previous page buttons
   let search_heads = ({ page, search }) => {
-    console.time(`Search for "${search}" on page ${page}:`)
+    console.time(`Search for "${search}" on page ${page}:`);
     let found_heads = [];
     for (let head of heads) {
       if (found_heads.length > screen_size * (page + 1) + 1) break;
       if (
-        head.tags_search.some(x => x.includes(search)) ||
+        head.tags_search.some((x) => x.includes(search)) ||
         head.name.includes(search)
       ) {
         found_heads.push(head);
       }
     }
-    console.timeEnd(`Search for "${search}" on page ${page}:`)
+    console.timeEnd(`Search for "${search}" on page ${page}:`);
     return found_heads;
   };
 
@@ -477,11 +464,16 @@ export let head_plugin = async (plugin, { defineCommand }) => {
     let has_previous_page = page > 0;
     let has_next_page = found_heads.length > (page + 1) * screen_size + 1;
 
-    open_inventories.set(player, { ...open_inventory, search: search, page, heads: found_heads });
+    open_inventories.set(player, {
+      ...open_inventory,
+      search: search,
+      page,
+      heads: found_heads,
+    });
 
-    console.time('Generating inventory packet')
+    console.time("Generating inventory packet");
     let head_items = [
-      ...page_heads.map(head => {
+      ...page_heads.map((head) => {
         return {
           present: true,
           itemId: 771,
@@ -497,21 +489,21 @@ export let head_plugin = async (plugin, { defineCommand }) => {
               Name: nbt.string(player.getName()),
               Properties: nbt.compound({
                 textures: nbt.list(nbt.compound, [
-                  { Value: nbt.string(head.value) }
-                ])
-              })
+                  { Value: nbt.string(head.value) },
+                ]),
+              }),
             }),
             display: nbt.compound({
               Name: nbt.chat(head.name),
               Lore: nbt.list(
                 nbt.string,
-                head.tags.map(x => JSON.stringify(chat`${x}`))
-              )
-            })
-          })
+                head.tags.map((x) => JSON.stringify(chat`${x}`))
+              ),
+            }),
+          }),
         };
       }),
-      ..._.range(page_heads, screen_size + 1).map(() => ({ present: false }))
+      ..._.range(page_heads, screen_size + 1).map(() => ({ present: false })),
     ];
 
     Packet.send_packet(player, {
@@ -520,15 +512,15 @@ export let head_plugin = async (plugin, { defineCommand }) => {
       params: {
         windowId: FURNACE_WINDOW_ID,
         items: [
-          ..._.range(3).map(x => ({
+          ..._.range(3).map((x) => ({
             present: true,
             itemId: 1,
             itemCount: 1,
             nbtData: nbt.root({
               display: nbt.compound({
-                Name: nbt.chat``
-              })
-            })
+                Name: nbt.chat``,
+              }),
+            }),
           })),
           ...head_items.slice(0, 9 * 2),
           has_previous_page
@@ -538,13 +530,13 @@ export let head_plugin = async (plugin, { defineCommand }) => {
                 itemCount: 1,
                 nbtData: nbt.root({
                   display: nbt.compound({
-                    Name: nbt.chat`Previous page`
+                    Name: nbt.chat`Previous page`,
                   }),
                   clickAction: nbt.compound({
                     page: nbt.integer(page - 1),
-                    search: nbt.string(search)
-                  })
-                })
+                    search: nbt.string(search),
+                  }),
+                }),
               }
             : {
                 present: true,
@@ -552,13 +544,13 @@ export let head_plugin = async (plugin, { defineCommand }) => {
                 itemCount: 1,
                 nbtData: nbt.root({
                   display: nbt.compound({
-                    Name: nbt.chat`No previous page`
+                    Name: nbt.chat`No previous page`,
                   }),
                   clickAction: nbt.compound({
                     page: nbt.integer(page),
-                    search: nbt.string(search)
-                  })
-                })
+                    search: nbt.string(search),
+                  }),
+                }),
               },
           ...head_items.slice(9 * 2, 9 * 2 + 7),
           has_next_page
@@ -568,13 +560,13 @@ export let head_plugin = async (plugin, { defineCommand }) => {
                 itemCount: 1,
                 nbtData: nbt.root({
                   display: nbt.compound({
-                    Name: nbt.chat`Next page`
+                    Name: nbt.chat`Next page`,
                   }),
                   clickAction: nbt.compound({
                     page: nbt.integer(page + 1),
-                    search: nbt.string(search)
-                  })
-                })
+                    search: nbt.string(search),
+                  }),
+                }),
               }
             : {
                 present: true,
@@ -582,40 +574,40 @@ export let head_plugin = async (plugin, { defineCommand }) => {
                 itemCount: 1,
                 nbtData: nbt.root({
                   display: nbt.compound({
-                    Name: nbt.chat`No next page`
+                    Name: nbt.chat`No next page`,
                   }),
                   clickAction: nbt.compound({
                     page: nbt.integer(page),
-                    search: nbt.string(search)
-                  })
-                })
-              }
-        ]
-      }
+                    search: nbt.string(search),
+                  }),
+                }),
+              },
+        ],
+      },
     });
-    console.timeEnd('Generating inventory packet')
+    console.timeEnd("Generating inventory packet");
   };
 
   _.memoize.Cache = JavaWeakMap;
-  let debounced_search_per_player_map = _.memoize(player => {
+  let debounced_search_per_player_map = _.memoize((player) => {
     return _.debounce(populate_search_inventory, 500);
   });
-  let debounced_search_per_player = options => {
+  let debounced_search_per_player = (options) => {
     let fn = debounced_search_per_player_map(options.player);
     fn(options);
   };
 
-  Packet.addIncomingPacketListener(Packet.fromClient.ITEM_NAME, event => {
+  Packet.addIncomingPacketListener(Packet.fromClient.ITEM_NAME, (event) => {
     let player = event.getPlayer();
     let {
-      params: { name }
+      params: { name },
     } = event.getData();
     debounced_search_per_player({ player, search: name.toLowerCase() });
   });
-  Packet.addIncomingPacketListener(Packet.fromClient.WINDOW_CLICK, event => {
+  Packet.addIncomingPacketListener(Packet.fromClient.WINDOW_CLICK, (event) => {
     let player = event.getPlayer();
     let {
-      params: { windowId, action, item, ...params }
+      params: { windowId, action, item, ...params },
     } = event.getData();
 
     let open_inventory = open_inventories.get(player);
@@ -623,7 +615,9 @@ export let head_plugin = async (plugin, { defineCommand }) => {
       return;
     }
     if (open_inventory == null) {
-      console.warn('Window ID was FURNACE_WINDOW_ID but no open inventory for player');
+      console.warn(
+        "Window ID was FURNACE_WINDOW_ID but no open inventory for player"
+      );
       return;
     }
     event.setCancelled(true);
@@ -641,27 +635,26 @@ export let head_plugin = async (plugin, { defineCommand }) => {
           params: {
             windowId: FURNACE_WINDOW_ID,
             action: action,
-            accepted: false
-          }
+            accepted: false,
+          },
         });
         Packet.send_packet(player, {
           name: "set_slot",
           params: {
             windowId: -1,
             slot: -1,
-            item: { present: false }
-          }
+            item: { present: false },
+          },
         });
         populate_search_inventory({ player, search: search, page: page });
       } else {
-        console.log(`params:`, params)
+        console.log(`params:`, params);
         if (params.mode === 0) {
           // NOTE should always be a player head 🤔
-          let skullitem = create_skull_itemstack(item_nbt.Dral_Skullinfo)
+          let skullitem = create_skull_itemstack(item_nbt.Dral_Skullinfo);
           open_inventory.current_item = skullitem;
           open_inventories.set(player, open_inventory);
-        }
-        else if (params.mode === 1) {
+        } else if (params.mode === 1) {
           // player.getInventory.
           // TODO Add item to inventory
         }
@@ -670,20 +663,22 @@ export let head_plugin = async (plugin, { defineCommand }) => {
           params: {
             windowId: FURNACE_WINDOW_ID,
             action: action,
-            accepted: true
-          }
+            accepted: true,
+          },
         });
         populate_search_inventory({
           player,
           search: open_inventory.search,
-          page: open_inventory.page
+          page: open_inventory.page,
         });
       }
     } else {
       if (params.slot > 29) {
         // HOTBAR
         let item_to_set = open_inventory.current_item;
-        open_inventory.current_item = player.getInventory().getItem(params.slot - 30);
+        open_inventory.current_item = player
+          .getInventory()
+          .getItem(params.slot - 30);
         player.getInventory().setItem(params.slot - 30, item_to_set);
       } else {
         Packet.send_packet(player, {
@@ -691,22 +686,22 @@ export let head_plugin = async (plugin, { defineCommand }) => {
           params: {
             windowId: FURNACE_WINDOW_ID,
             action: action,
-            accepted: true
-          }
+            accepted: true,
+          },
         });
         populate_search_inventory({
           player,
           search: open_inventory.search,
-          page: open_inventory.page
+          page: open_inventory.page,
         });
       }
     }
   });
 
-  Packet.addIncomingPacketListener(Packet.fromClient.CLOSE_WINDOW, event => {
+  Packet.addIncomingPacketListener(Packet.fromClient.CLOSE_WINDOW, (event) => {
     let player = event.getPlayer();
     let {
-      params: { windowId }
+      params: { windowId },
     } = event.getData();
 
     if (windowId === FURNACE_WINDOW_ID) {
@@ -716,7 +711,7 @@ export let head_plugin = async (plugin, { defineCommand }) => {
   });
 
   let get_contents_for_name_and_page = (name, page = 0) => {
-    let all_items_for_category = heads.filter(x => x.category === name);
+    let all_items_for_category = heads.filter((x) => x.category === name);
     let page_count =
       all_items_for_category.length > 54
         ? Math.ceil(all_items_for_category.length / 51)
@@ -729,7 +724,7 @@ export let head_plugin = async (plugin, { defineCommand }) => {
     let menu =
       has_next_page || has_previous_page
         ? [
-            ...items.slice(0, 51).map(skull => create_skull_itemstack(skull)),
+            ...items.slice(0, 51).map((skull) => create_skull_itemstack(skull)),
             ..._.range(Math.max(51 - items.length, 0)).map(() => NULL_ITEM),
             NULL_ITEM,
             has_previous_page
@@ -737,41 +732,41 @@ export let head_plugin = async (plugin, { defineCommand }) => {
                   name: `${ChatColor.DARK_PURPLE}Previous page ${ChatColor.GRAY}(${page}/${page_count})`,
                   data: [
                     [category_key, PersistentDataType.STRING, name],
-                    [page_key, PersistentDataType.INTEGER, page - 1]
-                  ]
+                    [page_key, PersistentDataType.INTEGER, page - 1],
+                  ],
                 })
               : create_itemstack(Material.LIGHT_GRAY_CONCRETE, {
                   name: `${ChatColor.GRAY}No previous page`,
                   data: [
                     [category_key, PersistentDataType.STRING, name],
-                    [page_key, PersistentDataType.INTEGER, page]
-                  ]
+                    [page_key, PersistentDataType.INTEGER, page],
+                  ],
                 }),
 
             has_next_page
               ? create_itemstack(Material.WHITE_CONCRETE, {
-                  name: `${ChatColor.DARK_PURPLE}Next page ${
-                    ChatColor.GRAY
-                  }(${page + 2}/${page_count})`,
+                  name: `${ChatColor.DARK_PURPLE}Next page ${ChatColor.GRAY}(${
+                    page + 2
+                  }/${page_count})`,
                   data: [
                     [category_key, PersistentDataType.STRING, name],
-                    [page_key, PersistentDataType.INTEGER, page + 1]
-                  ]
+                    [page_key, PersistentDataType.INTEGER, page + 1],
+                  ],
                 })
               : create_itemstack(Material.LIGHT_GRAY_CONCRETE, {
                   name: `${ChatColor.GRAY}No next page`,
                   data: [
                     [category_key, PersistentDataType.STRING, name],
-                    [page_key, PersistentDataType.INTEGER, page]
-                  ]
-                })
+                    [page_key, PersistentDataType.INTEGER, page],
+                  ],
+                }),
           ]
-        : items.map(skull => create_skull_itemstack(skull));
+        : items.map((skull) => create_skull_itemstack(skull));
     return menu;
   };
 
   // TODO Maybe multiple pages?
-  plugin.events.InventoryClick(event => {
+  plugin.events.InventoryClick((event) => {
     let player = event.getWhoClicked();
     let inventory = event.getClickedInventory();
     let item = event.getCurrentItem();

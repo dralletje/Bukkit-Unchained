@@ -20,19 +20,22 @@ public class Unchained extends JavaPlugin implements Listener {
     public void onEnable() {
       Unchained.self = this;
       try {
-        this.javascript_context = new WorkerContext("./" + getDataFolder().toString() + "/dist/UnchainedMain.js", this);
-        this.javascript_context.getExports().execute("onEnable");
-      } catch (Exception error) {}
+        Unchained.javascript_context = new WorkerContext("./" + getDataFolder().toString() + "/dist/UnchainedMain.js", this);
+        Unchained.javascript_context.getExports().execute("onEnable");
+      } catch (Exception error) {
+      }
     }
 
     @Override
     public void onDisable() {
-        this.javascript_context.close();
+      Unchained.javascript_context.close();
     }
+
+    
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-      this.javascript_context.getExports().execute("onCommand", sender, command, label, args);
+      Unchained.javascript_context.getExports().execute("onCommand", sender, command, label, args);
       return true;
     }
 }
