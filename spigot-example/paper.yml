@@ -10,9 +10,12 @@
 # Website: https://papermc.io/ 
 # Docs: https://paper.readthedocs.org/ 
 
+allow-perm-block-break-exploits: false
 verbose: false
 config-version: 20
 settings:
+  chunk-tasks-per-tick: 1000
+  console-has-all-permissions: false
   enable-player-collisions: true
   player-auto-save-rate: -1
   max-player-auto-save-per-tick: -1
@@ -29,9 +32,7 @@ settings:
   suggest-player-names-when-null-tab-completions: true
   async-chunks:
     enable: true
-    generation: true
-    thread-per-world-generation: true
-    load-threads: -1
+    threads: -1
   velocity-support:
     enabled: false
     online-mode: false
@@ -45,6 +46,8 @@ settings:
   book-size:
     page-max: 2560
     total-multiplier: 0.98
+  unsupported-settings:
+    allow-piston-duplication: false
 timings:
   server-name: Dev Server
   enabled: false
@@ -66,6 +69,8 @@ messages:
     flying-vehicle: Flying is not enabled on this server
 world-settings:
   default:
+    phantoms-do-not-spawn-on-creative-players: true
+    phantoms-only-attack-insomniacs: true
     light-queue-size: 20
     portal-create-radius: 16
     zombie-villager-infection-chance: -1.0
@@ -207,3 +212,5 @@ world-settings:
       items:
         COBBLESTONE: 300
     baby-zombie-movement-modifier: 0.5
+    viewdistances:
+      no-tick-view-distance: -1
