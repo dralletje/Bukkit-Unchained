@@ -17,7 +17,7 @@
     "react-three-fiber": "^3.0.7",
     "socket.io-client": "^2.3.0",
     "styled-components": "^4.4.0",
-    "three": "^0.109.0",
+    "three": "^0.125.0",
     "worker-loader": "^2.0.0"
   },
   "scripts": {
